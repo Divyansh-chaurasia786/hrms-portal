@@ -1,121 +1,105 @@
+<!-- views/admin/smart_sheets.php -->
 <?php
-// views/admin/smart_sheets.php
-$title = "AI Smart Sheet & Document Hub - Ecofone HRMS";
-require __DIR__ . '/../layouts/header.php';
-require __DIR__ . '/../layouts/sidebar.php';
+$user = authUser();
+$db = getDBConnection();
+
+$sheets = $db->query("
+    SELECT s.*, u.name as uploader_name
+    FROM smart_sheet_uploads s
+    JOIN users u ON s.uploaded_by = u.id
+    ORDER BY s.created_at DESC
+")->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<main class="flex-1 min-w-0 overflow-y-auto bg-slate-900 text-slate-100 p-4 sm:p-8">
-    <div class="max-w-6xl mx-auto space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+<div class="space-y-6" x-data="{ uploadModalOpen: false, selectedSheet: null }">
+    <!-- Header Banner -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+            </div>
             <div>
-                <h1 class="text-2xl font-bold text-white flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                        <i data-lucide="sparkles" class="w-5 h-5"></i>
-                    </div>
-                    Smart Sheet & AI Document Ingestion Hub
-                </h1>
-                <p class="text-xs text-slate-400 mt-1">Exclusive Head HR & Junior HR portal. Upload any Google Sheet link, Excel, or CSV to auto-generate dynamic modules & formula summaries.</p>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Smart Sheet & AI Ingestion Hub</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Exclusive to Head HR & Junior HR. Import Google Sheets, Excel, or CSV with auto-structuring & formula sums.</p>
             </div>
-            <button onclick="document.getElementById('uploadSmartSheetModal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30">
-                <i data-lucide="plus" class="w-4 h-4"></i> Upload New Sheet
-            </button>
         </div>
 
-        <?php $flash = getFlash(); if ($flash): ?>
-            <div class="p-4 rounded-2xl text-xs font-medium <?= $flash['type'] === 'error' ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' ?>">
-                <?= $flash['message'] ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Sheets List & Dynamic Views -->
-        <div class="space-y-6">
-            <?php if (empty($sheets)): ?>
-                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-500 text-xs shadow-xl">
-                    <i data-lucide="table" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-                    No custom or imported smart sheets yet. Click 'Upload New Sheet' to import your first Google Sheet or Excel file!
-                </div>
-            <?php else: ?>
-                <?php foreach ($sheets as $s): 
-                    $cols = json_decode($s['columns_json'], true) ?: [];
-                    $rows = json_decode($s['rows_json'], true) ?: [];
-                    $sum = json_decode($s['summary_json'], true) ?: [];
-                ?>
-                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
-                            <div>
-                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                                    Category: <?= strtoupper($s['category']) ?>
-                                </span>
-                                <h3 class="text-base font-bold text-white mt-1.5"><?= htmlspecialchars($s['title']) ?></h3>
-                                <p class="text-[11px] text-slate-500">Source: <?= htmlspecialchars($s['original_filename']) ?> • <?= count($rows) ?> rows detected</p>
-                            </div>
-                            <div class="text-xs text-slate-400">
-                                Uploaded <?= date('d M Y, h:i A', strtotime($s['created_at'])) ?>
-                            </div>
-                        </div>
-
-                        <!-- Auto-Calculated Formula Summary Cards -->
-                        <?php if (!empty($sum['column_sums'])): ?>
-                            <div class="flex flex-wrap gap-3">
-                                <?php foreach ($sum['column_sums'] as $colIdx => $colSum): if (isset($cols[$colIdx])): ?>
-                                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                        <div class="text-[10px] uppercase font-bold text-slate-500"><?= htmlspecialchars($cols[$colIdx]) ?> (SUM)</div>
-                                        <div class="text-sm font-extrabold text-emerald-400 mt-0.5"><?= number_format($colSum, 2) ?></div>
-                                    </div>
-                                <?php endif; endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-
-                        <!-- Dynamic Table View -->
-                        <div class="overflow-x-auto max-h-72 border border-slate-800 rounded-2xl">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-slate-950 sticky top-0">
-                                    <tr class="border-b border-slate-800 text-slate-400">
-                                        <?php foreach ($cols as $c): ?>
-                                            <th class="p-3 font-bold"><?= htmlspecialchars($c) ?></th>
-                                        <?php endforeach; ?>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-800/60">
-                                    <?php foreach (array_slice($rows, 0, 20) as $row): ?>
-                                        <tr class="hover:bg-slate-800/30">
-                                            <?php foreach ($row as $val): ?>
-                                                <td class="p-3 text-slate-300"><?= htmlspecialchars((string)$val) ?></td>
-                                            <?php endforeach; ?>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
+        <button type="button" @click="uploadModalOpen = true" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="upload" class="w-4 h-4"></i> Upload / Import Sheet
+        </button>
     </div>
-</main>
 
-<div id="uploadSmartSheetModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
-        <h3 class="text-lg font-bold text-white">Import Smart Sheet / Google Sheet</h3>
-        <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Sheet Title</label>
-                <input type="text" name="title" required placeholder="e.g. Q3 Sales & Calling Roster" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white">
+    <!-- Sheets Grid -->
+    <?php if (empty($sheets)): ?>
+        <div class="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Upload CSV / Excel File</label>
-                <input type="file" name="sheet_file" accept=".csv" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white">
+            <h3 class="text-sm font-bold text-slate-800">No Sheets Imported Yet</h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Upload an existing Google Sheet URL or CSV file to auto-generate structured dashboards and formula calculations.</p>
+        </div>
+    <?php else: ?>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <?php foreach ($sheets as $s): ?>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition">
+                    <div>
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($s['sheet_title']) ?></h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <?= htmlspecialchars($s['detected_category']) ?>
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-2 space-y-1">
+                            <div>Rows: <strong class="text-slate-800"><?= (int)$s['row_count'] ?></strong></div>
+                            <div>Imported by: <strong class="text-slate-800"><?= htmlspecialchars($s['uploader_name']) ?></strong></div>
+                            <div class="text-[10px] font-mono text-slate-400"><?= date('d M Y, h:i A', strtotime($s['created_at'])) ?></div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <button type="button" @click="selectedSheet = <?= htmlspecialchars(json_encode($s)) ?>" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> View Dynamic UI
+                        </button>
+                        <form action="?action=delete-smart-sheet" method="POST" onsubmit="return confirm('Delete this smart sheet?');" class="inline">
+                            <input type="hidden" name="sheet_id" value="<?= $s['id'] ?>">
+                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- Upload Modal -->
+    <div x-show="uploadModalOpen" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="uploadModalOpen = false"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-900">Import Google Sheet / CSV</h3>
+                    <button type="button" @click="uploadModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Sheet Title *</label>
+                        <input type="text" name="sheet_title" required placeholder="e.g. Q3 Employee Attendance & Asset Register" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Public Link (Optional)</label>
+                        <input type="url" name="google_sheet_url" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Or Upload CSV / Excel File</label>
+                        <input type="file" name="sheet_file" accept=".csv, .xlsx, .xls" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" @click="uploadModalOpen = false" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-sm">Process & Ingest</button>
+                    </div>
+                </form>
             </div>
-            <div class="text-center text-xs text-slate-500 font-bold">— OR —</div>
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Google Sheet Public Link</label>
-                <input type="url" name="sheet_url" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white">
-            </div>
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onclick="document.getElementById('uploadSmartSheetModal').classList.add('hidden')" class="px-4 py-2 rounded-xl text-xs text-slate-400">Cancel</button>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs">Import Sheet</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
-<?php require __DIR__ . '/../layouts/footer.php'; ?>

@@ -1,113 +1,138 @@
+<!-- views/admin/travel_radar.php -->
 <?php
-// views/admin/travel_radar.php
-$title = "Field Travel Radar & Live Route Map - Ecofone HRMS";
-require __DIR__ . '/../layouts/header.php';
-require __DIR__ . '/../layouts/sidebar.php';
+$user = authUser();
 $db = getDBConnection();
 $today = date('Y-m-d');
-$fieldAgents = $db->query("
-    SELECT u.id, u.name, u.emp_id, u.designation, a.id as attendance_id, a.punch_in_time, a.punch_out_time,
-           (SELECT COUNT(*) FROM employee_travel_logs WHERE attendance_id = a.id) as log_count,
-           (SELECT SUM(distance_meters) FROM employee_travel_logs WHERE attendance_id = a.id) as total_meters
-    FROM users u
-    JOIN attendance a ON u.id = a.user_id AND a.date = '{$today}'
-    WHERE u.work_mode = 'field'
-    ORDER BY a.punch_in_time DESC
-")->fetchAll(PDO::FETCH_ASSOC);
-?>
-<!-- Leaflet CSS & JS for Interactive Route Map -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<main class="flex-1 min-w-0 overflow-y-auto bg-slate-900 text-slate-100 p-4 sm:p-8">
-    <div class="max-w-6xl mx-auto space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+// Fetch all active field staff with their latest coordinates
+$fieldEmployees = $db->query("
+    SELECT u.id, u.name, u.emp_id, u.designation, u.work_mode, u.department_name,
+           a.id as attendance_id, a.clock_in, a.clock_out,
+           tl.name as tl_name
+    FROM users u
+    LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$today}'
+    LEFT JOIN users tl ON u.reporting_tl_id = tl.id
+    WHERE u.work_mode = 'field' AND u.status = 'active'
+    ORDER BY a.clock_in DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch recent coordinates for today
+$travelLogs = $db->query("
+    SELECT l.*, u.name as emp_name, u.emp_id as emp_code
+    FROM employee_travel_logs l
+    JOIN users u ON l.user_id = u.id
+    WHERE l.log_date = '{$today}'
+    ORDER BY l.logged_at ASC
+")->fetchAll(PDO::FETCH_ASSOC);
+
+// Total KM logged today across company
+$totalKmToday = 0;
+foreach ($travelLogs as $tl) {
+    // Aggregation if needed
+}
+?>
+
+<div class="space-y-6" x-data="{ selectedEmpId: '', logs: <?= htmlspecialchars(json_encode($travelLogs)) ?> }">
+    <!-- Header Banner -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                <i data-lucide="map" class="w-5 h-5"></i>
+            </div>
             <div>
-                <h1 class="text-2xl font-bold text-white flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                        <i data-lucide="map-pin" class="w-5 h-5"></i>
-                    </div>
-                    Field Travel Radar & Live Route Map
-                </h1>
-                <p class="text-xs text-slate-400 mt-1">Live tracking and total KM calculation for field agents from Punch-In to Punch-Out.</p>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Field Staff Travel Radar</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Live GPS routes, movement trails, and travel distance tracking for on-field staff.</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Active Agents List -->
-            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Field Staff Today (<?= count($fieldAgents) ?>)</h2>
-                <?php if (empty($fieldAgents)): ?>
-                    <div class="text-xs text-slate-500 text-center py-8">No field employees punched in today yet.</div>
-                <?php else: ?>
-                    <div class="space-y-2.5">
-                        <?php foreach ($fieldAgents as $agent): 
-                            $km = round(($agent['total_meters'] ?? 0) / 1000, 2);
-                        ?>
-                            <div onclick="loadAgentRoute(<?= $agent['attendance_id'] ?>, '<?= htmlspecialchars($agent['name']) ?>')" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition space-y-1">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-bold text-white text-xs"><?= htmlspecialchars($agent['name']) ?></span>
-                                    <span class="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20"><?= $km ?> KM</span>
-                                </div>
-                                <div class="text-[11px] text-slate-500 flex items-center justify-between">
-                                    <span><?= $agent['emp_id'] ?></span>
-                                    <span>In: <?= date('h:i A', strtotime($agent['punch_in_time'])) ?></span>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- Leaflet Interactive Map -->
-            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3 flex flex-col">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                        <i data-lucide="navigation" class="w-4 h-4 text-indigo-400"></i> Route Trail Visualizer
-                    </h3>
-                    <span id="selectedAgentLabel" class="text-xs text-indigo-300 font-semibold">Select an agent</span>
-                </div>
-                <div id="radarMap" class="w-full h-96 rounded-2xl border border-slate-800 overflow-hidden bg-slate-950"></div>
-            </div>
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <?= count(array_filter($fieldEmployees, fn($f) => !empty($f['clock_in']) && empty($f['clock_out']))) ?> Active on Field
+            </span>
         </div>
     </div>
-</main>
 
+    <!-- Radar Map & Active Staff Split -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: Active Field Staff List -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                <span>Field Workforce (<?= count($fieldEmployees) ?>)</span>
+                <span class="text-[10px] text-slate-400">Date: <?= date('d M Y') ?></span>
+            </h3>
+
+            <?php if (empty($fieldEmployees)): ?>
+                <div class="text-center py-8 text-slate-400 text-xs">
+                    <i data-lucide="users" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+                    No staff currently marked as 'Field Staff'.
+                </div>
+            <?php else: ?>
+                <div class="space-y-2.5 max-h-[450px] overflow-y-auto no-scrollbar">
+                    <?php foreach ($fieldEmployees as $fe): 
+                        $isOnShift = (!empty($fe['clock_in']) && empty($fe['clock_out']));
+                    ?>
+                        <div class="p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100 transition flex items-center justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-xs text-slate-900 truncate"><?= htmlspecialchars($fe['name']) ?></span>
+                                    <span class="font-mono text-[10px] text-slate-400">(<?= htmlspecialchars($fe['emp_id']) ?>)</span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 truncate"><?= htmlspecialchars($fe['designation']) ?> • TL: <?= htmlspecialchars($fe['tl_name'] ?? 'HR Direct') ?></div>
+                            </div>
+                            <div class="shrink-0 text-right">
+                                <?php if ($isOnShift): ?>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-200 animate-pulse">On Field</span>
+                                    <span class="block text-[9px] font-mono text-slate-400 mt-0.5">In: <?= date('h:i A', strtotime($fe['clock_in'])) ?></span>
+                                <?php else: ?>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600">Offline</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Right: OpenStreetMap Interactive Trail -->
+        <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="navigation" class="w-4 h-4 text-indigo-600"></i>
+                    <span class="font-bold text-xs text-slate-800 uppercase tracking-wider">Live Route Trail & Waypoints</span>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-500 font-mono"><?= count($travelLogs) ?> waypoints logged today</span>
+            </div>
+
+            <!-- Leaflet Map Container -->
+            <div id="travelMap" class="w-full h-96 rounded-xl border border-slate-200 z-10"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS & CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-let map = L.map('radarMap').setView([26.8467, 80.9462], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('travelMap').setView([26.884578, 80.938924], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-let currentPolyline = null;
-let currentMarkers = [];
+    const logs = <?= json_encode($travelLogs) ?>;
+    if (logs.length > 0) {
+        const latlngs = logs.map(l => [parseFloat(l.latitude), parseFloat(l.longitude)]);
+        const polyline = L.polyline(latlngs, {color: '#6366f1', weight: 4, opacity: 0.8}).addTo(map);
+        map.fitBounds(polyline.getBounds());
 
-function loadAgentRoute(attendanceId, name) {
-    document.getElementById('selectedAgentLabel').innerText = 'Viewing: ' + name;
-    fetch(`?action=get-travel-logs&attendance_id=${attendanceId}`)
-        .then(res => res.json())
-        .then(logs => {
-            if (currentPolyline) map.removeLayer(currentPolyline);
-            currentMarkers.forEach(m => map.removeLayer(m));
-            currentMarkers = [];
-
-            if (logs.length === 0) {
-                alert('No GPS breadcrumbs logged yet for this agent.');
-                return;
-            }
-
-            let latlngs = logs.map(l => [parseFloat(l.latitude), parseFloat(l.longitude)]);
-            currentPolyline = L.polyline(latlngs, {color: '#4f46e5', weight: 4}).addTo(map);
-            
-            // Add Start & End Markers
-            let startMarker = L.marker(latlngs[0]).addTo(map).bindPopup(`🟢 Start: ${name}`).openPopup();
-            currentMarkers.push(startMarker);
-            if (latlngs.length > 1) {
-                let endMarker = L.marker(latlngs[latlngs.length - 1]).addTo(map).bindPopup(`📍 Current / End`);
-                currentMarkers.push(endMarker);
-            }
-            map.fitBounds(currentPolyline.getBounds(), {padding: [50, 50]});
+        logs.forEach((l, idx) => {
+            const isLatest = (idx === logs.length - 1);
+            L.marker([parseFloat(l.latitude), parseFloat(l.longitude)])
+             .addTo(map)
+             .bindPopup(`<strong>${l.emp_name}</strong><br>Time: ${l.logged_at}<br>Speed: ${l.speed_kmh || 0} km/h`);
         });
-}
+    }
+});
 </script>
-<?php require __DIR__ . '/../layouts/footer.php'; ?>

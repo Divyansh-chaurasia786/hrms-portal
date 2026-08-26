@@ -1,109 +1,145 @@
+<!-- views/admin/roles.php -->
 <?php
-// views/admin/roles.php
-$title = "Role Management & Hierarchy - Enterprise HRMS";
-require __DIR__ . '/../layouts/header.php';
-require __DIR__ . '/../layouts/sidebar.php';
+$user = authUser();
+$db = getDBConnection();
+
+$roles = $db->query("SELECT * FROM roles_master ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+// Count active users per role designation
+$roleCounts = $db->query("SELECT LOWER(designation) as desig, COUNT(*) as cnt FROM users WHERE status = 'active' GROUP BY LOWER(designation)")->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
 ?>
-<main class="flex-1 min-w-0 overflow-y-auto bg-slate-900 text-slate-100 p-4 sm:p-8">
-    <div class="max-w-6xl mx-auto space-y-6">
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
-                    </div>
-                    Role Management & Authority Hierarchy
-                </h1>
-                <p class="text-xs text-slate-400 mt-1">Configure company designations and designate who can act as a Reporting Authority (Manager / Lead).</p>
+
+<div class="space-y-6" x-data="{ addModalOpen: false, editModalOpen: false, selectedRole: null }">
+    <!-- Header Banner -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
             </div>
-            <button onclick="document.getElementById('addRoleModal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/30">
-                <i data-lucide="plus" class="w-4 h-4"></i> Add Custom Role
-            </button>
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Role & Hierarchy Management</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Configure corporate designations and control who can act as a Reporting Authority (Manager).</p>
+            </div>
         </div>
 
-        <?php $flash = getFlash(); if ($flash): ?>
-            <div class="p-4 rounded-2xl text-xs font-medium <?= $flash['type'] === 'error' ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' ?>">
-                <?= $flash['message'] ?>
-            </div>
-        <?php endif; ?>
+        <button type="button" @click="addModalOpen = true" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Custom Role
+        </button>
+    </div>
 
-        <!-- Roles Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <?php foreach ($roles as $r): ?>
-                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 hover:border-slate-700 transition">
-                    <div class="flex items-start justify-between">
+    <!-- Roles Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <?php foreach ($roles as $r): 
+            $userCnt = $roleCounts[strtolower($r['name'])] ?? 0;
+        ?>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-300 transition">
+                <div>
+                    <div class="flex items-start justify-between gap-2">
                         <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-                                <?= htmlspecialchars($r['department_name'] ?? 'General') ?>
-                            </span>
-                            <h3 class="text-base font-bold text-white mt-2"><?= htmlspecialchars($r['name']) ?></h3>
-                            <p class="text-[11px] font-mono text-slate-500">Code: <?= htmlspecialchars($r['code']) ?></p>
+                            <h3 class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($r['name']) ?></h3>
+                            <span class="text-[10px] font-mono text-slate-400 block mt-0.5"><?= htmlspecialchars($r['slug']) ?></span>
                         </div>
-                        <?php if ($r['code'] !== 'head_hr'): ?>
-                            <form action="?action=delete-role" method="POST" onsubmit="return confirm('Delete role <?= htmlspecialchars($r['name']) ?>?');">
-                                <input type="hidden" name="id" value="<?= $r['id'] ?>">
-                                <button type="submit" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </form>
+                        <?php if ($r['can_be_reporting_authority']): ?>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                <i data-lucide="crown" class="w-3 h-3"></i> Authority
+                            </span>
+                        <?php else: ?>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200">
+                                Staff / Individual
+                            </span>
                         <?php endif; ?>
                     </div>
 
-                    <!-- Authority Badge -->
-                    <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full <?= !empty($r['can_be_reporting_authority']) ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-slate-600' ?>"></span>
-                            <span class="text-xs font-semibold <?= !empty($r['can_be_reporting_authority']) ? 'text-emerald-300' : 'text-slate-400' ?>">
-                                <?= !empty($r['can_be_reporting_authority']) ? '👑 Reporting Authority' : '👤 Team Member' ?>
-                            </span>
-                        </div>
-                        <span class="text-[11px] text-slate-500 font-medium">
-                            <?= (int)($roleCounts[$r['name']] ?? 0) ?> active
-                        </span>
+                    <p class="text-xs text-slate-500 mt-2.5 line-clamp-2">
+                        <?= htmlspecialchars($r['description'] ?: 'Standard organizational designation.') ?>
+                    </p>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500">
+                        <strong class="text-slate-800"><?= $userCnt ?></strong> active member(s)
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" @click="selectedRole = <?= htmlspecialchars(json_encode($r)) ?>; editModalOpen = true" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-50 transition" title="Edit Role">
+                            <i data-lucide="edit-2" class="w-4 h-4"></i>
+                        </button>
+                        <form action="?action=delete-role" method="POST" onsubmit="return confirm('Are you sure you want to delete this role?');" class="inline">
+                            <input type="hidden" name="role_id" value="<?= $r['id'] ?>">
+                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Delete Role">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <!-- Add Role Modal -->
+    <div x-show="addModalOpen" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="addModalOpen = false"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-900">Add New Designation / Role</h3>
+                    <button type="button" @click="addModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <form action="?action=create-role" method="POST" class="space-y-4 pt-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Role / Designation Title *</label>
+                        <input type="text" name="name" required placeholder="e.g. Operations Manager" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Description</label>
+                        <textarea name="description" rows="2" placeholder="Responsibilities and scope..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs"></textarea>
+                    </div>
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <label class="flex items-center gap-2.5 cursor-pointer">
+                            <input type="checkbox" name="can_be_reporting_authority" value="1" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-xs font-bold text-slate-800">Can be a Reporting Authority?</span>
+                        </label>
+                        <p class="text-[11px] text-slate-400 mt-1 pl-6.5">If checked, employees with this role can be selected as a Reporting Manager during onboarding.</p>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" @click="addModalOpen = false" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm">Save Role</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</main>
 
-<!-- Add Role Modal -->
-<div id="addRoleModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5">
-        <div class="flex items-center justify-between">
-            <h3 class="text-lg font-bold text-white">Add Custom Role / Designation</h3>
-            <button onclick="document.getElementById('addRoleModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
+    <!-- Edit Role Modal -->
+    <div x-show="editModalOpen && selectedRole" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="editModalOpen = false"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-900">Edit Designation / Role</h3>
+                    <button type="button" @click="editModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <form action="?action=update-role" method="POST" class="space-y-4 pt-4">
+                    <input type="hidden" name="role_id" :value="selectedRole ? selectedRole.id : ''">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Role Title *</label>
+                        <input type="text" name="name" :value="selectedRole ? selectedRole.name : ''" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Description</label>
+                        <textarea name="description" rows="2" :value="selectedRole ? selectedRole.description : ''" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs"></textarea>
+                    </div>
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <label class="flex items-center gap-2.5 cursor-pointer">
+                            <input type="checkbox" name="can_be_reporting_authority" value="1" :checked="selectedRole && Number(selectedRole.can_be_reporting_authority) === 1" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-xs font-bold text-slate-800">Can be a Reporting Authority?</span>
+                        </label>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" @click="editModalOpen = false" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm">Update Role</button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <form action="?action=create-role" method="POST" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Role / Designation Title</label>
-                <input type="text" name="name" required placeholder="e.g. Operations Lead, SDE-2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Department</label>
-                <select name="department_name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
-                    <option value="Tech / Development">Tech / Development</option>
-                    <option value="Calling / Sales">Calling / Sales</option>
-                    <option value="Field Operations">Field Operations</option>
-                    <option value="HR & Administration">HR & Administration</option>
-                    <option value="Management">Management</option>
-                    <option value="General">General</option>
-                </select>
-            </div>
-            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 flex items-center gap-3">
-                <input type="checkbox" id="can_be_reporting_authority" name="can_be_reporting_authority" value="1" class="w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700">
-                <label for="can_be_reporting_authority" class="text-xs font-semibold text-slate-200 cursor-pointer">
-                    Can be a Reporting Authority (Appears in "Reports To" list)
-                </label>
-            </div>
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onclick="document.getElementById('addRoleModal').classList.add('hidden')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30">Save Role</button>
-            </div>
-        </form>
     </div>
 </div>
-<?php require __DIR__ . '/../layouts/footer.php'; ?>
