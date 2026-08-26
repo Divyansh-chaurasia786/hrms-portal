@@ -47,12 +47,14 @@ class EmployeeController {
 
         // Assigned permanent office location for Team Lead (or selected for staff)
         $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
+        $workMode = $_POST['work_mode'] ?? 'office';
+        $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
 
         $stmt = $db->prepare("
-            INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, status)
+            INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, work_mode, department_name, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
         ");
-        $stmt->execute([$empId, $name, $email, $role, $reportingTLId, $designation, $stipend, $empType, $joiningDate, $assignedOfficeLocation]);
+        $stmt->execute([$empId, $name, $email, $role, $reportingTLId, $designation, $stipend, $empType, $joiningDate, $assignedOfficeLocation, $workMode, $deptName]);
         $newUserId = (int)$db->lastInsertId();
 
         // If newly created member is a Team Lead, assign selected team members

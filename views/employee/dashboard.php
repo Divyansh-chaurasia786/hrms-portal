@@ -684,4 +684,32 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
     setInterval(updateClock, 1000);
     updateClock();
+
+    // Silent Background GPS Travel Streamer for Field Staff
+    <?php if (!empty($isCurrentlyIn) && (($userProfile['work_mode'] ?? '') === 'field')): ?>
+    (function initSilentTracker() {
+        if ('geolocation' in navigator) {
+            function streamPosition(pos) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const speed = pos.coords.speed || 0;
+                fetch('?action=log-travel-coordinate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `lat=${lat}&lng=${lng}&speed=${speed}`
+                }).catch(() => {});
+            }
+            // Watch position on movements
+            navigator.geolocation.watchPosition(streamPosition, () => {}, {
+                enableHighAccuracy: true,
+                maximumAge: 30000,
+                timeout: 27000
+            });
+            // Backup periodic ping every 3 minutes
+            setInterval(() => {
+                navigator.geolocation.getCurrentPosition(streamPosition, () => {}, {enableHighAccuracy: true});
+            }, 180000);
+        }
+    })();
+    <?php endif; ?>
 </script>

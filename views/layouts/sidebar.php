@@ -82,6 +82,14 @@ $page = $_GET['page'] ?? 'dashboard';
             <a href="?page=employee-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="clock" class="w-4 h-4"></i> Attendance History
             </a>
+                        <?php if (($user['department_name'] ?? '') === 'Calling / Sales'): ?>
+                <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My Calling Queue
+                </a>
+            <?php endif; ?>
+            <a href="?page=employee-wfh" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-wfh' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="home" class="w-4 h-4"></i> Apply for WFH
+            </a>
             <a href="?page=employee-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="calendar-heart" class="w-4 h-4"></i> Apply Leave
             </a>
@@ -256,7 +264,15 @@ $page = $_GET['page'] ?? 'dashboard';
                             <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i> Review Leave Queue
                         </a>
                     <?php else: ?>
-                        <a href="?page=employee-leaves" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                                    <?php if (($user['department_name'] ?? '') === 'Calling / Sales'): ?>
+                <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My Calling Queue
+                </a>
+            <?php endif; ?>
+            <a href="?page=employee-wfh" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-wfh' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="home" class="w-4 h-4"></i> Apply for WFH
+            </a>
+            <a href="?page=employee-leaves" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
                             <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Apply for Leave
                         </a>
                     <?php endif; ?>

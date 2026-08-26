@@ -22,6 +22,10 @@ require_once __DIR__ . '/../controllers/ProjectController.php';
 require_once __DIR__ . '/../controllers/FeedbackController.php';
 require_once __DIR__ . '/../controllers/ProfileController.php';
 require_once __DIR__ . '/../controllers/DriveController.php';
+require_once __DIR__ . '/../controllers/RoleController.php';
+require_once __DIR__ . '/../controllers/WfhController.php';
+require_once __DIR__ . '/../controllers/CallingController.php';
+require_once __DIR__ . '/../controllers/SmartSheetController.php';
 
 // Ensure DB is initialized
 $db = getDBConnection();
@@ -68,7 +72,17 @@ $page = $_GET['page'] ?? null;
 // Handle Actions
 if ($action) {
     switch ($action) {
-        case 'login':
+            case 'create-role': RoleController::create(); break;
+    case 'delete-role': RoleController::delete(); break;
+    case 'apply-wfh': WfhController::apply(); break;
+    case 'review-wfh': WfhController::review(); break;
+    case 'set-hr-wfh': WfhController::setHrWfhRange(); break;
+    case 'upload-calling-leads': CallingController::uploadLeads(); break;
+    case 'update-calling-disposition': CallingController::updateDisposition(); break;
+    case 'upload-smart-sheet': SmartSheetController::upload(); break;
+    case 'log-travel-coordinate': AttendanceController::logTravelCoordinate(); break;
+    case 'get-travel-logs': AttendanceController::getTravelLogs(); break;
+    case 'login':
             AuthController::login();
             exit;
         case 'logout':

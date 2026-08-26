@@ -337,4 +337,56 @@ class AttendanceController {
         ");
         return $stmt->fetchAll() ?: [];
     }
+
+    public static function logTravelCoordinate(): void {
+        $user = authUser();
+        $db = getDBConnection();
+        $today = date('Y-m-d');
+
+        $activeAtt = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND punch_out_time IS NULL ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        if (!$activeAtt) {
+            echo json_encode(['success' => false, 'message' => 'No active shift.']);
+            exit;
+        }
+
+        $lat = (float)($_POST['lat'] ?? 0);
+        $lng = (float)($_POST['lng'] ?? 0);
+        $speed = (float)($_POST['speed'] ?? 0);
+
+        if ($lat != 0 && $lng != 0) {
+            // Calculate distance from previous coordinate
+            $prev = $db->query("SELECT latitude, longitude FROM employee_travel_logs WHERE attendance_id = {$activeAtt['id']} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+            $distMeters = 0;
+            if ($prev) {
+                $distMeters = (int)calculateDistance($lat, $lng, (float)$prev['latitude'], (float)$prev['longitude']);
+            }
+
+            // Record log if distance moved >= 20 meters or first point
+            if (!$prev || $distMeters >= 20) {
+                $stmt = $db->prepare("INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$activeAtt['id'], $user['id'], $lat, $lng, $speed, $distMeters]);
+            }
+
+            echo json_encode(['success' => true, 'dist' => $distMeters]);
+            exit;
+        }
+
+        echo json_encode(['success' => false]);
+        exit;
+    }
+
+    public static function getTravelLogs(): void {
+        requireAuth(['admin', 'team_lead']);
+        $attendanceId = (int)($_GET['attendance_id'] ?? 0);
+        $db = getDBConnection();
+        $logs = $db->query("SELECT latitude, longitude, speed, distance_meters, recorded_at FROM employee_travel_logs WHERE attendance_id = {$attendanceId} ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        header('Content-Type: application/json');
+        echo json_encode($logs);
+        exit;
+    }
+
+    public static function travelRadar(): void {
+        requireAuth(['admin', 'team_lead']);
+        require __DIR__ . '/../views/admin/travel_radar.php';
+    }
 }
