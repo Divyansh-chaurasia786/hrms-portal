@@ -49,12 +49,13 @@ class EmployeeController {
         $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
         $workMode = $_POST['work_mode'] ?? 'office';
         $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
+        $whatsappNumber = trim($_POST['whatsapp_number'] ?? ($_POST['phone'] ?? ''));
 
         $stmt = $db->prepare("
-            INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, work_mode, department_name, status)
+            INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, work_mode, department_name, phone, whatsapp_number, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
         ");
-        $stmt->execute([$empId, $name, $email, $role, $reportingTLId, $designation, $stipend, $empType, $joiningDate, $assignedOfficeLocation, $workMode, $deptName]);
+        $stmt->execute([$empId, $name, $email, $role, $reportingTLId, $designation, $stipend, $empType, $joiningDate, $assignedOfficeLocation, $workMode, $deptName, $whatsappNumber, $whatsappNumber]);
         $newUserId = (int)$db->lastInsertId();
 
         // If newly created member is a Team Lead, assign selected team members

@@ -267,6 +267,9 @@ if ($action) {
                     ")->execute([$locationId, $expiresAt, $tempDays, $tlId]);
 
                     $tlName = $db->query("SELECT name FROM users WHERE id = {$tlId}")->fetchColumn() ?: 'Team Lead';
+                                        // Fetch entire team (TL, TL Support, Team Members) for notification
+                    $teamMembers = $db->query("SELECT name, email, whatsapp_number, phone FROM users WHERE (id = {$tlId} OR reporting_tl_id = {$tlId}) AND status = 'active'")->fetchAll(PDO::FETCH_ASSOC);
+                    sendTeamLocationChangeEmail($tlName, $teamMembers, $loc['name'], $assignmentType, $tempDays, $expiresAt);
                     setFlash('success', "📍 Temporary location set! {$tlName}, TL Support, and all team members will report to '{$loc['name']}' for {$tempDays} day(s) (valid till {$expiresAt}).");
                 } else {
                     $db->prepare("

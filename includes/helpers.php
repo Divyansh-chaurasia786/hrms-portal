@@ -413,3 +413,45 @@ function getManagedTeamUserIds(int $userId): array {
 }
 
 
+
+
+function sendTeamLocationChangeEmail(string $tlName, array $recipients, string $officeName, string $assignmentType, int $tempDays, ?string $expiresAt): void {
+    if (empty($recipients)) return;
+
+    $typeText = ($assignmentType === 'temporary') ? "Temporary Assignment ({$tempDays} Days, Valid till " . formatDate($expiresAt) . ")" : "Permanent Office Reassignment";
+    $subject = "📍 [OFFICE LOCATION UPDATE] Team Reporting Location: " . $officeName;
+
+    $html = '<!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 30px; color: #f8fafc;">
+        <div style="max-width: 600px; margin: auto; background-color: #1e293b; border-radius: 16px; padding: 25px; border: 1px solid #334155;">
+            <h2 style="color: #6366f1; margin-top: 0;">📍 Team Reporting Office Update</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+                Hello Team Member,<br><br>
+                HR has updated the official reporting office location for <strong>' . htmlspecialchars($tlName) . '\'s Team</strong>.
+            </p>
+            <div style="background-color: #0f172a; padding: 15px; border-radius: 12px; border-left: 4px solid #6366f1; margin: 20px 0;">
+                <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #ffffff;">New Reporting Office: <span style="color: #38bdf8;">' . htmlspecialchars($officeName) . '</span></p>
+                <p style="margin: 0; font-size: 12px; color: #94a3b8;">Status: <strong>' . $typeText . '</strong></p>
+            </div>
+            <p style="font-size: 13px; color: #94a3b8; line-height: 1.5;">
+                All Team Members and TL Support are required to report and complete their punch-in within this location\'s geo-fence.
+            </p>
+            <p style="font-size: 12px; color: #64748b; margin-top: 25px; border-top: 1px solid #334155; padding-top: 15px;">
+                Ecovista / Ecofone Enterprise HRMS • Automated Operational Notice
+            </p>
+        </div>
+    </body>
+    </html>';
+
+    $to = [];
+    foreach ($recipients as $r) {
+        if (!empty($r['email'])) {
+            $to[] = ['email' => $r['email'], 'name' => $r['name'] ?? 'Team Member'];
+        }
+    }
+
+    if (!empty($to)) {
+        sendBrevoEmail($to, [], $subject, "Your team reporting location has been updated to: {$officeName} ({$typeText}). Please report and punch-in accordingly.", $html);
+    }
+}

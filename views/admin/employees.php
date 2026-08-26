@@ -359,7 +359,14 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Official Email</label>
-                        <input type="email" name="email" required placeholder="user@company.com" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs">
+                                            <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">WhatsApp Number (For Alerts & Updates) *</label>
+                        <div class="relative">
+                            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600 absolute left-3 top-2.5"></i>
+                            <input type="text" name="whatsapp_number" required placeholder="+91 98765 43210" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-medium focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+                    <input type="email" name="email" required placeholder="user@company.com" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs">
                     </div>
                 </div>
 
@@ -555,7 +562,14 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Official Email Address</label>
-                                <input type="email" name="email" :value="selectedEmp.email" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                                                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">WhatsApp Number (For Alerts & Updates) *</label>
+                        <div class="relative">
+                            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600 absolute left-3 top-2.5"></i>
+                            <input type="text" name="whatsapp_number" required placeholder="+91 98765 43210" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-medium focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+                    <input type="email" name="email" :value="selectedEmp.email" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
                             </div>
                         </div>
 
