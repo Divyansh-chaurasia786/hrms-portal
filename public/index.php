@@ -31,6 +31,23 @@ require_once __DIR__ . '/../controllers/SmartSheetController.php';
 $db = getDBConnection();
 
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
+// Meta WhatsApp Cloud API Webhook Verification Endpoint
+if ($uri === '/webhook/whatsapp' || $uri === '/api/webhook') {
+    $hubMode = $_GET['hub_mode'] ?? ($_GET['hub.mode'] ?? '');
+    $hubChallenge = $_GET['hub_challenge'] ?? ($_GET['hub.challenge'] ?? '');
+    $hubVerifyToken = $_GET['hub_verify_token'] ?? ($_GET['hub.verify_token'] ?? '');
+
+    if ($hubMode === 'subscribe' && $hubVerifyToken === 'ecovista_hrms_meta_webhook_2026') {
+        header('Content-Type: text/plain');
+        echo $hubChallenge;
+        exit;
+    }
+    header('Content-Type: text/plain');
+    echo 'EVENT_RECEIVED';
+    exit;
+}
+
 if (preg_match('#^/(google[a-z0-9]+\.html)$#', $uri, $m)) {
     header('Content-Type: text/html; charset=utf-8');
     $filePath = __DIR__ . '/' . $m[1];
