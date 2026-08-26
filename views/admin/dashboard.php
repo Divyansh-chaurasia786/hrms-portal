@@ -1,0 +1,354 @@
+<!-- views/admin/dashboard.php -->
+<?php
+$user = authUser();
+$db = getDBConnection();
+$today = date('Y-m-d');
+
+$stats = $db->query("
+    SELECT 
+        (SELECT COUNT(*) FROM users WHERE status = 'active') as empCount,
+        (SELECT COUNT(*) FROM users WHERE role = 'team_lead' AND status = 'active') as tlCount,
+        (SELECT COUNT(*) FROM attendance WHERE date = '$today') as presentCount,
+        (SELECT COUNT(*) FROM leave_applications WHERE status IN ('pending_tl_review', 'pending_hr_approval', 'pending')) as pendingLeaves,
+        (SELECT COUNT(*) FROM employee_escalations WHERE status = 'pending') as pendingEscCount
+")->fetch() ?: [];
+
+$empCount = (int)($stats['empCount'] ?? 0);
+$tlCount = (int)($stats['tlCount'] ?? 0);
+$presentCount = (int)($stats['presentCount'] ?? 0);
+$pendingLeaves = (int)($stats['pendingLeaves'] ?? 0);
+$pendingEscCount = (int)($stats['pendingEscCount'] ?? 0);
+
+// Recent Live Attendance Check-ins
+$recentAtt = $db->query("
+    SELECT a.*, u.name, u.emp_id, u.avatar, u.role, u.designation, tl.name as tl_name
+    FROM attendance a
+    JOIN users u ON a.user_id = u.id
+    LEFT JOIN users tl ON u.reporting_tl_id = tl.id
+    WHERE a.date = '$today'
+    ORDER BY a.clock_in DESC
+    LIMIT 6
+")->fetchAll();
+
+// Pending Leaves Preview
+$pendingLeavesList = $db->query("
+    SELECT l.*, u.name, u.emp_id, u.avatar, u.designation
+    FROM leave_applications l
+    JOIN users u ON l.user_id = u.id
+    WHERE l.status = 'pending_tl_review' OR l.status = 'pending_hr_approval' OR l.status = 'pending'
+    ORDER BY l.created_at DESC
+    LIMIT 3
+")->fetchAll();
+
+// Recent Session Terminations / Audits
+$recentAudits = $db->query("
+    SELECT st.*, u.name as employee_name, u.emp_id, tl.name as tl_name
+    FROM session_terminations st
+    JOIN users u ON st.user_id = u.id
+    JOIN users tl ON st.terminated_by = tl.id
+    ORDER BY st.created_at DESC
+    LIMIT 4
+")->fetchAll();
+?>
+
+<div class="space-y-7 pb-8">
+
+    <!-- Executive Header & Quick Actions (Floating Glass Header) -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_10px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.09)] transition-all duration-300">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold shrink-0 shadow-lg shadow-indigo-500/25 ring-4 ring-indigo-50">
+                <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <?php 
+                    $userDesig = $user['designation'] ?? 'Head HR';
+                    $isHRSupport = (stripos($userDesig, 'hr support') !== false);
+                    ?>
+                    <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight"><?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?></h1>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold <?= $isHRSupport ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-purple-100 text-purple-800 border border-purple-200' ?> uppercase">
+                        <?= htmlspecialchars($userDesig) ?>
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1 font-medium">Real-time workforce metrics, live attendance stream, leave queue, and compliance.</p>
+            </div>
+        </div>
+
+        <!-- Quick Top Buttons -->
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <a href="?page=admin-employees" class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-xl text-xs font-bold transition-all duration-200 inline-flex items-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-lg hover:-translate-y-0.5">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                <span>Directory & Onboard</span>
+            </a>
+            <a href="?page=admin-attendance" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-xs font-bold transition-all duration-200 inline-flex items-center gap-2 border border-slate-200 shadow-2xs hover:-translate-y-0.5">
+                <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
+                <span>Attendance Audit</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Conditional Priority Alert: Only displays when action is required -->
+    <?php if ($pendingEscCount > 0): ?>
+        <div class="p-5 rounded-3xl bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-300/80 text-rose-900 shadow-[0_10px_25px_-5px_rgba(244,63,94,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-500/30">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-rose-900 flex items-center gap-2">
+                        <?= $pendingEscCount ?> TL Disciplinary Referral(s) Pending HR Action
+                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                    </h3>
+                    <p class="text-xs text-rose-700 font-medium mt-0.5">
+                        Team Leads have forwarded employee misconduct/attendance cases for formal HR intervention.
+                    </p>
+                </div>
+            </div>
+            <a href="?page=admin-tl-reports" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-1.5 shadow-md shadow-rose-600/30 shrink-0">
+                <span>Review Referrals</span> &rarr;
+            </a>
+        </div>
+    <?php endif; ?>
+
+    <!-- 4 High-Contrast Floating KPI Metric Cards (2x2 Grid on Mobile, 4 Cols on Desktop) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <!-- KPI 1: Workforce -->
+        <a href="?page=admin-employees" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(99,102,241,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-600 transition-colors truncate">Workforce</span>
+                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-purple-50 group-hover:bg-purple-600 text-purple-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
+                    <i data-lucide="users" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                </div>
+            </div>
+            <div class="mt-2 sm:mt-3">
+                <div class="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-mono group-hover:text-indigo-600 transition-colors"><?= $empCount ?></div>
+                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60">
+                        <?= $tlCount ?> Leads
+                    </span>
+                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">active</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- KPI 2: Present Today -->
+        <a href="?page=admin-attendance" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(16,185,129,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-emerald-600 transition-colors truncate">Present Today</span>
+                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                </div>
+            </div>
+            <div class="mt-2 sm:mt-3">
+                <div class="text-xl sm:text-3xl font-extrabold text-emerald-600 tracking-tight font-mono">
+                    <?= $presentCount ?> <span class="text-xs sm:text-sm font-bold text-slate-400 font-sans">/ <?= $empCount ?></span>
+                </div>
+                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                        <?= date('d M') ?>
+                    </span>
+                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">Shift Live</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- KPI 3: Pending Leaves -->
+        <a href="?page=admin-leaves" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(245,158,11,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-600 transition-colors truncate">Pending Leaves</span>
+                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-50 group-hover:bg-amber-600 text-amber-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
+                    <i data-lucide="calendar-off" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                </div>
+            </div>
+            <div class="mt-2 sm:mt-3">
+                <div class="text-xl sm:text-3xl font-extrabold <?= $pendingLeaves > 0 ? 'text-amber-600' : 'text-slate-900' ?> tracking-tight font-mono">
+                    <?= $pendingLeaves ?>
+                </div>
+                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold <?= $pendingLeaves > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200/60' : 'bg-slate-100 text-slate-600' ?>">
+                        <?= $pendingLeaves > 0 ? 'Action' : 'Clear' ?>
+                    </span>
+                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">Leaves</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- KPI 4: TL Referrals -->
+        <a href="?page=admin-tl-reports" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(239,68,68,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-rose-600 transition-colors truncate">TL Referrals</span>
+                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl <?= $pendingEscCount > 0 ? 'bg-rose-50 group-hover:bg-rose-600 text-rose-600 group-hover:text-white' : 'bg-slate-100 group-hover:bg-slate-800 text-slate-600 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                </div>
+            </div>
+            <div class="mt-2 sm:mt-3">
+                <div class="text-xl sm:text-3xl font-extrabold <?= $pendingEscCount > 0 ? 'text-rose-600' : 'text-slate-900' ?> tracking-tight font-mono">
+                    <?= $pendingEscCount ?>
+                </div>
+                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold <?= $pendingEscCount > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200/60' : 'bg-slate-100 text-slate-600' ?>">
+                        <?= $pendingEscCount === 0 ? 'Clear ✓' : 'Escalated' ?>
+                    </span>
+                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">Audit</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Main Two-Column Content Grid (Floating Elevated Layout) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
+
+        <!-- Left Column (7 Cols): Today Live Attendance Check-Ins -->
+        <div class="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 overflow-hidden flex flex-col">
+            <!-- Header with subtle contrast tint -->
+            <div class="p-5 sm:p-6 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0 border border-emerald-200/50">
+                        <i data-lucide="radio" class="w-4.5 h-4.5 animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            Today's Live Check-Ins & Shifts
+                        </h2>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Real-time attendance punch stream for <?= date('d M Y') ?>.</p>
+                    </div>
+                </div>
+                <a href="?page=admin-attendance" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-indigo-600 text-xs font-bold border border-slate-200 shadow-2xs transition inline-flex items-center gap-1 shrink-0">
+                    <span>Full Register</span> &rarr;
+                </a>
+            </div>
+
+            <!-- Table content -->
+            <div class="overflow-x-auto no-scrollbar flex-1 p-2">
+                <table class="w-full text-left text-xs text-slate-600 min-w-[500px]">
+                    <thead class="text-slate-400 text-[10px] uppercase tracking-wider font-bold border-b border-slate-100">
+                        <tr>
+                            <th class="min-w-[160px] px-4 py-3">Employee</th>
+                            <th class="min-w-[140px] px-4 py-3 whitespace-nowrap">Reporting Line</th>
+                            <th class="min-w-[110px] px-4 py-3 whitespace-nowrap">Punch In</th>
+                            <th class="min-w-[90px] px-4 py-3 text-right whitespace-nowrap">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        <?php if (empty($recentAtt)): ?>
+                            <tr>
+                                <td colspan="4" class="text-center py-12 text-slate-400">
+                                    <div class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 mx-auto flex items-center justify-center mb-2 border border-slate-100">
+                                        <i data-lucide="clock" class="w-6 h-6"></i>
+                                    </div>
+                                    <p class="text-xs font-bold text-slate-700">No punches logged yet today</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Check back once employees clock in for their shift.</p>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php foreach ($recentAtt as $r): ?>
+                            <tr class="hover:bg-slate-50/80 transition rounded-xl">
+                                <td class="px-4 py-3.5 align-middle">
+                                    <div class="flex items-center gap-3">
+                                        <img src="<?= $r['avatar'] ?: 'https://ui-avatars.com/api/?name=' . urlencode($r['name']) ?>" class="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 shrink-0 shadow-2xs" alt="Avatar">
+                                        <div class="min-w-0">
+                                            <div class="font-bold text-slate-900 truncate"><?= htmlspecialchars($r['name']) ?></div>
+                                            <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($r['emp_id']) ?></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3.5 align-middle text-[11px] font-medium text-slate-700 truncate">
+                                    <?= htmlspecialchars($r['tl_name'] ?: ($r['role'] === 'team_lead' ? 'Direct to HR' : 'HR')) ?>
+                                </td>
+                                <td class="px-4 py-3.5 align-middle font-mono text-[11px] text-slate-700">
+                                    <?= formatTime($r['clock_in']) ?>
+                                </td>
+                                <td class="px-4 py-3.5 align-middle text-right">
+                                    <?= getStatusBadge($r['status']) ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Column (5 Cols): Fast Management Hub & Operational Feeds -->
+        <div class="lg:col-span-5 space-y-7">
+
+            <!-- Card 1: Leave Approval Quick Queue (Floating Elevated Card) -->
+            <div class="bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 p-5 sm:p-6 space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0 border border-indigo-200/50">
+                            <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900">
+                            Leave Review Queue
+                        </h3>
+                    </div>
+                    <a href="?page=admin-leaves" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition flex items-center gap-1">
+                        <span>View All (<?= $pendingLeaves ?>)</span> &rarr;
+                    </a>
+                </div>
+
+                <?php if (empty($pendingLeavesList)): ?>
+                    <div class="text-center py-7 bg-slate-50/70 rounded-2xl border border-slate-100/80">
+                        <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-1.5 border border-emerald-100">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                        </div>
+                        <p class="text-xs font-bold text-slate-700">All leave applications reviewed</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Zero pending leave requests in queue.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="space-y-2.5">
+                        <?php foreach ($pendingLeavesList as $lv): ?>
+                            <div class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50/40 border border-slate-200/80 flex items-center justify-between gap-3 text-xs transition">
+                                <div class="min-w-0">
+                                    <div class="font-bold text-slate-900 truncate"><?= htmlspecialchars($lv['name']) ?></div>
+                                    <div class="text-[10px] text-slate-500 font-mono"><?= formatDate($lv['start_date']) ?> → <?= formatDate($lv['end_date']) ?></div>
+                                </div>
+                                <a href="?page=admin-leaves" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold transition shadow-sm shrink-0">
+                                    Review
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Card 2: Recent Security & Session Audit (Floating Elevated Card) -->
+            <div class="bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 p-5 sm:p-6 space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0 border border-purple-200/50">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900">
+                            Recent Security & Session Logs
+                        </h3>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400 font-bold uppercase bg-slate-100 px-2 py-0.5 rounded-md">Audit Trail</span>
+                </div>
+
+                <?php if (empty($recentAudits)): ?>
+                    <div class="text-center py-7 bg-slate-50/70 rounded-2xl border border-slate-100/80">
+                        <p class="text-xs font-bold text-slate-700">No session anomalies recorded</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">All team active sessions operational.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="space-y-2.5">
+                        <?php foreach ($recentAudits as $ra): ?>
+                            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 text-xs">
+                                <div class="min-w-0">
+                                    <span class="font-bold text-slate-900"><?= htmlspecialchars($ra['employee_name']) ?></span>
+                                    <span class="text-[10px] text-slate-400 block truncate">By TL: <?= htmlspecialchars($ra['tl_name']) ?> • <?= htmlspecialchars($ra['reason']) ?></span>
+                                </div>
+                                <span class="text-[10px] font-mono text-slate-400 shrink-0"><?= date('h:i A', strtotime($ra['created_at'])) ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+

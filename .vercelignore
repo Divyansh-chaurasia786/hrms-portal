@@ -1,0 +1,5 @@
+﻿.git
+.gitignore
+scratch/
+otp_mail.log
+*.log

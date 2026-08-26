@@ -1,0 +1,24 @@
+[2026-08-25 13:55:51] OTP to tl@company.com: Code=654321, HTTP=401, Response={"message":"We have detected you are using an unrecognised IP address 49.36.214.208. If you performed this action make sure to add the new IP address in this link: https://app.brevo.com/security/authorised_ips","code":"unauthorized"}
+
+[2026-08-25 13:57:19] OTP to priya@company.com: Code=383415, HTTP=401, Response={"message":"We have detected you are using an unrecognised IP address 49.36.214.208. If you performed this action make sure to add the new IP address in this link: https://app.brevo.com/security/authorised_ips","code":"unauthorized"}
+
+[2026-08-25 14:04:47] OTP to rahul@company.com: Code=595872, HTTP=401, Response={"message":"We have detected you are using an unrecognised IP address 49.36.214.208. If you performed this action make sure to add the new IP address in this link: https://app.brevo.com/security/authorised_ips","code":"unauthorized"}
+
+[2026-08-25 14:25:01] OTP to chaurasiadivyansh86@gmail.com: Code=690080, HTTP=401, Response={"message":"We have detected you are using an unrecognised IP address 49.36.214.208. If you performed this action make sure to add the new IP address in this link: https://app.brevo.com/security/authorised_ips","code":"unauthorized"}
+
+[2026-08-25 14:28:46] OTP to chaurasiadivyansh86@gmail.com: Code=569459, HTTP=201, Response={"messageId":"<202608250858.30266356133@smtp-relay.mailin.fr>"}
+
+[2026-08-25 15:00:37] OTP to divyanshecofone@gmail.com: Code=175208, HTTP=201, Response={"messageId":"<202608250930.80170864058@smtp-relay.mailin.fr>"}
+
+[2026-08-25 16:00:04] OTP to chaurasiadivyansh86@gmail.com: Code=309112, HTTP=201, Response={"messageId":"<202608251030.49111451873@smtp-relay.mailin.fr>"}
+
+[2026-08-25 16:59:05] OTP to supportfixkar@gmail.com: Code=840206, HTTP=201, Response={"messageId":"<202608251129.20884563362@smtp-relay.mailin.fr>"}
+
+[2026-08-25 17:00:48] OTP to divyanshecofone@gmail.com: Code=676297, HTTP=201, Response={"messageId":"<202608251130.47667796575@smtp-relay.mailin.fr>"}
+
+[2026-08-25 23:47:33] Email to [{"email":"chaurasiadivyansh86@gmail.com","name":"Shra Fatima"}] CC=[{"email":"supportfixkar@gmail.com","name":"Sumit Verma"}]: Subject=[DO NOT REPLY] Leave Application: Divyanhs Chaurasia (EMP003) - 3 Day(s) (25 Aug, 2026 to 27 Aug, 2026), HTTP=201, Response={"messageId":"<202608251817.40748652879@smtp-relay.mailin.fr>"}
+
+[2026-08-25 23:50:39] Email to [{"email":"chaurasiadivyansh86@gmail.com","name":"Shra Fatima"}] CC=[{"email":"supportfixkar@gmail.com","name":"Sumit Verma"}]: Subject=[DO NOT REPLY] Leave Application: Divyanhs Chaurasia (Web Developer) - 3 Day(s) (25 Aug, 2026 to 27 Aug, 2026), HTTP=201, Response={"messageId":"<202608251820.98994932855@smtp-relay.mailin.fr>"}
+
+[2026-08-26 00:15:15] Email to [{"email":"divyanshecofone@gmail.com","name":"Divyansh Chaurasia"}] CC=[]: Subject=[DO NOT REPLY] HRMS Login Verification Code: 748291, HTTP=201, Response={"messageId":"<202608251845.57858510080@smtp-relay.mailin.fr>"}
+
