@@ -284,7 +284,43 @@ if ($action) {
                     ")->execute([$locationId, $expiresAt, $tempDays, $tlId]);
 
                     $tlName = $db->query("SELECT name FROM users WHERE id = {$tlId}")->fetchColumn() ?: 'Team Lead';
-                                        // Fetch entire team (TL, TL Support, Team Members) for direct automatic notification
+                                                            // Fetch entire team (TL, TL Support, Team Members) for notification
+                    $teamMembers = $db->query("SELECT name, email, whatsapp_number, phone FROM users WHERE (id = {$tlId} OR reporting_tl_id = {$tlId}) AND status = 'active'")->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    $memberNamesList = [];
+                    foreach ($teamMembers as $m) {
+                        $memberNamesList[] = "• " . $m['name'];
+                    }
+                    $memberNamesText = implode("\n", $memberNamesList);
+
+                    $hrName = authUser()['name'] ?? 'Head HR';
+                    $hrDesig = authUser()['designation'] ?: 'HR Leadership';
+                    $todayFormatted = date('d M Y');
+                    $expiresFormatted = !empty($expiresAt) ? formatDate($expiresAt) : '';
+
+                    if ($assignmentType === 'temporary') {
+                        $durationText = "Temporary for {$tempDays} Day(s) (From {$todayFormatted} till {$expiresFormatted})";
+                    } else {
+                        $durationText = "Permanent (Effective from {$todayFormatted})";
+                    }
+
+                    $waBroadcastText = "🏢 *ECOVISTA GLOBAL PVT. LTD. - OFFICIAL DIRECTIVE*\n\n"
+                                     . "📢 *ATTENTION: {$tlName} & Team Members*\n\n"
+                                     . "This is an official announcement from *{$hrName} ({$hrDesig})*.\n\n"
+                                     . "📍 *New Reporting Office:* {$loc['name']}\n"
+                                     . "📅 *Duration:* {$durationText}\n\n"
+                                     . "👥 *Reporting Team:*\n"
+                                     . "{$memberNamesText}\n\n"
+                                     . "⚠️ *Instruction:* All team members must report to this office location and complete attendance punch-in.\n\n"
+                                     . "Regards,\n*HR & Operations Department*\n*Ecovista Global Private Limited*";
+
+                    $_SESSION['wa_broadcast_text'] = $waBroadcastText;
+                    $_SESSION['wa_broadcast_tl'] = $tlName;
+                    $_SESSION['wa_broadcast_loc'] = $loc['name'];
+
+                    $notifCount = sendAutomatedTeamLocationNotifications(authUser(), $tlName, $teamMembers, $loc['name'], $assignmentType, $tempDays, $expiresAt);
+                    setFlash('success', "📍 Location updated! Official notification sent to {$notifCount} team member(s) via Email. You can also share the announcement directly to WhatsApp Group below.");
+                    // Original fallback
                     $teamMembers = $db->query("SELECT name, email, whatsapp_number, phone FROM users WHERE (id = {$tlId} OR reporting_tl_id = {$tlId}) AND status = 'active'")->fetchAll(PDO::FETCH_ASSOC);
                     $notifCount = sendAutomatedTeamLocationNotifications(authUser(), $tlName, $teamMembers, $loc['name'], $assignmentType, $tempDays, $expiresAt);
                     setFlash('success', "📍 Temporary location saved! Formal notification automatically sent to {$notifCount} team member(s) via Email & WhatsApp (Valid for {$tempDays} day(s) till " . formatDate($expiresAt) . ").");
