@@ -9,6 +9,10 @@
   },
   "routes": [
     {
+      "src": "/(google[a-z0-9]+\\.html)",
+      "dest": "/public/$1"
+    },
+    {
       "src": "/robots.txt",
       "dest": "/public/robots.txt"
     },

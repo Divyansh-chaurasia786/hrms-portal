@@ -27,6 +27,16 @@ require_once __DIR__ . '/../controllers/DriveController.php';
 $db = getDBConnection();
 
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if (preg_match('#^/(google[a-z0-9]+\.html)$#', $uri, $m)) {
+    header('Content-Type: text/html; charset=utf-8');
+    $filePath = __DIR__ . '/' . $m[1];
+    if (file_exists($filePath)) {
+        echo file_get_contents($filePath);
+    } else {
+        echo "google-site-verification: " . htmlspecialchars($m[1]);
+    }
+    exit;
+}
 if ($uri === '/robots.txt') {
     header('Content-Type: text/plain; charset=utf-8');
     echo "User-agent: *\nAllow: /\nAllow: /?page=login\nDisallow: /api/\nDisallow: /config/\n\nSitemap: https://hrms-ecofone.vercel.app/sitemap.xml\n";
