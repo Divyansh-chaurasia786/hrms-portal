@@ -57,7 +57,7 @@ class LeaveController {
 
             $hrList = $db->query("SELECT id, name, email FROM users WHERE role = 'admin' AND status = 'active'")->fetchAll();
             if (empty($hrList)) {
-                $hrList = [['name' => 'HR Director', 'email' => 'chaurasiadivyansh86@gmail.com']];
+                $hrList = [['name' => 'Head HR', 'email' => 'ecofonehr@gmail.com']];
             }
 
             sendLeaveApplicationEmail([

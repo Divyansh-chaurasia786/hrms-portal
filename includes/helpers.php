@@ -276,7 +276,7 @@ function sendLeaveApplicationEmail(array $leaveData, array $employee, ?array $tl
         }
     }
     if (empty($to)) {
-        $to[] = ['email' => 'chaurasiadivyansh86@gmail.com', 'name' => 'HR Director'];
+        $to[] = ['email' => 'ecofonehr@gmail.com', 'name' => 'Head HR'];
     }
 
     $cc = [];
