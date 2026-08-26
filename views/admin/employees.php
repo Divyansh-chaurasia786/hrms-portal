@@ -89,6 +89,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
 
 <script>
     window.allEmployeesData = <?= json_encode($employees, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    window.masterRolesData = <?= json_encode($rolesMaster, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 </script>
 
 <div class="space-y-6" x-data="{ 
@@ -102,16 +103,19 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
     targetTlName: '',
     targetTlMembersCount: 0,
     targetTlMemberNames: '',
-    rolesList: window.masterRolesData || [],
+    manageTlId: 0,
+    manageTlName: '',
+    manageAssignedIds: [],
+    rolesList: (window.masterRolesData && window.masterRolesData.length) ? window.masterRolesData : [],
     roleDropdownOpen: false,
     addRolePopupOpen: false,
     newRoleTitle: '',
     newRoleAuth: false,
     selectedDesig: '',
     async submitNewRole() {
-        if (!this.newRoleTitle.trim()) return;
+        if (!this.newRoleTitle || !this.newRoleTitle.trim()) return;
         const formData = new FormData();
-        formData.append('name', this.newRoleTitle);
+        formData.append('name', this.newRoleTitle.trim());
         formData.append('can_be_reporting_authority', this.newRoleAuth ? '1' : '0');
         formData.append('ajax', '1');
 
@@ -122,7 +126,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                 body: formData
             });
             const data = await res.json();
-            if (data.success && data.role) {
+            if (data && data.success && data.role) {
                 this.rolesList.push(data.role);
                 this.selectedDesig = data.role.name;
                 this.newRoleTitle = '';
@@ -130,10 +134,10 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                 this.addRolePopupOpen = false;
                 this.roleDropdownOpen = false;
             } else {
-                alert(data.error || 'Failed to add role');
+                alert(data && data.error ? data.error : 'Failed to add role');
             }
         } catch(e) {
-            alert('Error creating role: ' + e.message);
+            alert('Error creating role');
         }
     },
     async deleteRole(id, e) {
@@ -150,29 +154,18 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                 body: formData
             });
             const data = await res.json();
-            if (data.success) {
+            if (data && data.success) {
                 this.rolesList = this.rolesList.filter(r => Number(r.id) !== Number(id));
                 if (this.selectedDesig && !this.rolesList.some(r => r.name === this.selectedDesig)) {
                     this.selectedDesig = '';
                 }
             } else {
-                alert(data.error || 'Failed to delete role');
+                alert(data && data.error ? data.error : 'Failed to delete role');
             }
         } catch(e) {
             alert('Error deleting role');
         }
     },
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                this.rolesList = this.rolesList.filter(r => Number(r.id) !== Number(id));
-            }
-        } catch(e) {}
-    },
-    manageTlId: 0,
-    manageTlName: '',
-    manageAssignedIds: [],
     openDetails(empId) {
         const found = (window.allEmployeesData || []).find(x => Number(x.id) === Number(empId));
         if (found) {
