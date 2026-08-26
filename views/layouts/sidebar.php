@@ -264,10 +264,28 @@ $page = $_GET['page'] ?? 'dashboard';
                     <div>
                         <span class="font-bold uppercase tracking-wide text-amber-800 text-[11px]">Workspace in Read-Only Mode</span>
                         <?php if ($currRole === 'admin'): ?>
-                            <p class="text-[11px] text-amber-700 mt-0.5">HR Administration Hub is in Read-Only Mode. (<strong>Leave Approvals</strong> and <strong>Tech Cloud Drive</strong> remain <strong>accessible 24/7</strong>). Please <strong>Punch In (Office Login)</strong> to edit employee profiles or manage configurations.</p>
+                            <p class="text-[11px] text-amber-700 mt-0.5">HR Administration Hub is active. Please <strong>Punch In (Office Login)</strong> for daily shift attendance.</p>
                         <?php else: ?>
                             <p class="text-[11px] text-amber-700 mt-0.5">You have not punched in yet today. (<strong>Apply for Leave</strong> and <strong>Tech Cloud Drive</strong> remain <strong>open 24/7 from home</strong>). Please <strong>Punch In (Office Login)</strong> when at the office to submit tasks or review files.</p>
                         <?php endif; ?>
+                    </div>
+                </div>
+                <div class="shrink-0 flex items-center gap-2">
+                    <?php if ($currRole === 'admin'): ?>
+                        <a href="?page=admin-leaves" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                            <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i> Review Leave Queue
+                        </a>
+                    <?php else: ?>
+                        <a href="?page=employee-wfh" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                            <i data-lucide="home" class="w-3.5 h-3.5"></i> Apply for WFH
+                        </a>
+                        <a href="?page=employee-leaves" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Apply for Leave
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
                     </div>
                 </div>
                 <div class="shrink-0 flex items-center gap-2">
