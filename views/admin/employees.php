@@ -397,62 +397,235 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
         </div>
     </div>
 
-                <!-- Smart Onboarding Modal -->
-    <div x-show="onboardModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
-        <div @click.away="onboardModalOpen = false" class="bg-white rounded-3xl max-w-2xl w-full p-7 shadow-2xl border border-slate-200 text-left" x-data="{ empType: 'full_time', userRole: 'employee', workMode: 'office' }">
+                    <!-- Smart Onboarding Modal (Compact & Professional) -->
+    <div x-show="onboardModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3" x-cloak>
+        <div @click.away="onboardModalOpen = false" class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 text-left my-auto" x-data="{ empType: 'full_time', userRole: 'employee', workMode: 'office' }">
             
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0 shadow-2xs">
-                        <i data-lucide="user-plus" class="w-5 h-5"></i>
+            <!-- Modal Header (Compact) -->
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3.5">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-slate-900">Onboard New Team Member</h3>
-                        <p class="text-xs text-slate-400">Register employee profile, assign department, and configure reporting authority.</p>
+                        <h3 class="text-sm font-bold text-slate-900">Onboard New Team Member</h3>
+                        <p class="text-[11px] text-slate-400">Register employee profile and configure reporting hierarchy.</p>
                     </div>
                 </div>
-                <button type="button" @click="onboardModalOpen = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+                <button type="button" @click="onboardModalOpen = false" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <!-- Onboarding Form -->
-            <form action="?action=create-employee" method="POST" class="space-y-5">
+            <!-- Onboarding Form (Compact Grid) -->
+            <form action="?action=create-employee" method="POST" class="space-y-2.5">
                 
-                <!-- Section 1: Member Identity -->
-                <div class="space-y-3.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <i data-lucide="user" class="w-3.5 h-3.5 text-indigo-500"></i> Member Identity & Role
-                        </span>
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" @click="addRolePopupOpen = true" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="Add New Role">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Add Role
-                            </button>
-                            <button type="button" @click="manageRolesPopupOpen = true" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="Manage Roles">
-                                <i data-lucide="trash-2" class="w-3 h-3"></i> Manage
-                            </button>
+                <!-- Row 1: Name & Official Email -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Full Name <span class="text-rose-500">*</span></label>
+                        <input type="text" name="name" required placeholder="e.g. Shruti Singh" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Official Email <span class="text-rose-500">*</span></label>
+                        <input type="email" name="email" required placeholder="shruti@company.com" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+                </div>
+
+                <!-- Row 2: Department & Designation (with inline + and -) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
+                        <select name="department_name" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="Tech / Development">💻 Tech / Development</option>
+                            <option value="Calling / Sales">📞 Calling / Sales</option>
+                            <option value="Field Operations">🚗 Field Operations</option>
+                            <option value="HR & Administration">👑 HR & Administration</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase">Designation <span class="text-rose-500">*</span></label>
+                            <div class="flex items-center gap-1">
+                                <button type="button" @click="addRolePopupOpen = true" class="px-1.5 py-0.2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[9px] font-extrabold transition cursor-pointer" title="Add Role">
+                                    + Add
+                                </button>
+                                <button type="button" @click="manageRolesPopupOpen = true" class="px-1.5 py-0.2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[9px] font-bold transition cursor-pointer" title="Manage Roles">
+                                    - Del
+                                </button>
+                            </div>
+                        </div>
+                        <select name="designation" x-model="selectedDesig" required class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-indigo-950 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="">Select Designation...</option>
+                            <template x-for="r in rolesList" :key="r.id">
+                                <option :value="r.name" x-text="r.name + (Number(r.can_be_reporting_authority) === 1 ? ' 👑' : '')"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 3: Account System Role & Reporting Authority -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Account Role <span class="text-rose-500">*</span></label>
+                        <select name="role" x-model="userRole" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="employee">Employee / Intern (Standard)</option>
+                            <option value="team_lead">Team Lead / TL Support</option>
+                            <option value="admin">HR Administration (Admin)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reports To</label>
+                        <select name="reporting_tl_id" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="">Apex Authority / Direct to HR</option>
+                            <?php foreach ($reportingAuthorities as $ra): ?>
+                                <option value="<?= $ra['id'] ?>">
+                                    <?= htmlspecialchars($ra['name']) ?> (<?= htmlspecialchars($ra['designation'] ?: ucfirst($ra['role'])) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 4: Work Mode & Permanent Office Location -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Work Mode <span class="text-rose-500">*</span></label>
+                        <select name="work_mode" x-model="workMode" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="office">🏢 In-Office (150m Geo-Fence)</option>
+                            <option value="field">🚗 Field Staff (GPS Radar)</option>
+                            <option value="wfh">🏠 WFH / Remote Mode</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location</label>
+                        <select name="assigned_office_location" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                            <?php foreach ($officeLocations as $loc): ?>
+                                <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 5: Employment Type & Monthly Pay -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Employment Type</label>
+                        <select name="employment_type" x-model="empType" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="full_time">Full Time Staff</option>
+                            <option value="intern_paid">Paid Intern (Stipend)</option>
+                            <option value="intern_unpaid">Unpaid Intern (Trainee)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Monthly Pay / Stipend (₹)</label>
+                        <input type="number" step="0.01" name="salary_basic" placeholder="0.00" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+                </div>
+
+                <!-- Submit Buttons (Compact) -->
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-3">
+                    <button type="button" @click="onboardModalOpen = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Complete Onboarding
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- VIEW / EDIT PROFILE MODAL (Compact) -->
+    <div x-show="viewModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3" x-cloak>
+        <div @click.away="viewModalOpen = false" class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 text-left my-auto" x-show="selectedEmp">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3.5">
+                <div class="flex items-center gap-2.5">
+                    <img :src="selectedEmp && selectedEmp.avatar ? selectedEmp.avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent((selectedEmp && selectedEmp.name) ? selectedEmp.name : 'User'))" class="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200 shrink-0" alt="Avatar">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900" x-text="selectedEmp ? selectedEmp.name : ''"></h3>
+                        <p class="text-[11px] text-slate-400 font-mono" x-text="selectedEmp ? (selectedEmp.emp_id + ' • ' + (selectedEmp.designation || 'Staff')) : ''"></p>
+                    </div>
+                </div>
+                <button type="button" @click="viewModalOpen = false" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- 1. VIEW OVERVIEW MODE -->
+            <template x-if="!editMode && selectedEmp">
+                <div class="space-y-3">
+                    <!-- Key Metric Cards -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                            <span class="text-[9px] font-bold uppercase text-slate-400 block">Role</span>
+                            <span class="text-xs font-extrabold text-slate-800 uppercase truncate block" x-text="selectedEmp.role ? selectedEmp.role.replace('_', ' ') : '-'"></span>
+                        </div>
+                        <div class="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100">
+                            <span class="text-[9px] font-bold uppercase text-indigo-400 block">Type</span>
+                            <span class="text-xs font-extrabold text-indigo-700 uppercase truncate block" x-text="selectedEmp.employment_type ? selectedEmp.employment_type.replace('_', ' ') : 'Full Time'"></span>
+                        </div>
+                        <div class="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100">
+                            <span class="text-[9px] font-bold uppercase text-emerald-400 block">Pay</span>
+                            <span class="text-xs font-extrabold text-emerald-700 truncate block" x-text="selectedEmp.salary_basic > 0 ? ('₹' + Number(selectedEmp.salary_basic).toLocaleString('en-IN')) : 'Unpaid'"></span>
                         </div>
                     </div>
 
-                    <!-- Row 1: Full Name & Official Email -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Info Grid -->
+                    <div class="grid grid-cols-2 gap-2.5 bg-slate-50/60 p-3 rounded-xl border border-slate-200/80 text-xs">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Full Name <span class="text-rose-500">*</span></label>
-                            <input type="text" name="name" required placeholder="e.g. Shruti Singh" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase block">Email</span>
+                            <span class="font-medium text-slate-800 font-mono text-[11px] truncate block" x-text="selectedEmp.email || '-'"></span>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Official Email Address <span class="text-rose-500">*</span></label>
-                            <input type="email" name="email" required placeholder="shruti@company.com" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase block">Department</span>
+                            <span class="font-bold text-slate-800 text-[11px] truncate block" x-text="selectedEmp.department_name || 'Tech / Development'"></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase block">Work Mode</span>
+                            <span class="font-bold text-slate-800 text-[11px] uppercase truncate block" x-text="selectedEmp.work_mode || 'office'"></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase block">Reports To</span>
+                            <span class="font-bold text-indigo-700 text-[11px] truncate block" x-text="selectedEmp.tl_name ? selectedEmp.tl_name : 'Apex HR Direct'"></span>
                         </div>
                     </div>
 
-                    <!-- Row 2: Department & Job Designation -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Actions -->
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <button type="button" @click="viewModalOpen = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition">
+                            Close
+                        </button>
+                        <button type="button" @click="editMode = true" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center gap-1.5 cursor-pointer">
+                            <i data-lucide="edit" class="w-3.5 h-3.5"></i> Edit Profile
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- 2. EDIT PROFILE MODE (Compact) -->
+            <template x-if="editMode && selectedEmp">
+                <form action="?action=update-employee" method="POST" class="space-y-2.5">
+                    <input type="hidden" name="user_id" :value="selectedEmp.id">
+
+                    <!-- Row 1: Name & Official Email -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Department <span class="text-rose-500">*</span></label>
-                            <select name="department_name" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Full Name <span class="text-rose-500">*</span></label>
+                            <input type="text" name="name" :value="selectedEmp.name" required class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Official Email <span class="text-rose-500">*</span></label>
+                            <input type="email" name="email" :value="selectedEmp.email" required class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Department & Designation -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
+                            <select name="department_name" x-model="selectedEmp.department_name" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
                                 <option value="Tech / Development">💻 Tech / Development</option>
                                 <option value="Calling / Sales">📞 Calling / Sales</option>
                                 <option value="Field Operations">🚗 Field Operations</option>
@@ -460,40 +633,32 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Designation / Role <span class="text-rose-500">*</span></label>
-                            <select name="designation" x-model="selectedDesig" required class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-indigo-950 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                <option value="">Select Designation...</option>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Designation <span class="text-rose-500">*</span></label>
+                            <select name="designation" x-model="selectedEmp.designation" required class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-indigo-950 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
                                 <template x-for="r in rolesList" :key="r.id">
-                                    <option :value="r.name" x-text="r.name + (Number(r.can_be_reporting_authority) === 1 ? ' 👑 (Authority)' : '')"></option>
+                                    <option :value="r.name" x-text="r.name"></option>
                                 </template>
                             </select>
                         </div>
                     </div>
-                </div>
 
-                <!-- Section 2: Hierarchy & Work Arrangement -->
-                <div class="space-y-3.5 pt-4 border-t border-slate-100">
-                    <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                        <i data-lucide="shield" class="w-3.5 h-3.5 text-indigo-500"></i> Hierarchy & Work Setup
-                    </span>
-
-                    <!-- Row 3: Account Role & Reporting Authority -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Row 3: Account System Role & Reporting Authority -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">System Access Role <span class="text-rose-500">*</span></label>
-                            <select name="role" x-model="userRole" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                <option value="employee">Employee / Intern (Standard User)</option>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Account Role <span class="text-rose-500">*</span></label>
+                            <select name="role" x-model="selectedEmp.role" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                                <option value="employee">Employee / Intern (Standard)</option>
                                 <option value="team_lead">Team Lead / TL Support</option>
-                                <option value="admin">HR Administration (Admin Access)</option>
+                                <option value="admin">HR Administration (Admin)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Reporting Authority (Reports To)</label>
-                            <select name="reporting_tl_id" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reports To</label>
+                            <select name="reporting_tl_id" x-model="selectedEmp.reporting_tl_id" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
                                 <option value="">Apex Authority / Direct to HR</option>
                                 <?php foreach ($reportingAuthorities as $ra): ?>
                                     <option value="<?= $ra['id'] ?>">
-                                        <?= htmlspecialchars($ra['name']) ?> (<?= htmlspecialchars($ra['designation'] ?: ucfirst($ra['role'])) ?> - <?= htmlspecialchars($ra['department_name'] ?? 'Office') ?>)
+                                        <?= htmlspecialchars($ra['name']) ?> (<?= htmlspecialchars($ra['designation'] ?: ucfirst($ra['role'])) ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -501,18 +666,18 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                     </div>
 
                     <!-- Row 4: Work Mode & Permanent Office Location -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Work Mode <span class="text-rose-500">*</span></label>
-                            <select name="work_mode" x-model="workMode" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                <option value="office">🏢 In-Office (Strict 150m Geo-Fence)</option>
-                                <option value="field">🚗 Field Staff (GPS Radar Tracking)</option>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Work Mode <span class="text-rose-500">*</span></label>
+                            <select name="work_mode" x-model="selectedEmp.work_mode" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
+                                <option value="office">🏢 In-Office (150m Geo-Fence)</option>
+                                <option value="field">🚗 Field Staff (GPS Radar)</option>
                                 <option value="wfh">🏠 WFH / Remote Mode</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Permanent Office Location</label>
-                            <select name="assigned_office_location" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location</label>
+                            <select name="assigned_office_location" x-model="selectedEmp.assigned_office_location" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
                                 <?php foreach ($officeLocations as $loc): ?>
                                     <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
                                 <?php endforeach; ?>
@@ -521,221 +686,28 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                     </div>
 
                     <!-- Row 5: Employment Type & Monthly Pay -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Employment Type</label>
-                            <select name="employment_type" x-model="empType" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Employment Type</label>
+                            <select name="employment_type" x-model="selectedEmp.employment_type" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
                                 <option value="full_time">Full Time Staff</option>
-                                <option value="intern_paid">Paid Intern (Monthly Stipend)</option>
-                                <option value="intern_unpaid">Unpaid Intern (Trainee ₹0)</option>
+                                <option value="intern_paid">Paid Intern (Stipend)</option>
+                                <option value="intern_unpaid">Unpaid Intern (Trainee)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Monthly Basic Pay / Stipend (₹)</label>
-                            <input type="number" step="0.01" name="salary_basic" placeholder="0.00" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Submit Buttons -->
-                <div class="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
-                    <button type="button" @click="onboardModalOpen = false" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition inline-flex items-center gap-1.5 cursor-pointer">
-                        <i data-lucide="check" class="w-4 h-4"></i> Complete Onboarding
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- VIEW / EDIT PROFILE MODAL -->
-    <div x-show="viewModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
-        <div @click.away="viewModalOpen = false" class="bg-white rounded-3xl max-w-2xl w-full p-7 shadow-2xl border border-slate-200 text-left" x-show="selectedEmp">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
-                <div class="flex items-center gap-3">
-                    <img :src="selectedEmp && selectedEmp.avatar ? selectedEmp.avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent((selectedEmp && selectedEmp.name) ? selectedEmp.name : 'User'))" class="w-11 h-11 rounded-2xl object-cover ring-2 ring-slate-100 shrink-0 shadow-2xs" alt="Avatar">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900" x-text="selectedEmp ? selectedEmp.name : ''"></h3>
-                        <p class="text-xs text-slate-400 font-mono" x-text="selectedEmp ? (selectedEmp.emp_id + ' • ' + (selectedEmp.designation || 'Staff')) : ''"></p>
-                    </div>
-                </div>
-                <button type="button" @click="viewModalOpen = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <!-- 1. VIEW OVERVIEW MODE -->
-            <template x-if="!editMode && selectedEmp">
-                <div class="space-y-4">
-                    <!-- Key Metric Cards -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-                            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">System Role</span>
-                            <span class="text-xs font-extrabold text-slate-800 uppercase" x-text="selectedEmp.role ? selectedEmp.role.replace('_', ' ') : '-'"></span>
-                        </div>
-                        <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100">
-                            <span class="text-[10px] font-bold uppercase text-indigo-400 block mb-0.5">Employment</span>
-                            <span class="text-xs font-extrabold text-indigo-700 uppercase" x-text="selectedEmp.employment_type ? selectedEmp.employment_type.replace('_', ' ') : 'Full Time'"></span>
-                        </div>
-                        <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-100">
-                            <span class="text-[10px] font-bold uppercase text-emerald-400 block mb-0.5">Monthly Pay</span>
-                            <span class="text-xs font-extrabold text-emerald-700" x-text="selectedEmp.salary_basic > 0 ? ('₹' + Number(selectedEmp.salary_basic).toLocaleString('en-IN') + '/mo') : 'Unpaid'"></span>
-                        </div>
-                    </div>
-
-                    <!-- Info Grid -->
-                    <div class="grid grid-cols-2 gap-4 bg-slate-50/60 p-4 rounded-2xl border border-slate-200/80 text-xs">
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Official Email</span>
-                            <span class="font-medium text-slate-800 font-mono" x-text="selectedEmp.email || '-'"></span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Department</span>
-                            <span class="font-bold text-slate-800" x-text="selectedEmp.department_name || 'Tech / Development'"></span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Work Mode</span>
-                            <span class="font-bold text-slate-800 uppercase" x-text="selectedEmp.work_mode || 'office'"></span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Reporting Authority</span>
-                            <span class="font-bold text-indigo-700" x-text="selectedEmp.tl_name ? ('Reports to ' + selectedEmp.tl_name) : 'Apex Authority / Direct HR'"></span>
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex items-center justify-between pt-4 border-t border-slate-100 mt-5">
-                        <button type="button" @click="viewModalOpen = false" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition">
-                            Close
-                        </button>
-                        <button type="button" @click="editMode = true" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center gap-1.5 cursor-pointer">
-                            <i data-lucide="edit" class="w-4 h-4"></i> Edit Profile Details
-                        </button>
-                    </div>
-                </div>
-            </template>
-
-            <!-- 2. EDIT PROFILE MODE -->
-            <template x-if="editMode && selectedEmp">
-                <form action="?action=update-employee" method="POST" class="space-y-5">
-                    <input type="hidden" name="user_id" :value="selectedEmp.id">
-
-                    <!-- Section 1: Member Identity -->
-                    <div class="space-y-3.5">
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <i data-lucide="user" class="w-3.5 h-3.5 text-indigo-500"></i> Edit Profile Information
-                        </span>
-
-                        <!-- Row 1: Name & Official Email -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Full Name <span class="text-rose-500">*</span></label>
-                                <input type="text" name="name" :value="selectedEmp.name" required class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Official Email Address <span class="text-rose-500">*</span></label>
-                                <input type="email" name="email" :value="selectedEmp.email" required class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                            </div>
-                        </div>
-
-                        <!-- Row 2: Department & Designation -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Department <span class="text-rose-500">*</span></label>
-                                <select name="department_name" x-model="selectedEmp.department_name" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                    <option value="Tech / Development">💻 Tech / Development</option>
-                                    <option value="Calling / Sales">📞 Calling / Sales</option>
-                                    <option value="Field Operations">🚗 Field Operations</option>
-                                    <option value="HR & Administration">👑 HR & Administration</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Job Designation <span class="text-rose-500">*</span></label>
-                                <select name="designation" x-model="selectedEmp.designation" required class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-indigo-950 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                    <template x-for="r in rolesList" :key="r.id">
-                                        <option :value="r.name" x-text="r.name"></option>
-                                    </template>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 2: Hierarchy & Setup -->
-                    <div class="space-y-3.5 pt-4 border-t border-slate-100">
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <i data-lucide="shield" class="w-3.5 h-3.5 text-indigo-500"></i> Role & Hierarchy Setup
-                        </span>
-
-                        <!-- Row 3: Account System Role & Reporting Authority -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Account Role <span class="text-rose-500">*</span></label>
-                                <select name="role" x-model="selectedEmp.role" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                    <option value="employee">Employee / Intern / Trainee</option>
-                                    <option value="team_lead">Team Lead / TL Support</option>
-                                    <option value="admin">HR Administration</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Reporting Authority</label>
-                                <select name="reporting_tl_id" x-model="selectedEmp.reporting_tl_id" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                    <option value="">Apex Authority / Direct to HR</option>
-                                    <?php foreach ($reportingAuthorities as $ra): ?>
-                                        <option value="<?= $ra['id'] ?>">
-                                            <?= htmlspecialchars($ra['name']) ?> (<?= htmlspecialchars($ra['designation'] ?: ucfirst($ra['role'])) ?> - <?= htmlspecialchars($ra['department_name'] ?? 'Office') ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Row 4: Work Mode & Permanent Office Location -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Work Mode <span class="text-rose-500">*</span></label>
-                                <select name="work_mode" x-model="selectedEmp.work_mode" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                    <option value="office">🏢 In-Office (Strict 150m Geo-Fence)</option>
-                                    <option value="field">🚗 Field Staff (GPS Radar Tracking)</option>
-                                    <option value="wfh">🏠 WFH / Remote Mode</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Permanent Office Location</label>
-                                <select name="assigned_office_location" x-model="selectedEmp.assigned_office_location" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                    <?php foreach ($officeLocations as $loc): ?>
-                                        <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Row 5: Employment Type & Monthly Pay -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Employment Type</label>
-                                <select name="employment_type" x-model="selectedEmp.employment_type" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                                    <option value="full_time">Full Time Staff</option>
-                                    <option value="intern_paid">Paid Intern (Monthly Stipend)</option>
-                                    <option value="intern_unpaid">Unpaid Intern (Trainee ₹0)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Monthly Basic Pay (₹)</label>
-                                <input type="number" step="0.01" name="salary_basic" :value="selectedEmp.salary_basic" class="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition shadow-2xs">
-                            </div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Monthly Pay (₹)</label>
+                            <input type="number" step="0.01" name="salary_basic" :value="selectedEmp.salary_basic" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition">
                         </div>
                     </div>
 
                     <!-- Submit Buttons -->
-                    <div class="flex items-center justify-between pt-5 border-t border-slate-100 mt-5">
-                        <button type="button" @click="editMode = false" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer">
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100 mt-3">
+                        <button type="button" @click="editMode = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer">
                             Cancel
                         </button>
-                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition inline-flex items-center gap-1.5 cursor-pointer">
-                            <i data-lucide="save" class="w-4 h-4"></i> Save Profile Changes
+                        <button type="submit" class="px-5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
+                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Changes
                         </button>
                     </div>
                 </form>
