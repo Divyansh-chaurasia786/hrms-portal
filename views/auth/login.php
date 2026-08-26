@@ -3,7 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Sign In - Enterprise HRMS</title>
+    
+    <!-- Primary SEO Metadata -->
+    <title>Ecofone HRMS | Enterprise Human Resource & Operations Management Portal</title>
+    <meta name="title" content="Ecofone HRMS | Enterprise Human Resource & Operations Management Portal">
+    <meta name="description" content="Official Ecofone HRMS Portal - Enterprise Human Resource Management System for Ecofone. Live attendance tracking, team task reporting, cloud drive storage, and operations management.">
+    <meta name="keywords" content="Ecofone HRMS, Ecofone, HRMS Ecofone, ecofone portal, ecofone hrms login, ecofone employee login, ecofone attendance, ecofone operations, HRMS portal">
+    <meta name="author" content="Ecofone">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="https://hrms-ecofone.vercel.app">
+
+    <!-- Open Graph / Facebook / LinkedIn / WhatsApp Preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hrms-ecofone.vercel.app">
+    <meta property="og:title" content="Ecofone HRMS - Enterprise Portal">
+    <meta property="og:description" content="Official Ecofone HRMS Portal - Live attendance, task management, team cloud drive, and operations.">
+    <meta property="og:site_name" content="Ecofone HRMS">
+    <meta property="og:image" content="https://ui-avatars.com/api/?name=Ecofone+HRMS&background=4f46e5&color=fff&size=512">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://hrms-ecofone.vercel.app">
+    <meta name="twitter:title" content="Ecofone HRMS - Enterprise Portal">
+    <meta name="twitter:description" content="Official Ecofone HRMS Portal - Attendance, team operations, and employee management.">
+
+    <!-- Schema.org JSON-LD Structured Data for Google Search Knowledge Graph -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Ecofone HRMS",
+      "alternateName": ["HRMS Ecofone", "Ecofone Portal", "Ecofone Human Resource Management System"],
+      "url": "https://hrms-ecofone.vercel.app",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All",
+      "description": "Official Ecofone HRMS Enterprise Portal for attendance, shift management, task submissions, and workforce operations.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Ecofone",
+        "url": "https://hrms-ecofone.vercel.app"
+      }
+    }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">

@@ -26,6 +26,32 @@ require_once __DIR__ . '/../controllers/DriveController.php';
 // Ensure DB is initialized
 $db = getDBConnection();
 
+$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if ($uri === '/robots.txt') {
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "User-agent: *\nAllow: /\nAllow: /?page=login\nDisallow: /api/\nDisallow: /config/\n\nSitemap: https://hrms-ecofone.vercel.app/sitemap.xml\n";
+    exit;
+}
+if ($uri === '/sitemap.xml') {
+    header('Content-Type: application/xml; charset=utf-8');
+    echo '<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://hrms-ecofone.vercel.app/</loc>
+    <lastmod>' . date('Y-m-d') . '</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://hrms-ecofone.vercel.app/?page=login</loc>
+    <lastmod>' . date('Y-m-d') . '</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+</urlset>';
+    exit;
+}
+
 $action = $_GET['action'] ?? null;
 $page = $_GET['page'] ?? null;
 
