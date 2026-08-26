@@ -14,6 +14,18 @@ $tls = $db->query("SELECT id, name, designation FROM users WHERE role = 'team_le
 
 $officeLocations = getOfficeLocations();
 
+// Fetch Master Roles
+$rolesMaster = $db->query("SELECT * FROM roles_master ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch Eligible Reporting Authorities only (Admin, TLs, and Custom Roles with authority)
+$reportingAuthorities = $db->query("
+    SELECT u.id, u.name, u.designation, u.role, u.department_name
+    FROM users u
+    LEFT JOIN roles_master rm ON LOWER(u.designation) = LOWER(rm.name)
+    WHERE u.status = 'active' AND (u.role IN ('admin', 'team_lead') OR rm.can_be_reporting_authority = 1)
+    ORDER BY CASE WHEN u.role = 'admin' THEN 1 WHEN u.role = 'team_lead' THEN 2 ELSE 3 END, u.name ASC
+")->fetchAll(PDO::FETCH_ASSOC);
+
 // Fetch available active employees/interns for team assignment
 $availableStaff = $db->query("
     SELECT u.id, u.name, u.designation, u.employment_type, u.reporting_tl_id, tl.name as current_tl_name
@@ -552,70 +564,120 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
 
                 <!-- 2. EDIT PROFILE MODE -->
                 <template x-if="editMode && selectedEmp">
-                    <form action="?action=update-employee" method="POST" class="space-y-4">
-                        <input type="hidden" name="user_id" :value="selectedEmp.id">
+    <form action="?action=update-employee" method="POST" class="space-y-4">
+        <input type="hidden" name="user_id" :value="selectedEmp.id">
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Full Name</label>
-                                <input type="text" name="name" :value="selectedEmp.name" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Official Email Address</label>
-                                                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">WhatsApp Number (For Alerts & Updates) *</label>
-                        <div class="relative">
-                            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600 absolute left-3 top-2.5"></i>
-                            <input type="text" name="whatsapp_number" required placeholder="+91 98765 43210" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-medium focus:ring-2 focus:ring-emerald-500">
-                        </div>
-                    </div>
-                    <input type="email" name="email" :value="selectedEmp.email" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                        </div>
+        <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Identity & Communication</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Full Name</label>
+                    <input type="text" name="name" :value="selectedEmp.name" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Official Email Address</label>
+                    <input type="email" name="email" :value="selectedEmp.email" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Job Designation</label>
-                                <input type="text" name="designation" x-model="selectedEmp.designation" list="desigSuggestions" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">System Role</label>
-                                <select name="role" x-model="selectedEmp.role" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
-                                    <option value="employee">Employee / Intern (Reports to TL)</option>
-                                    <option value="team_lead">Team Lead / TL Support (Reports to HR/TL)</option>
-                                    <option value="admin">HR Administration (Head HR / HR Support)</option>
-                                </select>
-                            </div>
-                        </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">WhatsApp Number</label>
+                <div class="relative">
+                    <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600 absolute left-3 top-2.5"></i>
+                    <input type="text" name="whatsapp_number" :value="selectedEmp.whatsapp_number || selectedEmp.phone || ''" required placeholder="+91 98765 43210" class="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-medium focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+        </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Employment Type</label>
-                                <select name="employment_type" x-model="selectedEmp.employment_type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
-                                    <option value="full_time">Full Time Staff</option>
-                                    <option value="intern_paid">Paid Intern (Monthly Stipend)</option>
-                                    <option value="intern_unpaid">Unpaid Intern (Trainee ₹0)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Monthly Basic Pay / Stipend (₹)</label>
-                                <input type="number" step="0.01" name="salary_basic" :value="selectedEmp.salary_basic" placeholder="e.g. 75000 or 10000" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                        </div>
+        <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Role & Organization</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department</label>
+                    <select name="department_name" x-model="selectedEmp.department_name" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                        <option value="Tech / Development">💻 Tech / Development</option>
+                        <option value="Calling / Sales">📞 Calling / Sales</option>
+                        <option value="Field Operations">🚗 Field Operations</option>
+                        <option value="HR & Administration">👑 HR & Administration</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Job Designation</label>
+                    <input type="text" name="designation" x-model="selectedEmp.designation" list="rolesSuggestions" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
 
-                        <!-- Reporting Authority in Edit Mode -->
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Authority / Manager</label>
-                            
-                            <!-- For Admin Role -->
-                            <template x-if="selectedEmp.role === 'admin'">
-                                <select name="reporting_tl_id" x-model="selectedEmp.reporting_tl_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
-                                    <option value="">Top Apex Authority (Head HR / None)</option>
-                                    <?php foreach ($hrManagers as $hrm): ?>
-                                        <option value="<?= $hrm['id'] ?>">Reports to: <?= htmlspecialchars($hrm['name']) ?> (<?= htmlspecialchars($hrm['designation'] ?: 'Head HR') ?>)</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </template>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">System Role</label>
+                    <select name="role" x-model="selectedEmp.role" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                        <option value="employee">Employee / Staff / Intern</option>
+                        <option value="team_lead">Team Lead / TL Support</option>
+                        <option value="admin">HR Administration</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Authority (Reports To)</label>
+                    <select name="reporting_tl_id" x-model="selectedEmp.reporting_tl_id" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Top Authority / Direct HR Reporting</option>
+                        <?php foreach ($reportingAuthorities as $ra): ?>
+                            <option value="<?= $ra['id'] ?>">
+                                <?= htmlspecialchars($ra['name']) ?> (<?= htmlspecialchars($ra['designation'] ?: ucfirst($ra['role'])) ?> - <?= htmlspecialchars($ra['department_name'] ?? 'Office') ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Work Mode & Office</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Work Mode</label>
+                    <select name="work_mode" x-model="selectedEmp.work_mode" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                        <option value="office">🏢 In-Office (Strict 150m Geo-Fence)</option>
+                        <option value="field">🚗 Field Staff (GPS Radar & KM Tracking)</option>
+                        <option value="wfh">🏠 WFH / Remote</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Permanent Office Location</label>
+                    <select name="assigned_office_location" x-model="selectedEmp.assigned_office_location" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                        <?php foreach ($officeLocations as $loc): ?>
+                            <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Employment Type</label>
+                <select name="employment_type" x-model="selectedEmp.employment_type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                    <option value="full_time">Full Time Staff</option>
+                    <option value="intern_paid">Paid Intern</option>
+                    <option value="intern_unpaid">Unpaid Intern</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Monthly Basic Pay (₹)</label>
+                <input type="number" step="0.01" name="salary_basic" :value="selectedEmp.salary_basic" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+            <button type="button" @click="editMode = false" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                Cancel
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm inline-flex items-center gap-1.5">
+                <i data-lucide="save" class="w-4 h-4"></i> Save Profile Changes
+            </button>
+        </div>
+    </form>
+</template>
 
                             <!-- For Team Lead / TL Support Role -->
                             <template x-if="selectedEmp.role === 'team_lead'">

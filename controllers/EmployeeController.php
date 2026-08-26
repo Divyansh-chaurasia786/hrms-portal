@@ -160,7 +160,7 @@ class EmployeeController {
         exit;
     }
 
-    public static function update(): void {
+        public static function update(): void {
         requireRole(['admin']);
         requireActiveShift();
         $userId = (int)($_POST['user_id'] ?? 0);
@@ -168,11 +168,14 @@ class EmployeeController {
         $email = strtolower(trim($_POST['email'] ?? ''));
         $role = $_POST['role'] ?? 'employee';
         $designation = trim($_POST['designation'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
+        $whatsappNumber = trim($_POST['whatsapp_number'] ?? ($_POST['phone'] ?? ''));
+        $phone = $whatsappNumber;
         $empType = $_POST['employment_type'] ?? 'full_time';
         $salary = (float)($_POST['salary_basic'] ?? 0);
-        $joiningDate = $_POST['joining_date'] ?? date('Y-m-d');
         $reportingTLId = !empty($_POST['reporting_tl_id']) ? (int)$_POST['reporting_tl_id'] : null;
+        $workMode = $_POST['work_mode'] ?? 'office';
+        $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
+        $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
 
         if ($userId <= 0 || empty($name) || empty($email) || empty($designation)) {
             setFlash('error', 'Name, Email, and Designation are required.');
@@ -198,11 +201,12 @@ class EmployeeController {
 
         $stmt = $db->prepare("
             UPDATE users 
-            SET name = ?, email = ?, role = ?, designation = ?, phone = ?, 
-                employment_type = ?, salary_basic = ?, joining_date = ?, reporting_tl_id = ?
+            SET name = ?, email = ?, role = ?, designation = ?, phone = ?, whatsapp_number = ?, 
+                employment_type = ?, salary_basic = ?, reporting_tl_id = ?, work_mode = ?, 
+                department_name = ?, assigned_office_location = ?
             WHERE id = ?
         ");
-        $stmt->execute([$name, $email, $role, $designation, $phone, $empType, $salary, $joiningDate, $reportingTLId, $userId]);
+        $stmt->execute([$name, $email, $role, $designation, $phone, $whatsappNumber, $empType, $salary, $reportingTLId, $workMode, $deptName, $assignedOfficeLocation, $userId]);
 
         $currUser = authUser();
         if ($currUser && (int)$currUser['id'] === (int)$userId) {
@@ -210,6 +214,8 @@ class EmployeeController {
             $_SESSION['user']['email'] = $email;
             $_SESSION['user']['role'] = $role;
             $_SESSION['user']['designation'] = $designation;
+            $_SESSION['user']['work_mode'] = $workMode;
+            $_SESSION['user']['department_name'] = $deptName;
             setAuthCookie($_SESSION['user']);
         }
 
