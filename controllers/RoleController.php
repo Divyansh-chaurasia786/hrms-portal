@@ -97,24 +97,4 @@ class RoleController {
         header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=admin-employees'));
         exit;
     }
-
-    public static function delete(): void {
-        requireAuth('admin');
-        $id = (int)($_POST['id'] ?? 0);
-        if ($id > 0) {
-            $db = getDBConnection();
-            $role = $db->query("SELECT * FROM roles_master WHERE id = {$id}")->fetch(PDO::FETCH_ASSOC);
-            if ($role) {
-                if ($role['code'] === 'head_hr') {
-                    setFlash('error', 'Cannot delete primary Head HR role.');
-                    header('Location: ?page=admin-roles');
-                    exit;
-                }
-                $db->exec("DELETE FROM roles_master WHERE id = {$id}");
-                setFlash('success', "Role '{$role['name']}' removed successfully.");
-            }
-        }
-        header('Location: ?page=admin-roles');
-        exit;
-    }
 }
