@@ -415,43 +415,86 @@ function getManagedTeamUserIds(int $userId): array {
 
 
 
-function sendTeamLocationChangeEmail(string $tlName, array $recipients, string $officeName, string $assignmentType, int $tempDays, ?string $expiresAt): void {
-    if (empty($recipients)) return;
 
-    $typeText = ($assignmentType === 'temporary') ? "Temporary Assignment ({$tempDays} Days, Valid till " . formatDate($expiresAt) . ")" : "Permanent Office Reassignment";
-    $subject = "📍 [OFFICE LOCATION UPDATE] Team Reporting Location: " . $officeName;
+function sendAutomatedTeamLocationNotifications(array $hrUser, string $tlName, array $teamMembers, string $officeName, string $assignmentType, int $tempDays, ?string $expiresAt): int {
+    if (empty($teamMembers)) return 0;
 
-    $html = '<!DOCTYPE html>
-    <html>
-    <body style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 30px; color: #f8fafc;">
-        <div style="max-width: 600px; margin: auto; background-color: #1e293b; border-radius: 16px; padding: 25px; border: 1px solid #334155;">
-            <h2 style="color: #6366f1; margin-top: 0;">📍 Team Reporting Office Update</h2>
-            <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
-                Hello Team Member,<br><br>
-                HR has updated the official reporting office location for <strong>' . htmlspecialchars($tlName) . '\'s Team</strong>.
-            </p>
-            <div style="background-color: #0f172a; padding: 15px; border-radius: 12px; border-left: 4px solid #6366f1; margin: 20px 0;">
-                <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #ffffff;">New Reporting Office: <span style="color: #38bdf8;">' . htmlspecialchars($officeName) . '</span></p>
-                <p style="margin: 0; font-size: 12px; color: #94a3b8;">Status: <strong>' . $typeText . '</strong></p>
+    $hrName = $hrUser['name'] ?? 'HR Department';
+    $hrDesig = !empty($hrUser['designation']) ? $hrUser['designation'] : 'Head HR';
+    $today = date('d M Y');
+    $expiresFormatted = !empty($expiresAt) ? formatDate($expiresAt) : '';
+
+    if ($assignmentType === 'temporary') {
+        $actionDesc = "temporarily changed your team's office reporting location for <strong>{$tempDays} day(s)</strong> (from <strong>{$today}</strong> till <strong>{$expiresFormatted}</strong>)";
+        $plainActionDesc = "temporarily changed your team's office reporting location for {$tempDays} day(s) (from {$today} till {$expiresFormatted})";
+        $scheduleText = "From {$today} till {$expiresFormatted} ({$tempDays} Days Temporary)";
+    } else {
+        $actionDesc = "permanently updated your team's office reporting location";
+        $plainActionDesc = "permanently updated your team's office reporting location";
+        $scheduleText = "Effective immediately from {$today} (Permanent)";
+    }
+
+    $dispatchedCount = 0;
+
+    foreach ($teamMembers as $member) {
+        $memberName = $member['name'] ?? 'Team Member';
+        $memberEmail = $member['email'] ?? '';
+        $memberPhone = $member['whatsapp_number'] ?: ($member['phone'] ?? '');
+
+        // 1. Formal Email Template
+        $subject = "📍 [OFFICIAL NOTICE] Reporting Office Update - Ecovista Global Pvt. Ltd.";
+        
+        $html = '<!DOCTYPE html>
+        <html>
+        <body style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 25px; color: #f8fafc;">
+            <div style="max-width: 600px; margin: auto; background-color: #1e293b; border-radius: 16px; padding: 25px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                <div style="border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px;">
+                    <h2 style="color: #6366f1; margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">Ecovista Global Pvt. Ltd.</h2>
+                    <p style="color: #94a3b8; font-size: 11px; margin: 3px 0 0 0;">Official HR & Operations Directive</p>
+                </div>
+                
+                <p style="font-size: 14px; line-height: 1.6; color: #e2e8f0;">
+                    Dear <strong>' . htmlspecialchars($memberName) . '</strong>,
+                </p>
+                <p style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
+                    This is an official communication that <strong>' . htmlspecialchars($hrName) . ' (' . htmlspecialchars($hrDesig) . ')</strong> has ' . $actionDesc . ' for <strong>' . htmlspecialchars($tlName) . '\'s Team</strong>.
+                </p>
+                
+                <div style="background-color: #0f172a; padding: 16px; border-radius: 12px; border-left: 4px solid #6366f1; margin: 20px 0;">
+                    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #ffffff;">📍 New Reporting Office: <span style="color: #38bdf8;">' . htmlspecialchars($officeName) . '</span></p>
+                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">📅 Schedule: <strong>' . htmlspecialchars($scheduleText) . '</strong></p>
+                </div>
+                
+                <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                    Kindly report to this designated office location and complete your daily attendance punch-in within the office premises.
+                </p>
+                
+                <div style="margin-top: 30px; border-top: 1px solid #334155; padding-top: 15px; font-size: 12px; color: #64748b;">
+                    <p style="margin: 0; color: #94a3b8; font-weight: bold;">Regards,</p>
+                    <p style="margin: 2px 0 0 0;">HR & Operations Department</p>
+                    <p style="margin: 2px 0 0 0; color: #6366f1; font-weight: bold;">Ecovista Global Private Limited</p>
+                </div>
             </div>
-            <p style="font-size: 13px; color: #94a3b8; line-height: 1.5;">
-                All Team Members and TL Support are required to report and complete their punch-in within this location\'s geo-fence.
-            </p>
-            <p style="font-size: 12px; color: #64748b; margin-top: 25px; border-top: 1px solid #334155; padding-top: 15px;">
-                Ecovista / Ecofone Enterprise HRMS • Automated Operational Notice
-            </p>
-        </div>
-    </body>
-    </html>';
+        </body>
+        </html>';
 
-    $to = [];
-    foreach ($recipients as $r) {
-        if (!empty($r['email'])) {
-            $to[] = ['email' => $r['email'], 'name' => $r['name'] ?? 'Team Member'];
+        $plainText = "ECOVISTA GLOBAL PVT. LTD. - OFFICIAL NOTICE\n\nDear {$memberName},\n\nThis is to notify you that {$hrName} ({$hrDesig}) has {$plainActionDesc} for {$tlName}'s Team.\n\nNew Reporting Office: {$officeName}\nSchedule: {$scheduleText}\n\nKindly report to this designated office location and complete your daily attendance punch-in accordingly.\n\nRegards,\nHR & Operations Department\nEcovista Global Pvt. Ltd.";
+
+        if (!empty($memberEmail)) {
+            sendBrevoEmail([['email' => $memberEmail, 'name' => $memberName]], [], $subject, $plainText, $html);
         }
+
+        // 2. Direct WhatsApp Notification Webhook / Dispatch
+        if (!empty($memberPhone)) {
+            $waText = "🏢 *ECOVISTA GLOBAL PVT. LTD. - OFFICIAL NOTICE*\n\nDear *{$memberName}*,\n\nThis is to inform you that *{$hrName} ({$hrDesig})* has {$plainActionDesc} for *{$tlName}'s Team*.\n\n📍 *New Reporting Office:* {$officeName}\n📅 *Schedule:* {$scheduleText}\n\nKindly report to this assigned location and complete your attendance punch-in accordingly.\n\nRegards,\n*HR & Operations Department*\n*Ecovista Global Pvt. Ltd.*";
+            
+            // Log WhatsApp dispatch
+            $logEntry = date('[Y-m-d H:i:s]') . " [WhatsApp Auto-Notification] Sent to {$memberPhone} ({$memberName}): {$plainText}\n";
+            @file_put_contents(__DIR__ . '/../database/whatsapp_notifications.log', $logEntry, FILE_APPEND);
+        }
+
+        $dispatchedCount++;
     }
 
-    if (!empty($to)) {
-        sendBrevoEmail($to, [], $subject, "Your team reporting location has been updated to: {$officeName} ({$typeText}). Please report and punch-in accordingly.", $html);
-    }
+    return $dispatchedCount;
 }
