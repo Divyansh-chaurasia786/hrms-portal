@@ -286,26 +286,3 @@ $page = $_GET['page'] ?? 'dashboard';
                 </div>
             </div>
         <?php endif; ?>
-                    </div>
-                </div>
-                <div class="shrink-0 flex items-center gap-2">
-                    <?php if ($currRole === 'admin'): ?>
-                        <a href="?page=admin-leaves" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
-                            <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i> Review Leave Queue
-                        </a>
-                    <?php else: ?>
-                                    <?php if (($user['department_name'] ?? '') === 'Calling / Sales'): ?>
-                <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My Calling Queue
-                </a>
-            <?php endif; ?>
-            <a href="?page=employee-wfh" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-wfh' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="home" class="w-4 h-4"></i> Apply for WFH
-            </a>
-            <a href="?page=employee-leaves" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
-                            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Apply for Leave
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-        <?php endif; ?>
