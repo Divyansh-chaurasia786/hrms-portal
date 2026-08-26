@@ -98,7 +98,7 @@ $page = $_GET['page'] ?? 'dashboard';
             </a>
 
         <?php elseif ($role === 'admin'): ?>
-            <!-- Admin / HR Links -->
+                        <!-- Admin / HR Links -->
             <div class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1">HR Administration</div>
             <a href="?page=admin-dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-dashboard' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i> HR Overview
@@ -106,11 +106,26 @@ $page = $_GET['page'] ?? 'dashboard';
             <a href="?page=admin-employees" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-employees' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="users" class="w-4 h-4"></i> Employee & Intern Directory
             </a>
+            <a href="?page=admin-roles" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-roles' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="shield-check" class="w-4 h-4 text-purple-400"></i> Role & Hierarchy Manager
+            </a>
             <a href="?page=admin-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="clock" class="w-4 h-4"></i> Attendance Audit
             </a>
+            <a href="?page=admin-travel-radar" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-travel-radar' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="map" class="w-4 h-4 text-amber-400"></i> Field Travel Radar
+            </a>
+            <a href="?page=admin-wfh" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-wfh' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="home" class="w-4 h-4 text-blue-400"></i> WFH Approvals & Policy
+            </a>
             <a href="?page=admin-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="calendar-check" class="w-4 h-4"></i> Leave Approvals
+            </a>
+            <a href="?page=admin-smart-sheets" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-smart-sheets' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i> Smart Sheet & AI Hub
+            </a>
+            <a href="?page=calling-manage" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-manage' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="phone-forwarded" class="w-4 h-4 text-emerald-400"></i> Telecalling Lead CRM
             </a>
             <?php
             $pendingEscCount = 0;
