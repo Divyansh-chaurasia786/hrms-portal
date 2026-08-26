@@ -3,11 +3,10 @@
 
 if (session_status() === PHP_SESSION_NONE) {
     if (!headers_sent()) {
-        // Set 1-Year Persistent Session (Never logout automatically)
-        @ini_set('session.cookie_lifetime', 60 * 60 * 24 * 365);
-        @ini_set('session.gc_maxlifetime', 60 * 60 * 24 * 365);
+        // High-Security Ephemeral Session (Automatically logs out when browser is closed)
+        @ini_set('session.cookie_lifetime', 0);
         @session_set_cookie_params([
-            'lifetime' => 60 * 60 * 24 * 365,
+            'lifetime' => 0, // 0 = Strict Session Cookie (Destroyed on browser close)
             'path' => '/',
             'httponly' => true,
             'samesite' => 'Lax'
@@ -16,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 }
 
-define('AUTH_SECRET_KEY', 'hrms_v4_sec_key_20260826_98374283_ecofone_fresh');
+define('AUTH_SECRET_KEY', 'hrms_v5_session_only_sec_key_20260826_ephemeral');
 
 function generateAuthToken(array $user): string {
     $data = [
@@ -45,7 +44,7 @@ function verifyAuthToken(string $token): ?array {
 
 function setAuthCookie(array $user): void {
     $token = generateAuthToken($user);
-    $expire = time() + (60 * 60 * 24 * 365); // 1 Year
+    $expire = 0; // 0 = Browser Session Only (Auto-logout on browser close)
     $secure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     setcookie('hrms_auth_token', $token, [
         'expires' => $expire,
