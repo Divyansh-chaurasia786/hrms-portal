@@ -591,6 +591,7 @@ $viewMap = [
     'tl-tasks' => ['file' => 'tl/tasks.php', 'roles' => ['team_lead', 'admin']],
     'tl-leaves' => ['file' => 'tl/leaves.php', 'roles' => ['team_lead', 'admin']],
     'tl-reports' => ['file' => 'tl/reports.php', 'roles' => ['team_lead', 'admin']],
+    'tl-travel-radar' => ['file' => 'admin/travel_radar.php', 'roles' => ['team_lead', 'admin']],
 
     // Employee Pages
     'employee-dashboard' => ['file' => 'employee/dashboard.php', 'roles' => ['employee', 'team_lead', 'admin']],
@@ -598,12 +599,19 @@ $viewMap = [
     'employee-reports' => ['file' => 'employee/tasks.php', 'roles' => ['employee', 'team_lead', 'admin']],
     'employee-attendance' => ['file' => 'employee/attendance.php', 'roles' => ['employee', 'team_lead', 'admin']],
     'employee-leaves' => ['file' => 'employee/leaves.php', 'roles' => ['employee', 'team_lead', 'admin']],
+    'employee-wfh' => ['file' => 'employee/wfh_request.php', 'roles' => ['employee', 'team_lead', 'admin']],
+    'calling-queue' => ['file' => 'calling/queue.php', 'roles' => ['employee', 'team_lead', 'admin']],
 
     // Admin Pages
     'admin-dashboard' => ['file' => 'admin/dashboard.php', 'roles' => ['admin']],
     'admin-employees' => ['file' => 'admin/employees.php', 'roles' => ['admin']],
+    'admin-roles' => ['file' => 'admin/roles.php', 'roles' => ['admin']],
     'admin-attendance' => ['file' => 'admin/attendance.php', 'roles' => ['admin']],
+    'admin-travel-radar' => ['file' => 'admin/travel_radar.php', 'roles' => ['admin', 'team_lead']],
+    'admin-wfh' => ['file' => 'admin/wfh_approvals.php', 'roles' => ['admin', 'team_lead']],
     'admin-leaves' => ['file' => 'admin/leaves.php', 'roles' => ['admin']],
+    'admin-smart-sheets' => ['file' => 'admin/smart_sheets.php', 'roles' => ['admin']],
+    'calling-manage' => ['file' => 'calling/manage.php', 'roles' => ['admin', 'team_lead']],
     'admin-tl-reports' => ['file' => 'admin/tl_reports.php', 'roles' => ['admin']],
 
     // Tech Cloud Drive (Google Drive Integration)
