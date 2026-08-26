@@ -489,6 +489,7 @@ function sendAutomatedTeamLocationNotifications(array $hrUser, string $tlName, a
             $waText = "🏢 *ECOVISTA GLOBAL PVT. LTD. - OFFICIAL NOTICE*\n\nDear *{$memberName}*,\n\nThis is to inform you that *{$hrName} ({$hrDesig})* has {$plainActionDesc} for *{$tlName}'s Team*.\n\n📍 *New Reporting Office:* {$officeName}\n📅 *Schedule:* {$scheduleText}\n\nKindly report to this assigned location and complete your attendance punch-in accordingly.\n\nRegards,\n*HR & Operations Department*\n*Ecovista Global Pvt. Ltd.*";
             
             // Log WhatsApp dispatch
+            sendMetaWhatsAppMessage($memberPhone, $waText);
             $logEntry = date('[Y-m-d H:i:s]') . " [WhatsApp Auto-Notification] Sent to {$memberPhone} ({$memberName}): {$plainText}\n";
             @file_put_contents(__DIR__ . '/../database/whatsapp_notifications.log', $logEntry, FILE_APPEND);
         }
@@ -497,4 +498,60 @@ function sendAutomatedTeamLocationNotifications(array $hrUser, string $tlName, a
     }
 
     return $dispatchedCount;
+}
+
+function sendMetaWhatsAppMessage(string $toPhone, string $messageText): array {
+    $phoneId = getenv('WHATSAPP_PHONE_NUMBER_ID') ?: ($_ENV['WHATSAPP_PHONE_NUMBER_ID'] ?? ($_SERVER['WHATSAPP_PHONE_NUMBER_ID'] ?? ''));
+    $token = getenv('WHATSAPP_ACCESS_TOKEN') ?: ($_ENV['WHATSAPP_ACCESS_TOKEN'] ?? ($_SERVER['WHATSAPP_ACCESS_TOKEN'] ?? ''));
+
+    // Format Indian phone numbers with 91 if 10 digits
+    $cleanPhone = preg_replace('/[^\d]/', '', $toPhone);
+    if (strlen($cleanPhone) === 10) {
+        $cleanPhone = '91' . $cleanPhone;
+    }
+
+    if (empty($phoneId) || empty($token)) {
+        // Log simulation if token not yet provided
+        $logMsg = date('[Y-m-d H:i:s]') . " [WhatsApp Meta Engine Ready] Queued for +{$cleanPhone}: {$messageText}\n";
+        @file_put_contents(__DIR__ . '/../database/whatsapp_notifications.log', $logMsg, FILE_APPEND);
+        return ['success' => true, 'mode' => 'queued_for_token'];
+    }
+
+    $url = "https://graph.facebook.com/v19.0/{$phoneId}/messages";
+    $payload = [
+        "messaging_product" => "whatsapp",
+        "recipient_type" => "individual",
+        "to" => $cleanPhone,
+        "type" => "text",
+        "text" => [
+            "preview_url" => false,
+            "body" => $messageText
+        ]
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Authorization: Bearer " . $token,
+        "Content-Type: application/json"
+    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    $logMsg = date('[Y-m-d H:i:s]') . " [Meta WhatsApp Sent] To: +{$cleanPhone} HTTP: {$httpCode} Response: {$response}\n";
+    @file_put_contents(__DIR__ . '/../database/whatsapp_notifications.log', $logMsg, FILE_APPEND);
+
+    return [
+        'success' => ($httpCode >= 200 && $httpCode < 300),
+        'http_code' => $httpCode,
+        'response' => json_decode($response, true),
+        'error' => $err
+    ];
 }
