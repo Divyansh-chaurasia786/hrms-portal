@@ -8,7 +8,7 @@ $sheets = $db->query("
     FROM smart_sheet_uploads s
     JOIN users u ON s.uploaded_by = u.id
     ORDER BY s.created_at DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 ?>
 
 <div class="space-y-6" x-data="{ uploadModalOpen: false, selectedSheet: null }">
@@ -40,19 +40,24 @@ $sheets = $db->query("
         </div>
     <?php else: ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <?php foreach ($sheets as $s): ?>
+            <?php foreach ($sheets as $s): 
+                $sTitle = $s['title'] ?? 'Custom Sheet';
+                $sCat = $s['category'] ?? 'General';
+                $rows = json_decode($s['rows_json'] ?? '[]', true) ?: [];
+                $rowCnt = count($rows);
+            ?>
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition">
                     <div>
                         <div class="flex items-start justify-between gap-2">
-                            <h3 class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($s['sheet_title']) ?></h3>
+                            <h3 class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($sTitle) ?></h3>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <?= htmlspecialchars($s['detected_category']) ?>
+                                <?= htmlspecialchars($sCat) ?>
                             </span>
                         </div>
                         <div class="text-xs text-slate-500 mt-2 space-y-1">
-                            <div>Rows: <strong class="text-slate-800"><?= (int)$s['row_count'] ?></strong></div>
-                            <div>Imported by: <strong class="text-slate-800"><?= htmlspecialchars($s['uploader_name']) ?></strong></div>
-                            <div class="text-[10px] font-mono text-slate-400"><?= date('d M Y, h:i A', strtotime($s['created_at'])) ?></div>
+                            <div>Rows: <strong class="text-slate-800"><?= $rowCnt ?></strong></div>
+                            <div>Imported by: <strong class="text-slate-800"><?= htmlspecialchars($s['uploader_name'] ?? 'HR') ?></strong></div>
+                            <div class="text-[10px] font-mono text-slate-400"><?= date('d M Y, h:i A', strtotime($s['created_at'] ?? 'now')) ?></div>
                         </div>
                     </div>
 
@@ -61,7 +66,7 @@ $sheets = $db->query("
                             <i data-lucide="eye" class="w-3.5 h-3.5"></i> View Dynamic UI
                         </button>
                         <form action="?action=delete-smart-sheet" method="POST" onsubmit="return confirm('Delete this smart sheet?');" class="inline">
-                            <input type="hidden" name="sheet_id" value="<?= $s['id'] ?>">
+                            <input type="hidden" name="sheet_id" value="<?= (int)($s['id'] ?? 0) ?>">
                             <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>

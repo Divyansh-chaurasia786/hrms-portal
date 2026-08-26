@@ -9,11 +9,10 @@ $requests = $db->query("
     FROM wfh_requests r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
-    ORDER BY r.created_at DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+    ORDER BY r.applied_at DESC
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-$pendingRequests = array_filter($requests, fn($r) => $r['status'] === 'pending');
-$historyRequests = array_filter($requests, fn($r) => $r['status'] !== 'pending');
+$pendingRequests = array_filter($requests, fn($r) => ($r['status'] ?? '') === 'pending');
 ?>
 
 <div class="space-y-6">
@@ -82,31 +81,35 @@ $historyRequests = array_filter($requests, fn($r) => $r['status'] !== 'pending')
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <?php foreach ($pendingRequests as $pr): ?>
+                        <?php foreach ($pendingRequests as $pr): 
+                            $prEmp = $pr['emp_name'] ?? 'Staff';
+                            $prCode = $pr['emp_code'] ?? '';
+                            $prDesig = $pr['designation'] ?? '';
+                        ?>
                             <tr class="hover:bg-slate-50/80 transition">
                                 <td class="py-3 px-3">
-                                    <div class="font-bold text-slate-900"><?= htmlspecialchars($pr['emp_name']) ?></div>
-                                    <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($pr['emp_code']) ?> • <?= htmlspecialchars($pr['designation']) ?></div>
+                                    <div class="font-bold text-slate-900"><?= htmlspecialchars($prEmp) ?></div>
+                                    <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($prCode) ?> • <?= htmlspecialchars($prDesig) ?></div>
                                 </td>
                                 <td class="py-3 px-3 font-bold text-indigo-900 font-mono">
                                     <?= formatDate($pr['wfh_date']) ?>
                                 </td>
                                 <td class="py-3 px-3 text-slate-600 max-w-xs">
-                                    <?= htmlspecialchars($pr['reason']) ?>
+                                    <?= htmlspecialchars($pr['reason'] ?? '') ?>
                                 </td>
                                 <td class="py-3 px-3 text-[11px] text-slate-400 font-mono">
-                                    <?= date('d M Y, h:i A', strtotime($pr['created_at'])) ?>
+                                    <?= date('d M Y, h:i A', strtotime($pr['applied_at'] ?? 'now')) ?>
                                 </td>
                                 <td class="py-3 px-3 text-right whitespace-nowrap space-x-1.5">
                                     <form action="?action=review-wfh" method="POST" class="inline">
-                                        <input type="hidden" name="request_id" value="<?= $pr['id'] ?>">
+                                        <input type="hidden" name="request_id" value="<?= (int)($pr['id'] ?? 0) ?>">
                                         <input type="hidden" name="status" value="approved">
                                         <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition">
                                             Approve
                                         </button>
                                     </form>
                                     <form action="?action=review-wfh" method="POST" class="inline">
-                                        <input type="hidden" name="request_id" value="<?= $pr['id'] ?>">
+                                        <input type="hidden" name="request_id" value="<?= (int)($pr['id'] ?? 0) ?>">
                                         <input type="hidden" name="status" value="rejected">
                                         <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition">
                                             Reject

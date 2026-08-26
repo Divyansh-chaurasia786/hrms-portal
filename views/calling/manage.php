@@ -9,16 +9,16 @@ $callers = $db->query("
     FROM users 
     WHERE department_name = 'Calling / Sales' AND status = 'active'
     ORDER BY name ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-// Fetch Leads & Summary Stats
+// Fetch Leads & Summary Stats (Matching 'status' column in calling_leads)
 $stats = $db->query("
     SELECT 
         COUNT(*) as total_leads,
-        COUNT(CASE WHEN disposition = 'pending' THEN 1 END) as pending_leads,
-        COUNT(CASE WHEN disposition = 'interested' THEN 1 END) as interested_leads,
-        COUNT(CASE WHEN disposition = 'converted' THEN 1 END) as converted_leads,
-        COUNT(CASE WHEN disposition = 'not_interested' THEN 1 END) as lost_leads
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_leads,
+        COUNT(CASE WHEN status = 'interested' THEN 1 END) as interested_leads,
+        COUNT(CASE WHEN status = 'converted' THEN 1 END) as converted_leads,
+        COUNT(CASE WHEN status = 'not_interested' THEN 1 END) as lost_leads
     FROM calling_leads
 ")->fetch(PDO::FETCH_ASSOC) ?: ['total_leads' => 0, 'pending_leads' => 0, 'interested_leads' => 0, 'converted_leads' => 0, 'lost_leads' => 0];
 
@@ -26,14 +26,14 @@ $stats = $db->query("
 $leaderboard = $db->query("
     SELECT u.name, u.emp_id,
            COUNT(l.id) as total_assigned,
-           COUNT(CASE WHEN l.disposition != 'pending' THEN 1 END) as calls_made,
-           COUNT(CASE WHEN l.disposition = 'converted' THEN 1 END) as conversions
+           COUNT(CASE WHEN l.status != 'pending' THEN 1 END) as calls_made,
+           COUNT(CASE WHEN l.status = 'converted' THEN 1 END) as conversions
     FROM users u
     LEFT JOIN calling_leads l ON l.assigned_to = u.id
     WHERE u.department_name = 'Calling / Sales' AND u.status = 'active'
     GROUP BY u.id, u.name, u.emp_id
     ORDER BY conversions DESC, calls_made DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 ?>
 
 <div class="space-y-6" x-data="{ uploadModalOpen: false }">
@@ -60,19 +60,19 @@ $leaderboard = $db->query("
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Leads Pool</span>
-            <div class="text-2xl font-extrabold text-slate-900 mt-0.5"><?= (int)$stats['total_leads'] ?></div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-0.5"><?= (int)($stats['total_leads'] ?? 0) ?></div>
         </div>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Calls</span>
-            <div class="text-2xl font-extrabold text-amber-600 mt-0.5"><?= (int)$stats['pending_leads'] ?></div>
+            <div class="text-2xl font-extrabold text-amber-600 mt-0.5"><?= (int)($stats['pending_leads'] ?? 0) ?></div>
         </div>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Interested Prospects</span>
-            <div class="text-2xl font-extrabold text-blue-600 mt-0.5"><?= (int)$stats['interested_leads'] ?></div>
+            <div class="text-2xl font-extrabold text-blue-600 mt-0.5"><?= (int)($stats['interested_leads'] ?? 0) ?></div>
         </div>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Closed / Converted</span>
-            <div class="text-2xl font-extrabold text-emerald-600 mt-0.5"><?= (int)$stats['converted_leads'] ?></div>
+            <div class="text-2xl font-extrabold text-emerald-600 mt-0.5"><?= (int)($stats['converted_leads'] ?? 0) ?></div>
         </div>
     </div>
 
@@ -101,16 +101,18 @@ $leaderboard = $db->query("
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php foreach ($leaderboard as $lb): 
-                            $rate = ($lb['total_assigned'] > 0) ? round(($lb['conversions'] / $lb['total_assigned']) * 100, 1) : 0;
+                            $tot = (int)($lb['total_assigned'] ?? 0);
+                            $conv = (int)($lb['conversions'] ?? 0);
+                            $rate = ($tot > 0) ? round(($conv / $tot) * 100, 1) : 0;
                         ?>
                             <tr class="hover:bg-slate-50/80 transition">
                                 <td class="py-3 px-3">
-                                    <div class="font-bold text-slate-900"><?= htmlspecialchars($lb['name']) ?></div>
-                                    <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($lb['emp_id']) ?></div>
+                                    <div class="font-bold text-slate-900"><?= htmlspecialchars($lb['name'] ?? 'Agent') ?></div>
+                                    <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($lb['emp_id'] ?? '') ?></div>
                                 </td>
-                                <td class="py-3 px-3 font-semibold text-slate-700"><?= (int)$lb['total_assigned'] ?></td>
-                                <td class="py-3 px-3 font-semibold text-indigo-700"><?= (int)$lb['calls_made'] ?></td>
-                                <td class="py-3 px-3 font-bold text-emerald-700"><?= (int)$lb['conversions'] ?></td>
+                                <td class="py-3 px-3 font-semibold text-slate-700"><?= $tot ?></td>
+                                <td class="py-3 px-3 font-semibold text-indigo-700"><?= (int)($lb['calls_made'] ?? 0) ?></td>
+                                <td class="py-3 px-3 font-bold text-emerald-700"><?= $conv ?></td>
                                 <td class="py-3 px-3 text-right font-bold text-slate-900"><?= $rate ?>%</td>
                             </tr>
                         <?php endforeach; ?>
@@ -135,7 +137,7 @@ $leaderboard = $db->query("
                         <input type="text" name="campaign_name" required placeholder="e.g. August Telemarketing Leads" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Upload CSV / Excel File *</label>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Upload CSV File *</label>
                         <input type="file" name="lead_file" accept=".csv" required class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                     </div>
                     <div class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl text-[11px] text-indigo-900">

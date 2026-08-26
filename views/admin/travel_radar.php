@@ -13,26 +13,20 @@ $fieldEmployees = $db->query("
     LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$today}'
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
     WHERE u.work_mode = 'field' AND u.status = 'active'
-    ORDER BY a.clock_in DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+    ORDER BY CASE WHEN a.clock_in IS NOT NULL AND a.clock_out IS NULL THEN 1 ELSE 2 END, u.name ASC
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
 // Fetch recent coordinates for today
 $travelLogs = $db->query("
     SELECT l.*, u.name as emp_name, u.emp_id as emp_code
     FROM employee_travel_logs l
     JOIN users u ON l.user_id = u.id
-    WHERE l.log_date = '{$today}'
-    ORDER BY l.logged_at ASC
-")->fetchAll(PDO::FETCH_ASSOC);
-
-// Total KM logged today across company
-$totalKmToday = 0;
-foreach ($travelLogs as $tl) {
-    // Aggregation if needed
-}
+    WHERE DATE(l.recorded_at) = '{$today}'
+    ORDER BY l.recorded_at ASC
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 ?>
 
-<div class="space-y-6" x-data="{ selectedEmpId: '', logs: <?= htmlspecialchars(json_encode($travelLogs)) ?> }">
+<div class="space-y-6">
     <!-- Header Banner -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div class="flex items-center gap-3">
@@ -72,14 +66,17 @@ foreach ($travelLogs as $tl) {
                 <div class="space-y-2.5 max-h-[450px] overflow-y-auto no-scrollbar">
                     <?php foreach ($fieldEmployees as $fe): 
                         $isOnShift = (!empty($fe['clock_in']) && empty($fe['clock_out']));
+                        $feName = $fe['name'] ?? 'Staff';
+                        $feCode = $fe['emp_id'] ?? '';
+                        $feDesig = $fe['designation'] ?? 'Field Staff';
                     ?>
                         <div class="p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100 transition flex items-center justify-between gap-3">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5">
-                                    <span class="font-bold text-xs text-slate-900 truncate"><?= htmlspecialchars($fe['name']) ?></span>
-                                    <span class="font-mono text-[10px] text-slate-400">(<?= htmlspecialchars($fe['emp_id']) ?>)</span>
+                                    <span class="font-bold text-xs text-slate-900 truncate"><?= htmlspecialchars($feName) ?></span>
+                                    <span class="font-mono text-[10px] text-slate-400">(<?= htmlspecialchars($feCode) ?>)</span>
                                 </div>
-                                <div class="text-[11px] text-slate-500 truncate"><?= htmlspecialchars($fe['designation']) ?> • TL: <?= htmlspecialchars($fe['tl_name'] ?? 'HR Direct') ?></div>
+                                <div class="text-[11px] text-slate-500 truncate"><?= htmlspecialchars($feDesig) ?> • TL: <?= htmlspecialchars($fe['tl_name'] ?? 'HR Direct') ?></div>
                             </div>
                             <div class="shrink-0 text-right">
                                 <?php if ($isOnShift): ?>
@@ -122,16 +119,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }).addTo(map);
 
     const logs = <?= json_encode($travelLogs) ?>;
-    if (logs.length > 0) {
+    if (logs && logs.length > 0) {
         const latlngs = logs.map(l => [parseFloat(l.latitude), parseFloat(l.longitude)]);
         const polyline = L.polyline(latlngs, {color: '#6366f1', weight: 4, opacity: 0.8}).addTo(map);
         map.fitBounds(polyline.getBounds());
 
         logs.forEach((l, idx) => {
-            const isLatest = (idx === logs.length - 1);
             L.marker([parseFloat(l.latitude), parseFloat(l.longitude)])
              .addTo(map)
-             .bindPopup(`<strong>${l.emp_name}</strong><br>Time: ${l.logged_at}<br>Speed: ${l.speed_kmh || 0} km/h`);
+             .bindPopup(`<strong>${l.emp_name || 'Staff'}</strong><br>Time: ${l.recorded_at || ''}<br>Speed: ${l.speed || 0} km/h`);
         });
     }
 });

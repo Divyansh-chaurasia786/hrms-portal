@@ -468,7 +468,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                     </label>
                     <select name="assigned_office_location" :required="userRole === 'team_lead'" class="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 text-xs font-bold text-indigo-950 focus:ring-2 focus:ring-indigo-500">
                         <?php foreach ($officeLocations as $loc): ?>
-                            <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?> (Radius: <?= $loc['radius'] ?>m)</option>
+                            <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?> (Radius: <?= $loc['radius'] ?? ($loc['radius_meters'] ?? 150) ?>m)</option>
                         <?php endforeach; ?>
                     </select>
                     <p class="text-[10px] text-indigo-700 font-medium">This location will automatically apply to this Team Lead, their TL Support, and all assigned team members.</p>

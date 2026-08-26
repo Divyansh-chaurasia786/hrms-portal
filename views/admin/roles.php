@@ -3,7 +3,7 @@
 $user = authUser();
 $db = getDBConnection();
 
-$roles = $db->query("SELECT * FROM roles_master ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+$roles = $db->query("SELECT * FROM roles_master ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
 // Count active users per role designation
 $roleCounts = $db->query("SELECT LOWER(designation) as desig, COUNT(*) as cnt FROM users WHERE status = 'active' GROUP BY LOWER(designation)")->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
@@ -30,16 +30,20 @@ $roleCounts = $db->query("SELECT LOWER(designation) as desig, COUNT(*) as cnt FR
     <!-- Roles Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <?php foreach ($roles as $r): 
-            $userCnt = $roleCounts[strtolower($r['name'])] ?? 0;
+            $rName = $r['name'] ?? 'Role';
+            $rCode = $r['code'] ?? ($r['slug'] ?? strtolower(str_replace(' ', '_', $rName)));
+            $rDesc = !empty($r['description']) ? $r['description'] : 'Standard organizational designation.';
+            $isAuth = !empty($r['can_be_reporting_authority']);
+            $userCnt = $roleCounts[strtolower($rName)] ?? 0;
         ?>
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-300 transition">
                 <div>
                     <div class="flex items-start justify-between gap-2">
                         <div>
-                            <h3 class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($r['name']) ?></h3>
-                            <span class="text-[10px] font-mono text-slate-400 block mt-0.5"><?= htmlspecialchars($r['slug']) ?></span>
+                            <h3 class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($rName) ?></h3>
+                            <span class="text-[10px] font-mono text-slate-400 block mt-0.5"><?= htmlspecialchars($rCode) ?></span>
                         </div>
-                        <?php if ($r['can_be_reporting_authority']): ?>
+                        <?php if ($isAuth): ?>
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                                 <i data-lucide="crown" class="w-3 h-3"></i> Authority
                             </span>
@@ -51,7 +55,7 @@ $roleCounts = $db->query("SELECT LOWER(designation) as desig, COUNT(*) as cnt FR
                     </div>
 
                     <p class="text-xs text-slate-500 mt-2.5 line-clamp-2">
-                        <?= htmlspecialchars($r['description'] ?: 'Standard organizational designation.') ?>
+                        <?= htmlspecialchars($rDesc) ?>
                     </p>
                 </div>
 
@@ -64,7 +68,7 @@ $roleCounts = $db->query("SELECT LOWER(designation) as desig, COUNT(*) as cnt FR
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
                         <form action="?action=delete-role" method="POST" onsubmit="return confirm('Are you sure you want to delete this role?');" class="inline">
-                            <input type="hidden" name="role_id" value="<?= $r['id'] ?>">
+                            <input type="hidden" name="role_id" value="<?= (int)($r['id'] ?? 0) ?>">
                             <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Delete Role">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
@@ -122,11 +126,11 @@ $roleCounts = $db->query("SELECT LOWER(designation) as desig, COUNT(*) as cnt FR
                     <input type="hidden" name="role_id" :value="selectedRole ? selectedRole.id : ''">
                     <div>
                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Role Title *</label>
-                        <input type="text" name="name" :value="selectedRole ? selectedRole.name : ''" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" name="name" :value="selectedRole ? (selectedRole.name || '') : ''" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Description</label>
-                        <textarea name="description" rows="2" :value="selectedRole ? selectedRole.description : ''" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs"></textarea>
+                        <textarea name="description" rows="2" :value="selectedRole ? (selectedRole.description || '') : ''" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs"></textarea>
                     </div>
                     <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
                         <label class="flex items-center gap-2.5 cursor-pointer">
