@@ -2,6 +2,7 @@
 <?php
 $user = authUser();
 $role = $user['role'] ?? 'employee';
+$currRole = $role;
 $page = $_GET['page'] ?? 'dashboard';
 ?>
 <!-- Sidebar Backdrop for Mobile -->
