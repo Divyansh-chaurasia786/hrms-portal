@@ -103,8 +103,8 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
     targetTlMembersCount: 0,
     targetTlMemberNames: '',
     rolesList: window.masterRolesData || [],
+    roleDropdownOpen: false,
     addRolePopupOpen: false,
-    manageRolesPopupOpen: false,
     newRoleTitle: '',
     newRoleAuth: false,
     selectedDesig: '',
@@ -128,14 +128,16 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                 this.newRoleTitle = '';
                 this.newRoleAuth = false;
                 this.addRolePopupOpen = false;
+                this.roleDropdownOpen = false;
             } else {
                 alert(data.error || 'Failed to add role');
             }
         } catch(e) {
-            alert('Network error adding role');
+            alert('Error creating role: ' + e.message);
         }
     },
-    async deleteRole(id) {
+    async deleteRole(id, e) {
+        if (e) e.stopPropagation();
         if (!confirm('Are you sure you want to delete this role?')) return;
         const formData = new FormData();
         formData.append('role_id', id);
@@ -145,6 +147,21 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
             const res = await fetch('?action=delete-role', {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                this.rolesList = this.rolesList.filter(r => Number(r.id) !== Number(id));
+                if (this.selectedDesig && !this.rolesList.some(r => r.name === this.selectedDesig)) {
+                    this.selectedDesig = '';
+                }
+            } else {
+                alert(data.error || 'Failed to delete role');
+            }
+        } catch(e) {
+            alert('Error deleting role');
+        }
+    },
                 body: formData
             });
             const data = await res.json();
@@ -651,14 +668,35 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                         <option value="HR & Administration">👑 HR</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Designation <span class="text-rose-500">*</span></label>
-                                    <select name="designation" x-model="selectedEmp.designation" required class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-indigo-950 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
-                                        <template x-for="r in rolesList" :key="r.id">
-                                            <option :value="r.name" x-text="r.name"></option>
-                                        </template>
-                                    </select>
+                                                            <div class="relative" x-data="{ editRoleDrop: false }" @click.away="editRoleDrop = false">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase">Designation <span class="text-rose-500">*</span></label>
+                                    <button type="button" @click="addRolePopupOpen = true" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-extrabold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="Add New Role">
+                                        <i data-lucide="plus" class="w-3 h-3"></i> Add Role
+                                    </button>
                                 </div>
+
+                                <input type="hidden" name="designation" :value="selectedEmp ? selectedEmp.designation : ''" required>
+
+                                <button type="button" @click="editRoleDrop = !editRoleDrop" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-left flex items-center justify-between focus:ring-2 focus:ring-indigo-500 shadow-2xs transition">
+                                    <span class="text-indigo-950 font-bold" x-text="selectedEmp ? (selectedEmp.designation || 'Select Designation...') : ''"></span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                                </button>
+
+                                <div x-show="editRoleDrop" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-1.5 max-h-52 overflow-y-auto space-y-1" x-cloak>
+                                    <template x-for="r in rolesList" :key="r.id">
+                                        <div @click="if (selectedEmp) selectedEmp.designation = r.name; editRoleDrop = false" class="px-2.5 py-1.5 rounded-xl hover:bg-indigo-50 flex items-center justify-between cursor-pointer group transition">
+                                            <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                                                <span class="text-xs font-bold text-slate-800 truncate" x-text="r.name"></span>
+                                                <span x-show="Number(r.can_be_reporting_authority) === 1" class="text-[9px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 font-extrabold rounded">👑</span>
+                                            </div>
+                                            <button type="button" @click.stop="deleteRole(r.id, $event)" class="w-5 h-5 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white flex items-center justify-center transition shrink-0 cursor-pointer shadow-2xs" title="Delete Role (-)">
+                                                <i data-lucide="minus" class="w-3 h-3"></i>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
                             </div>
                         </div>
 
