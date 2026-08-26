@@ -16,7 +16,7 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 }
 
-define('AUTH_SECRET_KEY', 'hrms_v3_sec_token_98374283_a0b1c2d3');
+define('AUTH_SECRET_KEY', 'hrms_v4_sec_key_20260826_98374283_ecofone_fresh');
 
 function generateAuthToken(array $user): string {
     $data = [
