@@ -46,6 +46,7 @@ function getEffectiveUserLocation(int $userId): array {
     $stmt = $db->prepare("SELECT id, name, role, designation, reporting_tl_id, assigned_office_location, temp_office_location, temp_location_expires_at, temp_location_days FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $u = $stmt->fetch();
+
     if (!$u) {
         $loc = getOfficeLocationById(2) ?: ['id' => 2, 'name' => 'Innovation Hub - Kapoorthala, Aliganj', 'lat' => 26.884578, 'lng' => 80.938924, 'radius' => 150];
         $loc['is_temporary'] = false;
@@ -53,38 +54,32 @@ function getEffectiveUserLocation(int $userId): array {
         return $loc;
     }
 
-    $targetTlId = null;
+    $targetId = null;
     $desig = strtolower($u['designation'] ?? '');
     $isTLSupport = (strpos($desig, 'tl support') !== false || strpos($desig, 'support tl') !== false);
 
     if ($u['role'] === 'admin') {
-        $locId = (int)($u['assigned_office_location'] ?: 2);
-        $loc = getOfficeLocationById($locId) ?: getOfficeLocationById(2);
-        $loc['is_temporary'] = false;
-        $loc['days_left'] = 0;
-        return $loc;
-    }
-
-    if ($u['role'] === 'team_lead') {
+        $targetId = (int)$u['id'];
+    } elseif ($u['role'] === 'team_lead') {
         if ($isTLSupport && !empty($u['reporting_tl_id'])) {
-            $targetTlId = (int)$u['reporting_tl_id'];
+            $targetId = (int)$u['reporting_tl_id'];
         } else {
-            $targetTlId = (int)$u['id'];
+            $targetId = (int)$u['id'];
         }
     } else {
         // Employee inherits TL location
-        $targetTlId = (int)($u['reporting_tl_id'] ?: 0);
+        $targetId = (int)($u['reporting_tl_id'] ?: 0);
     }
 
-    if ($targetTlId > 0) {
+    if ($targetId > 0) {
         $stmt2 = $db->prepare("SELECT id, name, assigned_office_location, temp_office_location, temp_location_expires_at, temp_location_days FROM users WHERE id = ?");
-        $stmt2->execute([$targetTlId]);
-        $tl = $stmt2->fetch();
+        $stmt2->execute([$targetId]);
+        $leader = $stmt2->fetch();
     } else {
-        $tl = $u;
+        $leader = $u;
     }
 
-    if (!$tl) {
+    if (!$leader) {
         $loc = getOfficeLocationById(2);
         $loc['is_temporary'] = false;
         $loc['days_left'] = 0;
@@ -92,26 +87,26 @@ function getEffectiveUserLocation(int $userId): array {
     }
 
     $today = date('Y-m-d');
-    // Check if Temporary Location is active
-    if (!empty($tl['temp_office_location']) && !empty($tl['temp_location_expires_at']) && $tl['temp_location_expires_at'] >= $today) {
-        $loc = getOfficeLocationById((int)$tl['temp_office_location']);
+    // Check if Temporary Location is active (Max 5 days)
+    if (!empty($leader['temp_office_location']) && !empty($leader['temp_location_expires_at']) && $leader['temp_location_expires_at'] >= $today) {
+        $loc = getOfficeLocationById((int)$leader['temp_office_location']);
         if ($loc) {
-            $daysLeft = (int)((strtotime($tl['temp_location_expires_at']) - strtotime($today)) / 86400) + 1;
+            $daysLeft = (int)((strtotime($leader['temp_location_expires_at']) - strtotime($today)) / 86400) + 1;
             $loc['is_temporary'] = true;
             $loc['days_left'] = max(1, $daysLeft);
-            $loc['expires_at'] = $tl['temp_location_expires_at'];
-            $loc['permanent_location_id'] = (int)($tl['assigned_office_location'] ?: 2);
-            $loc['tl_name'] = $tl['name'];
+            $loc['expires_at'] = $leader['temp_location_expires_at'];
+            $loc['permanent_location_id'] = (int)($leader['assigned_office_location'] ?: 2);
+            $loc['leader_name'] = $leader['name'];
             return $loc;
         }
     }
 
     // Permanent Location
-    $permId = (int)($tl['assigned_office_location'] ?: 2);
+    $permId = (int)($leader['assigned_office_location'] ?: 2);
     $loc = getOfficeLocationById($permId) ?: getOfficeLocationById(2);
     $loc['is_temporary'] = false;
     $loc['days_left'] = 0;
-    $loc['tl_name'] = $tl['name'];
+    $loc['leader_name'] = $leader['name'];
     return $loc;
 }
 

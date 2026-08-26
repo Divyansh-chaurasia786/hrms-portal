@@ -641,7 +641,7 @@ $pendingRepCount = count(array_filter($dailyTlReports, fn($r) => $r['status'] ==
                                 <label class="block text-[11px] font-bold text-amber-950 uppercase">
                                     Select Duration (Maximum 4 Days Limit)
                                 </label>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     <label class="flex items-center justify-center p-2 rounded-lg border text-xs font-bold cursor-pointer transition" :class="tempDays == 1 ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-white border-amber-200 text-amber-900'">
                                         <input type="radio" name="temp_days" value="1" x-model="tempDays" class="hidden">
                                         <span>1 Day</span>

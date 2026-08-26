@@ -252,7 +252,7 @@ if ($action) {
             $tlId = (int)($_POST['tl_id'] ?? 0);
             $locationId = (int)($_POST['location_id'] ?? 0);
             $assignmentType = $_POST['assignment_type'] ?? 'permanent';
-            $tempDays = min(4, max(1, (int)($_POST['temp_days'] ?? 1)));
+            $tempDays = min(5, max(1, (int)($_POST['temp_days'] ?? 1)));
             $loc = getOfficeLocationById($locationId);
 
             if ($tlId > 0 && $loc) {
