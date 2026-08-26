@@ -106,9 +106,6 @@ $page = $_GET['page'] ?? 'dashboard';
             <a href="?page=admin-employees" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-employees' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="users" class="w-4 h-4"></i> Employee & Intern Directory
             </a>
-            <a href="?page=admin-roles" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-roles' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="shield-check" class="w-4 h-4 text-purple-400"></i> Role & Hierarchy Manager
-            </a>
             <a href="?page=admin-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="clock" class="w-4 h-4"></i> Attendance Audit
             </a>

@@ -19,29 +19,83 @@ class RoleController {
         require __DIR__ . '/../views/admin/roles.php';
     }
 
-    public static function create(): void {
-        requireAuth('admin');
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $name = trim($_POST['name'] ?? '');
-            $canBeAuth = !empty($_POST['can_be_reporting_authority']) ? 1 : 0;
-            $dept = trim($_POST['department_name'] ?? 'General');
+        public static function create(): void {
+        requireRole(['admin']);
+        requireActiveShift();
+        $name = trim($_POST['name'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $canAuth = !empty($_POST['can_be_reporting_authority']) ? 1 : 0;
+        $dept = trim($_POST['department_name'] ?? 'General');
 
-            if (empty($name)) {
-                setFlash('error', 'Please provide a valid role name.');
-                header('Location: ?page=admin-roles');
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' || !empty($_POST['ajax']);
+
+        if (empty($name)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Role name is required.']);
+                exit;
+            }
+            setFlash('error', 'Role name is required.');
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=admin-employees'));
+            exit;
+        }
+
+        $code = strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $name));
+        $slug = $code;
+        $db = getDBConnection();
+
+        try {
+            $stmt = $db->prepare("INSERT INTO roles_master (name, code, slug, description, can_be_reporting_authority, department_name) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $code, $slug, $description, $canAuth, $dept]);
+            $newId = (int)$db->lastInsertId();
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'role' => [
+                        'id' => $newId,
+                        'name' => $name,
+                        'code' => $code,
+                        'slug' => $slug,
+                        'can_be_reporting_authority' => $canAuth
+                    ]
+                ]);
                 exit;
             }
 
-            $code = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $name));
-
-            $db = getDBConnection();
-            $stmt = $db->prepare("INSERT INTO roles_master (name, code, can_be_reporting_authority, department_name) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), can_be_reporting_authority = VALUES(can_be_reporting_authority), department_name = VALUES(department_name)");
-            $stmt->execute([$name, $code, $canBeAuth, $dept]);
-
-            setFlash('success', "Role '{$name}' added / updated successfully!");
-            header('Location: ?page=admin-roles');
-            exit;
+            setFlash('success', "Role '{$name}' created successfully!");
+        } catch (Exception $e) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Role already exists.']);
+                exit;
+            }
+            setFlash('error', 'Role with this name or code already exists.');
         }
+
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=admin-employees'));
+        exit;
+    }
+
+    public static function delete(): void {
+        requireRole(['admin']);
+        requireActiveShift();
+        $roleId = (int)($_POST['role_id'] ?? 0);
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' || !empty($_POST['ajax']);
+
+        if ($roleId > 0) {
+            $db = getDBConnection();
+            $db->prepare("DELETE FROM roles_master WHERE id = ?")->execute([$roleId]);
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true]);
+                exit;
+            }
+            setFlash('success', 'Role deleted successfully.');
+        }
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=admin-employees'));
+        exit;
     }
 
     public static function delete(): void {

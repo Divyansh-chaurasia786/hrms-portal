@@ -102,6 +102,57 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
     targetTlName: '',
     targetTlMembersCount: 0,
     targetTlMemberNames: '',
+    rolesList: window.masterRolesData || [],
+    addRolePopupOpen: false,
+    manageRolesPopupOpen: false,
+    newRoleTitle: '',
+    newRoleAuth: false,
+    selectedDesig: '',
+    async submitNewRole() {
+        if (!this.newRoleTitle.trim()) return;
+        const formData = new FormData();
+        formData.append('name', this.newRoleTitle);
+        formData.append('can_be_reporting_authority', this.newRoleAuth ? '1' : '0');
+        formData.append('ajax', '1');
+
+        try {
+            const res = await fetch('?action=create-role', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success && data.role) {
+                this.rolesList.push(data.role);
+                this.selectedDesig = data.role.name;
+                this.newRoleTitle = '';
+                this.newRoleAuth = false;
+                this.addRolePopupOpen = false;
+            } else {
+                alert(data.error || 'Failed to add role');
+            }
+        } catch(e) {
+            alert('Network error adding role');
+        }
+    },
+    async deleteRole(id) {
+        if (!confirm('Are you sure you want to delete this role?')) return;
+        const formData = new FormData();
+        formData.append('role_id', id);
+        formData.append('ajax', '1');
+
+        try {
+            const res = await fetch('?action=delete-role', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                this.rolesList = this.rolesList.filter(r => Number(r.id) !== Number(id));
+            }
+        } catch(e) {}
+    },
     manageTlId: 0,
     manageTlName: '',
     manageAssignedIds: [],
@@ -840,6 +891,68 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- INLINE ADD ROLE POPUP MODAL -->
+<div x-show="addRolePopupOpen" class="fixed inset-0 z-60 overflow-y-auto" x-cloak>
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="addRolePopupOpen = false"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 text-left">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-600"></i> Add New Role
+                </h3>
+                <button type="button" @click="addRolePopupOpen = false" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="space-y-3 pt-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Designation Title *</label>
+                    <input type="text" x-model="newRoleTitle" @keydown.enter.prevent="submitNewRole()" placeholder="e.g. Senior Backend Developer" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" x-model="newRoleAuth" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-xs font-bold text-slate-800">Can be a Reporting Authority?</span>
+                    </label>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" @click="addRolePopupOpen = false" class="px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-bold text-slate-600">Cancel</button>
+                    <button type="button" @click="submitNewRole()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm transition">Add Role (+)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- INLINE MANAGE / DELETE ROLES POPUP MODAL -->
+<div x-show="manageRolesPopupOpen" class="fixed inset-0 z-60 overflow-y-auto" x-cloak>
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="manageRolesPopupOpen = false"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-200 text-left">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                    <i data-lucide="trash-2" class="w-4 h-4 text-rose-600"></i> Delete / Manage Roles (-)
+                </h3>
+                <button type="button" @click="manageRolesPopupOpen = false" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="space-y-2 pt-3 max-h-60 overflow-y-auto no-scrollbar">
+                <template x-for="r in rolesList" :key="r.id">
+                    <div class="p-2.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
+                        <div>
+                            <span class="text-xs font-bold text-slate-800" x-text="r.name"></span>
+                            <span x-show="Number(r.can_be_reporting_authority) === 1" class="ml-1.5 px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 text-[9px] font-extrabold">Authority</span>
+                        </div>
+                        <button type="button" @click="deleteRole(r.id)" class="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete Role">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </template>
+            </div>
+            <div class="flex justify-end pt-3 border-t border-slate-100 mt-3">
+                <button type="button" @click="manageRolesPopupOpen = false" class="px-4 py-1.5 bg-slate-100 rounded-lg text-xs font-bold text-slate-600">Done</button>
+            </div>
         </div>
     </div>
 </div>
