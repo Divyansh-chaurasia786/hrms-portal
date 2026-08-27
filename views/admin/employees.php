@@ -783,42 +783,122 @@ onboardModalOpen: false,
                             <div class="grid grid-cols-2 gap-2.5">
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
-                                    <select name="department_name" x-model="selectedEmp.department_name" @change="if (selectedEmp && selectedEmp.department_name && selectedEmp.department_name.includes('Field')) { selectedEmp.work_mode = 'field'; } else if (selectedEmp && selectedEmp.work_mode === 'field') { selectedEmp.work_mode = 'office'; }" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                    <select name="department_name" x-model="selectedEmp.department_name" @change="
+                                        if (selectedEmp.department_name && selectedEmp.department_name.includes('Field')) { 
+                                            selectedEmp.work_mode = 'field'; 
+                                        } else if (selectedEmp.department_name && selectedEmp.department_name.includes('HR')) { 
+                                            selectedEmp.work_mode = 'wfh'; 
+                                            selectedEmp.role = 'admin';
+                                        } else if (selectedEmp.work_mode === 'field' || selectedEmp.work_mode === 'wfh') { 
+                                            selectedEmp.work_mode = 'office'; 
+                                        }
+                                    " class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                         <option value="Tech / Development">💻 Tech</option>
                                         <option value="Calling / BDA Team">📞 BDA Team</option>
                                         <option value="Field Operations">🚗 Field</option>
                                         <option value="HR & Administration">👑 HR</option>
                                     </select>
                                 </div>
-                                                            <div class="relative" x-data="{ editRoleDrop: false }" @click.away="editRoleDrop = false">
-                                <div class="flex items-center justify-between mb-1">
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase">Designation <span class="text-rose-500">*</span></label>
-                                    <button type="button" @click="$dispatch('open-add-role-modal')" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-extrabold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="Add New Role">
-                                        <i data-lucide="plus" class="w-3 h-3"></i> Add Role
+                                <div class="relative" x-data="{ editRoleDrop: false, showAddRoleInline: false, inlineRoleName: '', inlineRoleAuth: false, savingRole: false }" @click.away="editRoleDrop = false; showAddRoleInline = false">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase">Designation <span class="text-rose-500">*</span></label>
+                                        <button type="button" @click.stop="showAddRoleInline = !showAddRoleInline; editRoleDrop = false" class="w-5 h-5 rounded-md bg-indigo-100 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 flex items-center justify-center text-xs font-black transition cursor-pointer shadow-2xs" title="Add New Role (+)">
+                                            +
+                                        </button>
+                                    </div>
+
+                                    <input type="hidden" name="designation" :value="selectedEmp ? selectedEmp.designation : ''" required>
+
+                                    <!-- Dropdown Trigger Button -->
+                                    <button type="button" @click="editRoleDrop = !editRoleDrop; showAddRoleInline = false" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-left flex items-center justify-between focus:ring-2 focus:ring-indigo-500 shadow-2xs transition cursor-pointer">
+                                        <span class="text-indigo-950 font-bold truncate" x-text="selectedEmp ? (selectedEmp.designation || 'Select Designation...') : ''"></span>
+                                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
                                     </button>
-                                </div>
 
-                                <input type="hidden" name="designation" :value="selectedEmp ? selectedEmp.designation : ''" required>
+                                    <!-- INLINE ADD ROLE POPUP -->
+                                    <div x-show="showAddRoleInline" x-cloak class="absolute left-0 right-0 top-full mt-1 bg-white border-2 border-indigo-400 rounded-xl shadow-2xl z-50 p-2.5 space-y-2">
+                                        <div class="flex items-center justify-between border-b border-indigo-100 pb-1">
+                                            <span class="text-[10px] font-extrabold uppercase tracking-wide text-indigo-900 flex items-center gap-1">
+                                                <span>➕</span> Add New Designation
+                                            </span>
+                                            <button type="button" @click="showAddRoleInline = false" class="text-slate-400 hover:text-slate-600 font-bold text-xs">✕</button>
+                                        </div>
+                                        <input type="text" x-model="inlineRoleName" @keydown.enter.prevent="
+                                            if (inlineRoleName && inlineRoleName.trim()) {
+                                                savingRole = true;
+                                                const fd = new FormData();
+                                                fd.append('name', inlineRoleName.trim());
+                                                fd.append('can_be_reporting_authority', inlineRoleAuth ? '1' : '0');
+                                                fd.append('ajax', '1');
+                                                fetch('?action=create-role', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                                                .then(r => r.json())
+                                                .then(d => {
+                                                    savingRole = false;
+                                                    if (d && d.success && d.role) {
+                                                        rolesList.push(d.role);
+                                                        if (selectedEmp) selectedEmp.designation = d.role.name;
+                                                        inlineRoleName = '';
+                                                        inlineRoleAuth = false;
+                                                        showAddRoleInline = false;
+                                                    } else {
+                                                        alert(d && d.error ? d.error : 'Failed to add role');
+                                                    }
+                                                }).catch(() => { savingRole = false; alert('Error creating role'); });
+                                            }
+                                        " placeholder="e.g. Area Sales Manager" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500">
+                                        
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-slate-700">
+                                            <input type="checkbox" x-model="inlineRoleAuth" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500">
+                                            <span>👑 Can be a Reporting Authority</span>
+                                        </label>
 
-                                <button type="button" @click="editRoleDrop = !editRoleDrop" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-left flex items-center justify-between focus:ring-2 focus:ring-indigo-500 shadow-2xs transition">
-                                    <span class="text-indigo-950 font-bold" x-text="selectedEmp ? (selectedEmp.designation || 'Select Designation...') : ''"></span>
-                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
-                                </button>
-
-                                <div x-show="editRoleDrop" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-1.5 max-h-52 overflow-y-auto space-y-1" x-cloak>
-                                    <template x-for="r in rolesList" :key="r.id">
-                                        <div @click="if (selectedEmp) selectedEmp.designation = r.name; editRoleDrop = false" class="px-2.5 py-1.5 rounded-xl hover:bg-indigo-50 flex items-center justify-between cursor-pointer group transition">
-                                            <div class="flex items-center gap-1.5 min-w-0 pr-2">
-                                                <span class="text-xs font-bold text-slate-800 truncate" x-text="r.name"></span>
-                                                <span x-show="Number(r.can_be_reporting_authority) === 1" class="text-[9px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 font-extrabold rounded">👑</span>
-                                            </div>
-                                            <button type="button" @click.stop="deleteRole(r.id, $event)" class="w-5 h-5 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white flex items-center justify-center transition shrink-0 cursor-pointer shadow-2xs" title="Delete Role (-)">
-                                                <i data-lucide="minus" class="w-3 h-3"></i>
+                                        <div class="flex justify-end gap-1 pt-1 border-t border-slate-100">
+                                            <button type="button" @click="showAddRoleInline = false" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold">Cancel</button>
+                                            <button type="button" :disabled="savingRole" @click="
+                                                if (!inlineRoleName || !inlineRoleName.trim()) return;
+                                                savingRole = true;
+                                                const fd = new FormData();
+                                                fd.append('name', inlineRoleName.trim());
+                                                fd.append('can_be_reporting_authority', inlineRoleAuth ? '1' : '0');
+                                                fd.append('ajax', '1');
+                                                fetch('?action=create-role', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                                                .then(r => r.json())
+                                                .then(d => {
+                                                    savingRole = false;
+                                                    if (d && d.success && d.role) {
+                                                        rolesList.push(d.role);
+                                                        if (selectedEmp) selectedEmp.designation = d.role.name;
+                                                        inlineRoleName = '';
+                                                        inlineRoleAuth = false;
+                                                        showAddRoleInline = false;
+                                                    } else {
+                                                        alert(d && d.error ? d.error : 'Failed to add role');
+                                                    }
+                                                }).catch(() => { savingRole = false; alert('Error creating role'); });
+                                            " class="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-xs">
+                                                <span x-text="savingRole ? 'Saving...' : 'Add (+)'"></span>
                                             </button>
                                         </div>
-                                    </template>
+                                    </div>
+
+                                    <!-- Clean Custom Dropdown List with Bold Text Minus -->
+                                    <div x-show="editRoleDrop && !showAddRoleInline" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1 max-h-40 overflow-y-auto space-y-0.5" x-cloak>
+                                        <template x-for="r in rolesList" :key="r.id">
+                                            <div @click="if (selectedEmp) selectedEmp.designation = r.name; editRoleDrop = false" class="px-2 py-1.5 rounded-lg hover:bg-indigo-50 flex items-center justify-between cursor-pointer group transition gap-1.5">
+                                                <div class="flex items-center gap-1 min-w-0">
+                                                    <span class="text-xs font-semibold text-slate-800 truncate" x-text="r.name"></span>
+                                                    <span x-show="Number(r.can_be_reporting_authority) === 1" class="text-[9px] px-1 py-0.2 bg-purple-100 text-purple-800 font-extrabold rounded shrink-0" title="Lead Role">👑</span>
+                                                </div>
+                                                <button type="button" @click.stop="deleteRole(r.id, $event)" class="w-4 h-4 rounded bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white flex items-center justify-center font-extrabold text-[11px] transition shrink-0 cursor-pointer" title="Delete Role (-)">
+                                                    -
+                                                </button>
+                                            </div>
+                                        </template>
+                                        <div x-show="!rolesList || !rolesList.length" class="p-2 text-center text-[11px] text-slate-400 italic">
+                                            No roles found. Click + to add.
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
                             </div>
                         </div>
 
