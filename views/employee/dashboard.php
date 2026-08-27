@@ -2,6 +2,8 @@
 <?php
 $user = authUser();
 $db = getDBConnection();
+$isFieldStaff = (($user['work_mode'] ?? '') === 'field' || stripos($user['department_name'] ?? '', 'Field') !== false || stripos($user['designation'] ?? '', 'Field') !== false);
+$isTechStaff = (stripos($user['department_name'] ?? '', 'Tech') !== false || stripos($user['designation'] ?? '', 'Developer') !== false);
 $today = date('Y-m-d');
 
 // Fetch user profile with TL name
@@ -208,12 +210,23 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                         <a href="?page=employee-leaves" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition inline-flex items-center gap-1.5 shadow-2xs">
                             <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-indigo-600"></i> Apply Leave
                         </a>
-                        <a href="?page=employee-tasks" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition inline-flex items-center gap-1.5 border border-indigo-200/60 shadow-2xs">
-                            <i data-lucide="kanban" class="w-3.5 h-3.5 text-indigo-600"></i> Task Board
-                        </a>
-                        <a href="?page=tech-drive" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition inline-flex items-center gap-1.5 shadow-2xs">
-                            <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i> Cloud Drive
-                        </a>
+                        <?php if ($isFieldStaff): ?>
+                            <a href="?page=employee-tasks" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition inline-flex items-center gap-1.5 border border-amber-200/80 shadow-2xs">
+                                <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-amber-600"></i> Field Daily DSR
+                            </a>
+                            <a href="?page=tl-travel-radar" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition inline-flex items-center gap-1.5 border border-emerald-200/80 shadow-2xs">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-600"></i> Field Travel Radar
+                            </a>
+                        <?php else: ?>
+                            <a href="?page=employee-tasks" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition inline-flex items-center gap-1.5 border border-indigo-200/60 shadow-2xs">
+                                <i data-lucide="kanban" class="w-3.5 h-3.5 text-indigo-600"></i> Task Board
+                            </a>
+                            <?php if ($isTechStaff): ?>
+                                <a href="?page=tech-drive" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition inline-flex items-center gap-1.5 shadow-2xs">
+                                    <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i> Cloud Drive
+                                </a>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -221,9 +234,17 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
             <!-- Right Side: Shift & Web Punch Command Center (5 cols) -->
             <div class="lg:col-span-5 bg-slate-50/90 rounded-2xl p-4 sm:p-5 border border-slate-200/80 flex flex-col justify-between space-y-3.5">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5 text-xs text-slate-600 font-semibold truncate max-w-[200px]" title="<?= $empOfficeLocation ? htmlspecialchars($empOfficeLocation['name']) : 'Office' ?>">
-                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
-                        <span class="truncate"><?= $empOfficeLocation ? htmlspecialchars($empOfficeLocation['name']) : 'Office' ?></span>
+                    <div class="flex items-center gap-1.5 text-xs text-slate-600 font-semibold truncate max-w-[220px]">
+                        <?php if ($isFieldStaff): ?>
+                            <i data-lucide="navigation" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                            <span class="text-emerald-800 font-bold">🚗 Field Staff (GPS Everywhere)</span>
+                        <?php elseif (($user['work_mode'] ?? '') === 'wfh'): ?>
+                            <i data-lucide="home" class="w-3.5 h-3.5 text-purple-600 shrink-0"></i>
+                            <span class="text-purple-800 font-bold">🏠 Remote / WFH (GPS Everywhere)</span>
+                        <?php else: ?>
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                            <span class="truncate"><?= $empOfficeLocation ? htmlspecialchars($empOfficeLocation['name']) : 'Office' ?></span>
+                        <?php endif; ?>
                     </div>
                     <div class="text-right">
                         <span class="text-xs font-mono font-bold text-slate-800" id="liveClock"><?= date('h:i:s A') ?></span>
@@ -285,7 +306,7 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                                 <template x-if="outState !== 'saving'">
                                     <i data-lucide="stop-circle" class="w-4 h-4"></i>
                                 </template>
-                                <span x-text="outState === 'saving' ? 'Recording Location...' : 'Punch Out (End Shift)'"></span>
+                                <span x-text="outState === 'saving' ? 'Recording Location...' : ('<?= $isFieldStaff ? '🔴 Punch Out (End Field Shift)' : 'Punch Out (End Shift)' ?>')"></span>
                             </button>
                         </form>
                     </div>

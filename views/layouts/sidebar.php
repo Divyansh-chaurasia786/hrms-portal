@@ -309,7 +309,11 @@ $page = $_GET['page'] ?? 'dashboard';
                         <button type="submit" :disabled="locState==='checking'" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer">
                             <template x-if="locState==='checking'"><svg class="animate-spin w-4 h-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></template>
                             <template x-if="locState!=='checking'"><i data-lucide="play-circle" class="w-4 h-4"></i></template>
-                            <span x-text="locState==='checking'?'Recording Location...':'Punch In (Office Login)'"></span>
+                            <?php 
+    $isField = (($user['work_mode'] ?? '') === 'field' || stripos($user['department_name'] ?? '', 'Field') !== false || stripos($user['designation'] ?? '', 'Field') !== false);
+    $punchInText = $isField ? '🚗 Punch In (Field Duty)' : ((($user['work_mode'] ?? '') === 'wfh' || ($user['role'] ?? '') === 'admin') ? '🏠 Punch In (Remote)' : 'Punch In (Office Login)');
+?>
+<span x-text="locState==='checking'?'Recording Location...':'<?= $punchInText ?>'"></span>
                         </button>
                     </form>
                     <!-- Error tooltip -->
