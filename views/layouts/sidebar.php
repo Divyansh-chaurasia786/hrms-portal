@@ -90,32 +90,55 @@ $page = $_GET['page'] ?? 'dashboard';
             <?php endif; ?>
 
         <?php elseif ($role === 'employee'): ?>
+            <?php 
+                $isFieldStaff = (($user['work_mode'] ?? '') === 'field' || stripos($user['department_name'] ?? '', 'Field') !== false || stripos($user['designation'] ?? '', 'Field') !== false);
+                $isBDAStaff = (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false);
+                $isTechStaff = (stripos($user['department_name'] ?? '', 'Tech') !== false || stripos($user['designation'] ?? '', 'Developer') !== false || stripos($user['designation'] ?? '', 'Engineer') !== false);
+            ?>
             <!-- Employee Links -->
-            <div class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1">My Workspace</div>
+            <div class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1">
+                <?= $isFieldStaff ? '🚗 Field Workspace' : 'My Workspace' ?>
+            </div>
             <a href="?page=employee-dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-dashboard' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i> My Dashboard
             </a>
-            <a href="?page=employee-tasks" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-tasks' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="kanban" class="w-4 h-4"></i> My Tasks & Submission
-            </a>
-            <a href="?page=employee-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="clock" class="w-4 h-4"></i> Attendance History
-            </a>
-                        <?php if (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false): ?>
-                <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My BDA Queue
+
+            <?php if ($isFieldStaff): ?>
+                <a href="?page=employee-tasks" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-tasks' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="clipboard-list" class="w-4 h-4 text-amber-400"></i> Field Tasks & Visits
                 </a>
-            <?php endif; ?>
-            <a href="?page=employee-wfh" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-wfh' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="home" class="w-4 h-4"></i> Apply for WFH
-            </a>
-            <a href="?page=employee-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="calendar-heart" class="w-4 h-4"></i> Apply Leave
-            </a>
-            <?php if (($user['department_name'] ?? '') === 'Tech / Development'): ?>
-            <a href="?page=tech-drive" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tech-drive' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-400"></i> Tech Cloud Drive
-            </a>
+                <a href="?page=tl-travel-radar" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-travel-radar' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i> Field Travel Radar
+                </a>
+                <a href="?page=employee-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="clock" class="w-4 h-4"></i> GPS Attendance Logs
+                </a>
+                <a href="?page=employee-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="calendar-heart" class="w-4 h-4"></i> Apply Leave
+                </a>
+            <?php else: ?>
+                <a href="?page=employee-tasks" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-tasks' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="kanban" class="w-4 h-4"></i> My Tasks & Submission
+                </a>
+                <a href="?page=employee-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="clock" class="w-4 h-4"></i> Attendance History
+                </a>
+                <?php if ($isBDAStaff): ?>
+                    <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                        <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My BDA Queue
+                    </a>
+                <?php endif; ?>
+                <a href="?page=employee-wfh" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-wfh' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="home" class="w-4 h-4"></i> Apply for WFH
+                </a>
+                <a href="?page=employee-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="calendar-heart" class="w-4 h-4"></i> Apply Leave
+                </a>
+                <?php if ($isTechStaff): ?>
+                    <a href="?page=tech-drive" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tech-drive' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                        <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-400"></i> Tech Cloud Drive
+                    </a>
+                <?php endif; ?>
             <?php endif; ?>
 
         <?php elseif ($role === 'admin'): ?>

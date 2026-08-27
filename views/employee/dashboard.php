@@ -321,9 +321,25 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                         officeLat: <?= $empOfficeLocation ? $empOfficeLocation['lat'] : 0 ?>,
                         officeLng: <?= $empOfficeLocation ? $empOfficeLocation['lng'] : 0 ?>,
                         officeName: '<?= $empOfficeLocation ? addslashes($empOfficeLocation['name']) : 'Not Assigned' ?>',
+                        isFieldStaff: <?= $isFieldStaff ? 'true' : 'false' ?>,
                         punchIn() {
-                            if (this.status === 'wfh') {
-                                this.$refs.punchForm.submit();
+                            if (this.isFieldStaff || this.status === 'wfh') {
+                                this.locState = 'checking';
+                                if (navigator.geolocation) {
+                                    navigator.geolocation.getCurrentPosition(
+                                        (pos) => {
+                                            this.latitude = pos.coords.latitude;
+                                            this.longitude = pos.coords.longitude;
+                                            this.$nextTick(() => this.$refs.punchForm.submit());
+                                        },
+                                        (err) => {
+                                            this.$nextTick(() => this.$refs.punchForm.submit());
+                                        },
+                                        { enableHighAccuracy: true, timeout: 5000 }
+                                    );
+                                } else {
+                                    this.$nextTick(() => this.$refs.punchForm.submit());
+                                }
                                 return;
                             }
                             if (!this.officeLat || !this.officeLng) {
@@ -378,7 +394,7 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                                     <span class="flex items-center gap-1.5"><svg class="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Verifying GPS...</span>
                                 </template>
                                 <template x-if="locState !== 'checking'">
-                                    <span class="flex items-center gap-1.5"><i data-lucide="play-circle" class="w-4 h-4"></i> Punch In (Start Shift)</span>
+                                    <span class="flex items-center gap-1.5"><i data-lucide="play-circle" class="w-4 h-4"></i> <?= $isFieldStaff ? "🚗 Punch In (Field Duty)" : "Punch In (Start Shift)" ?></span>
                                 </template>
                             </button>
                         </form>
