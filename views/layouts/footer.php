@@ -1,3 +1,78 @@
+<?php
+$currentUser = authUser();
+$isFieldActive = false;
+$activeAttId = 0;
+if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($currentUser['department_name'] ?? '', 'Field') !== false || stripos($currentUser['designation'] ?? '', 'Field') !== false)) {
+    $dbTracker = getDBConnection();
+    $todayDate = date('Y-m-d');
+    $attRow = $dbTracker->query("SELECT id FROM attendance WHERE user_id = {$currentUser['id']} AND date = '{$todayDate}' AND clock_in IS NOT NULL AND clock_out IS NULL")->fetch();
+    if ($attRow) {
+        $isFieldActive = true;
+        $activeAttId = (int)$attRow['id'];
+    }
+}
+?>
+
+<?php if ($isFieldActive): ?>
+<script>
+// 🚗 Background Live GPS Route Tracker for Active Field Staff
+(function() {
+    let lastLat = null;
+    let lastLng = null;
+    const attId = <?= $activeAttId ?>;
+
+    function sendGpsPing(lat, lng, speed) {
+        if (!lat || !lng) return;
+        
+        // Skip ping if user hasn't moved more than 5 meters (reduces duplicate database bloat)
+        if (lastLat !== null && lastLng !== null) {
+            const dist = Math.sqrt(Math.pow(lat - lastLat, 2) + Math.pow(lng - lastLng, 2)) * 111000;
+            if (dist < 8) return; // under 8 meters
+        }
+
+        lastLat = lat;
+        lastLng = lng;
+
+        const fd = new FormData();
+        fd.append('attendance_id', attId);
+        fd.append('latitude', lat);
+        fd.append('longitude', lng);
+        fd.append('speed', speed ? (speed * 3.6).toFixed(1) : 0); // m/s to km/h
+
+        fetch('?action=record-travel-gps', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).catch(err => console.log('GPS Ping err:', err));
+    }
+
+    if (navigator.geolocation) {
+        // High accuracy real-time position watcher
+        navigator.geolocation.watchPosition(
+            function(pos) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const speed = pos.coords.speed || 0;
+                sendGpsPing(lat, lng, speed);
+            },
+            function(err) { console.log('Location watch error:', err); },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+        );
+
+        // Fallback interval every 30 seconds
+        setInterval(function() {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
+                },
+                function(err) {},
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        }, 30000);
+    }
+})();
+</script>
+<?php endif; ?>
 <!-- views/layouts/footer.php -->
     </main>
 </div>

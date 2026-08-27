@@ -89,6 +89,42 @@ $page = $_GET['page'] ?? null;
 // Handle Actions
 if ($action) {
     switch ($action) {
+        case 'record-travel-gps':
+            requireAuth();
+            $user = authUser();
+            $attId = (int)($_POST['attendance_id'] ?? 0);
+            $lat = (float)($_POST['latitude'] ?? 0);
+            $lng = (float)($_POST['longitude'] ?? 0);
+            $speed = (float)($_POST['speed'] ?? 0);
+
+            if ($lat != 0 && $lng != 0) {
+                $db = getDBConnection();
+                
+                // Get last waypoint to calculate distance delta
+                $lastPoint = $db->query("SELECT latitude, longitude FROM employee_travel_logs WHERE user_id = {$user['id']} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                $distMeters = 0;
+                if ($lastPoint) {
+                    $earthR = 6371000;
+                    $dLat = deg2rad($lat - (float)$lastPoint['latitude']);
+                    $dLon = deg2rad($lng - (float)$lastPoint['longitude']);
+                    $a = sin($dLat/2)**2 + cos(deg2rad((float)$lastPoint['latitude'])) * cos(deg2rad($lat)) * sin($dLon/2)**2;
+                    $distMeters = (int)round($earthR * 2 * atan2(sqrt($a), sqrt(1-$a)));
+                }
+
+                $stmt = $db->prepare("
+                    INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters, recorded_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
+                ");
+                $stmt->execute([$attId, $user['id'], $lat, $lng, $speed, $distMeters]);
+                
+                // Also update latest position in attendance table
+                $db->prepare("UPDATE attendance SET latitude = ?, longitude = ? WHERE id = ?")->execute([$lat, $lng, $attId]);
+
+                echo json_encode(['success' => true, 'dist' => $distMeters]);
+                exit;
+            }
+            echo json_encode(['success' => false, 'error' => 'Invalid coords']);
+            exit;
             case 'create-role': RoleController::create(); break;
     case 'delete-role': RoleController::delete(); break;
     case 'apply-wfh': WfhController::apply(); break;
