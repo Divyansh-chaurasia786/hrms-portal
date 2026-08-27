@@ -107,7 +107,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
     manageTlName: '',
     manageAssignedIds: [],
     rolesList: (window.masterRolesData && window.masterRolesData.length) ? window.masterRolesData : [],
-    roleDropdownOpen: false,
+    roleDropdownOpen: false, addRolePopupOpen: false,
     addRolePopupOpen: false,
     newRoleTitle: '',
     newRoleAuth: false,
@@ -463,7 +463,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             <div class="relative" @click.away="roleDropdownOpen = false">
                                 <div class="flex items-center justify-between mb-1">
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase">Designation <span class="text-rose-500">*</span></label>
-                                    <button type="button" @click="addRolePopupOpen = true" class="w-5 h-5 rounded-md bg-indigo-100 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 flex items-center justify-center text-xs font-extrabold transition cursor-pointer shadow-2xs" title="Add New Role (+)">
+                                    <button type="button" @click="$dispatch('open-add-role-modal')" class="w-5 h-5 rounded-md bg-indigo-100 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 flex items-center justify-center text-xs font-extrabold transition cursor-pointer shadow-2xs" title="Add New Role (+)">
                                         +
                                     </button>
                                 </div>
@@ -681,7 +681,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                                             <div class="relative" x-data="{ editRoleDrop: false }" @click.away="editRoleDrop = false">
                                 <div class="flex items-center justify-between mb-1">
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase">Designation <span class="text-rose-500">*</span></label>
-                                    <button type="button" @click="addRolePopupOpen = true" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-extrabold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="Add New Role">
+                                    <button type="button" @click="$dispatch('open-add-role-modal')" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-extrabold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="Add New Role">
                                         <i data-lucide="plus" class="w-3 h-3"></i> Add Role
                                     </button>
                                 </div>
@@ -911,64 +911,40 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
     </div>
 </div>
 
-<!-- INLINE ADD ROLE POPUP MODAL -->
-<div x-show="addRolePopupOpen" class="fixed inset-0 z-60 overflow-y-auto" x-cloak>
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="addRolePopupOpen = false"></div>
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="relative bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 text-left">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                    <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-600"></i> Add New Role
-                </h3>
-                <button type="button" @click="addRolePopupOpen = false" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
-            <div class="space-y-3 pt-3">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Designation Title *</label>
-                    <input type="text" x-model="newRoleTitle" @keydown.enter.prevent="submitNewRole()" placeholder="e.g. Senior Backend Developer" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+
+
+    <!-- INLINE ADD ROLE POPUP MODAL (High Z-Index & Clean Event Trigger) -->
+    <div x-show="addRolePopupOpen" @open-add-role-modal.window="addRolePopupOpen = true" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs transition-opacity" @click="addRolePopupOpen = false"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 text-left my-auto">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-600"></i> Add New Role / Designation
+                    </h3>
+                    <button type="button" @click="addRolePopupOpen = false" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
                 </div>
-                <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" x-model="newRoleAuth" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
-                        <span class="text-xs font-bold text-slate-800">Can be a Reporting Authority?</span>
-                    </label>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="addRolePopupOpen = false" class="px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-bold text-slate-600">Cancel</button>
-                    <button type="button" @click="submitNewRole()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm transition">Add Role (+)</button>
+                <div class="space-y-3 pt-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Designation Title <span class="text-rose-500">*</span></label>
+                        <input type="text" x-model="newRoleTitle" @keydown.enter.prevent="submitNewRole()" placeholder="e.g. Senior Backend Developer" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" x-model="newRoleAuth" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-xs font-bold text-slate-800">Can be a Reporting Authority?</span>
+                        </label>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" @click="addRolePopupOpen = false" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition cursor-pointer">Cancel</button>
+                        <button type="button" @click="submitNewRole()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition cursor-pointer">Add Role (+)</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- INLINE MANAGE / DELETE ROLES POPUP MODAL -->
-<div x-show="manageRolesPopupOpen" class="fixed inset-0 z-60 overflow-y-auto" x-cloak>
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="manageRolesPopupOpen = false"></div>
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="relative bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-200 text-left">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                    <i data-lucide="trash-2" class="w-4 h-4 text-rose-600"></i> Delete / Manage Roles (-)
-                </h3>
-                <button type="button" @click="manageRolesPopupOpen = false" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
-            <div class="space-y-2 pt-3 max-h-60 overflow-y-auto no-scrollbar">
-                <template x-for="r in rolesList" :key="r.id">
-                    <div class="p-2.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
-                        <div>
-                            <span class="text-xs font-bold text-slate-800" x-text="r.name"></span>
-                            <span x-show="Number(r.can_be_reporting_authority) === 1" class="ml-1.5 px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 text-[9px] font-extrabold">Authority</span>
-                        </div>
-                        <button type="button" @click="deleteRole(r.id)" class="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete Role">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                </template>
-            </div>
-            <div class="flex justify-end pt-3 border-t border-slate-100 mt-3">
-                <button type="button" @click="manageRolesPopupOpen = false" class="px-4 py-1.5 bg-slate-100 rounded-lg text-xs font-bold text-slate-600">Done</button>
-            </div>
-        </div>
-    </div>
-</div>
+
