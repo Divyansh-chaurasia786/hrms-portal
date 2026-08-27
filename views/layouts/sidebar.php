@@ -177,13 +177,55 @@ $page = $_GET['page'] ?? 'dashboard';
             <?php
             $todayAtt = AttendanceController::getTodayAttendanceForUser($user['id']);
             $isCurrentlyIn = ($todayAtt && $todayAtt['clock_out'] === null);
+            $headerOfficeLocation = GEOFENCE_ENABLED ? getEffectiveUserLocation((int)$user['id']) : null;
             ?>
             <?php if ($isCurrentlyIn): ?>
+                <!-- PUNCHED IN: SHOW STATUS & PUNCH OUT BUTTON -->
                 <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200 shadow-sm">
+                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-sm">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> In: <?= formatTime($todayAtt['clock_in']) ?>
                     </span>
                     <div x-data="{
+                        outState: 'idle',
+                        outLat: 0,
+                        outLng: 0,
+                        doPunchOut() {
+                            this.outState = 'saving';
+                            if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition(
+                                    (p) => {
+                                        this.outLat = p.coords.latitude;
+                                        this.outLng = p.coords.longitude;
+                                        this.$nextTick(() => this.$refs.punchOutForm.submit());
+                                    },
+                                    (e) => {
+                                        this.$nextTick(() => this.$refs.punchOutForm.submit());
+                                    },
+                                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                                );
+                            } else {
+                                this.$nextTick(() => this.$refs.punchOutForm.submit());
+                            }
+                        }
+                    }">
+                        <form x-ref="punchOutForm" action="?action=clock-out" method="POST" class="inline" @submit.prevent="doPunchOut()">
+                            <input type="hidden" name="latitude" :value="outLat">
+                            <input type="hidden" name="longitude" :value="outLng">
+                            <button type="submit" :disabled="outState === 'saving'" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-slate-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer">
+                                <template x-if="outState === 'saving'">
+                                    <svg class="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                </template>
+                                <template x-if="outState !== 'saving'">
+                                    <i data-lucide="stop-circle" class="w-3.5 h-3.5"></i>
+                                </template>
+                                <span x-text="outState === 'saving' ? 'Recording Location...' : 'Punch Out'"></span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <?php else: ?>
+                <!-- PUNCHED OUT: SHOW PUNCH IN BUTTON -->
+                <div x-data="{
                     locState: 'idle',
                     lat: 0, lng: 0,
                     isAdmin: <?= (($user['role'] ?? '') === 'admin') ? 'true' : 'false' ?>,
@@ -255,7 +297,6 @@ $page = $_GET['page'] ?? 'dashboard';
                     </div>
                 </div>
             <?php endif; ?>
-
         </div>
     </header>
 
