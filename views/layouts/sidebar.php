@@ -197,35 +197,59 @@ $page = $_GET['page'] ?? 'dashboard';
                 <div x-data="{
                     locState: 'idle',
                     lat: 0, lng: 0,
+                    isAdmin: <?= (($user['role'] ?? '') === 'admin') ? 'true' : 'false' ?>,
                     officeLat: <?= $headerOfficeLocation ? $headerOfficeLocation['lat'] : 0 ?>,
                     officeLng: <?= $headerOfficeLocation ? $headerOfficeLocation['lng'] : 0 ?>,
                     officeName: '<?= $headerOfficeLocation ? addslashes($headerOfficeLocation['name']) : '' ?>',
                     errMsg: '',
                     doPunch() {
-                        if (!this.officeLat) { this.locState='error'; this.errMsg='No office location assigned. Contact HR.'; return; }
                         this.locState = 'checking';
-                        navigator.geolocation.getCurrentPosition(
-                            (p) => {
-                                this.lat = p.coords.latitude; this.lng = p.coords.longitude;
-                                const R=6371000, dLat=(this.officeLat-this.lat)*Math.PI/180, dLon=(this.officeLng-this.lng)*Math.PI/180;
-                                const a=Math.sin(dLat/2)**2+Math.cos(this.lat*Math.PI/180)*Math.cos(this.officeLat*Math.PI/180)*Math.sin(dLon/2)**2;
-                                const dist=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-                                if (dist <= <?= GEOFENCE_RADIUS_METERS ?>) {
-                                    this.locState='ok'; this.$nextTick(()=>this.$refs.hdrForm.submit());
-                                } else {
-                                    this.locState='error'; this.errMsg='📍 Out of Location! '+(dist/1000).toFixed(1)+'km away from '+this.officeName+'. Go to office to punch in.';
-                                }
-                            },
-                            (e) => { this.locState='error'; this.errMsg = e.code===1?'📍 Location permission denied! Allow location in browser settings.':'📍 Location unavailable. Try again.'; },
-                            {enableHighAccuracy:true, timeout:10000, maximumAge:0}
-                        );
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                                (p) => {
+                                    this.lat = p.coords.latitude; this.lng = p.coords.longitude;
+                                    if (this.isAdmin) {
+                                        this.locState='ok'; 
+                                        this.$nextTick(()=>this.$refs.hdrForm.submit());
+                                        return;
+                                    }
+                                    if (!this.officeLat) { this.locState='error'; this.errMsg='No office location assigned. Contact HR.'; return; }
+                                    const R=6371000, dLat=(this.officeLat-this.lat)*Math.PI/180, dLon=(this.officeLng-this.lng)*Math.PI/180;
+                                    const a=Math.sin(dLat/2)**2+Math.cos(this.lat*Math.PI/180)*Math.cos(this.officeLat*Math.PI/180)*Math.sin(dLon/2)**2;
+                                    const dist=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+                                    if (dist <= <?= GEOFENCE_RADIUS_METERS ?>) {
+                                        this.locState='ok'; this.$nextTick(()=>this.$refs.hdrForm.submit());
+                                    } else {
+                                        this.locState='error'; this.errMsg='📍 Out of Location! '+(dist/1000).toFixed(1)+'km away from '+this.officeName+'. Go to office to punch in.';
+                                    }
+                                },
+                                (e) => { 
+                                    if (this.isAdmin) {
+                                        this.locState='ok';
+                                        this.$nextTick(()=>this.$refs.hdrForm.submit());
+                                        return;
+                                    }
+                                    this.locState='error'; 
+                                    this.errMsg = e.code===1?'📍 Location permission denied! Allow location in browser settings.':'📍 Location unavailable. Try again.'; 
+                                },
+                                {enableHighAccuracy:true, timeout:6000, maximumAge:0}
+                            );
+                        } else {
+                            if (this.isAdmin) {
+                                this.locState='ok';
+                                this.$nextTick(()=>this.$refs.hdrForm.submit());
+                            } else {
+                                this.locState='error';
+                                this.errMsg='Geolocation is not supported by your browser.';
+                            }
+                        }
                     }
                 }" class="relative inline-block">
                     <form x-ref="hdrForm" action="?action=clock-in" method="POST" class="inline" @submit.prevent="doPunch()">
                         <input type="hidden" name="status" value="present">
                         <input type="hidden" name="latitude" :value="lat">
                         <input type="hidden" name="longitude" :value="lng">
-                        <button type="submit" :disabled="locState==='checking'" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition">
+                        <button type="submit" :disabled="locState==='checking'" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer">
                             <template x-if="locState==='checking'"><svg class="animate-spin w-4 h-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></template>
                             <template x-if="locState!=='checking'"><i data-lucide="play-circle" class="w-4 h-4"></i></template>
                             <span x-text="locState==='checking'?'Verifying...':'Punch In (Office Login)'"></span>
