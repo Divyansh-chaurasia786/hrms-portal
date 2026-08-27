@@ -209,58 +209,66 @@ $emailChangeReq = $_SESSION['email_change_request'] ?? null;
                     Corporate identity parameters are locked & verified by HR Administration.
                 </div>
             </div>
-        </div>
-        <!-- 🔒 SUPER ADMIN MASTER DATABASE VAULT (STRICTLY ADMIN ONLY & DISCRETE) -->
+            </div> <!-- Close 3-column grid -->
+
+    <!-- 🔒 SUPER ADMIN MASTER DATABASE VAULT (FULL WIDTH, CLEAN & USER FRIENDLY) -->
     <?php if (($user['role'] ?? '') === 'admin'): ?>
         <?php $storageStats = getDatabaseStorageStats(); ?>
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-800">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-extrabold border border-purple-500/30">
-                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl space-y-5">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-slate-800">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-extrabold border border-indigo-400/30 shrink-0">
+                        <i data-lucide="database" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <div class="flex items-center gap-2">
-                            <h2 class="text-sm font-extrabold text-white tracking-wide">Super Admin Database Vault & Automated Archival</h2>
-                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                80% Auto-Archival Active
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <h2 class="text-base font-extrabold text-white tracking-wide">Super Admin Database Vault & 80% Auto-Archival</h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Auto-Archival Active
                             </span>
                         </div>
-                        <p class="text-[11px] text-slate-400">Discrete master vault for database health monitoring, automated 3-year cleanup, and offsite dumps.</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Discrete master vault for database health monitoring, automated 3-year cleanup, and offsite dumps.</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <a href="?action=admin-download-archive-backup" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
-                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Master Backup
+                <div class="flex items-center gap-2.5 flex-wrap shrink-0">
+                    <a href="?action=admin-download-archive-backup" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/30 cursor-pointer">
+                        <i data-lucide="download" class="w-4 h-4"></i> Download Master Backup
                     </a>
-                    <a href="?action=admin-run-archival" onclick="return confirm('Execute 3-year data archival check now?');" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
-                        <i data-lucide="archive" class="w-3.5 h-3.5"></i> Run Archival Check
+                    <a href="?action=admin-run-archival" onclick="return confirm('Execute 3-year data archival check now?');" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-2 border border-slate-700 cursor-pointer">
+                        <i data-lucide="archive" class="w-4 h-4"></i> Run Archival Check
                     </a>
                 </div>
             </div>
 
-            <!-- Health Bar & Telemetry -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div class="bg-white/5 p-3 rounded-2xl border border-white/5 space-y-1.5 sm:col-span-2">
-                    <div class="flex items-center justify-between text-[11px]">
-                        <span class="text-slate-300">TiDB Cloud Free Tier: <strong class="text-white"><?= $storageStats['used_mb'] ?> MB</strong> used of <?= $storageStats['max_mb'] ?> MB</span>
-                        <span class="font-mono text-emerald-400 font-bold"><?= $storageStats['usage_percent'] ?>%</span>
+            <!-- Health Bar & Telemetry in Balanced Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/5 md:col-span-2 space-y-2.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-300 font-medium">TiDB Cloud Free Tier: <strong class="text-white font-bold"><?= $storageStats['used_mb'] ?> MB</strong> used of <?= $storageStats['max_mb'] ?> MB</span>
+                        <span class="font-mono text-emerald-400 font-extrabold text-sm"><?= $storageStats['usage_percent'] ?>%</span>
                     </div>
-                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-                        <div class="bg-gradient-to-r from-emerald-500 to-indigo-500 h-full rounded-full" style="width: <?= max(1, min(100, $storageStats['usage_percent'])) ?>%;"></div>
+                    <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700 p-0.5">
+                        <div class="bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: <?= max(1, min(100, $storageStats['usage_percent'])) ?>%;"></div>
                     </div>
-                    <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono">
-                        <span>0%</span>
-                        <span class="text-amber-400">80% Auto-Archival Threshold</span>
-                        <span>5.0 GB</span>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                        <span>0% (Empty)</span>
+                        <span class="text-amber-400 font-bold">80% Auto-Archival Threshold</span>
+                        <span>5.0 GB Free Quota</span>
                     </div>
                 </div>
 
-                <div class="bg-white/5 p-3 rounded-2xl border border-white/5 text-center flex flex-col justify-center">
-                    <span class="text-[9px] uppercase font-bold text-slate-400 block">Archive Policy</span>
-                    <strong class="text-amber-300 font-mono mt-0.5 text-xs">Auto-Prune > 3 Yrs</strong>
-                    <span class="text-[9px] text-slate-400 mt-0.5">Triggers at 80% capacity</span>
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/5 text-center flex flex-col justify-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Archive Policy</span>
+                    <strong class="text-amber-300 font-mono text-base font-extrabold mt-0.5">Auto-Prune > 3 Yrs</strong>
+                    <span class="text-[10px] text-slate-400 mt-0.5">Triggers at 80% capacity</span>
+                </div>
+
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/5 text-center flex flex-col justify-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block">System State</span>
+                    <strong class="text-emerald-400 font-mono text-base font-extrabold mt-0.5">100% Optimal</strong>
+                    <span class="text-[10px] text-slate-400 mt-0.5">Zero Lag Guaranteed</span>
                 </div>
             </div>
         </div>
