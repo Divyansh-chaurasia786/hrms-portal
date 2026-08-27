@@ -362,7 +362,9 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                     <span class="text-[10px] text-slate-400">(<?= htmlspecialchars($e['tl_designation'] ?: 'Lead') ?>)</span>
                                 </div>
                             <?php else: ?>
-                                <span class="text-slate-400 font-medium italic">Direct / None</span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                    <i data-lucide="shield-check" class="w-3 h-3 text-indigo-600"></i> Direct HR
+                                </span>
                             <?php endif; ?>
                         </td>
 
