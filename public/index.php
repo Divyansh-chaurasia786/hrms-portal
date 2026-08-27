@@ -94,6 +94,9 @@ if ($action) {
     case 'apply-wfh': WfhController::apply(); break;
     case 'review-wfh': WfhController::review(); break;
     case 'set-hr-wfh': WfhController::setHrWfhRange(); break;
+    case 'export-calling-history':
+        CallingController::exportHistory();
+        break;
     case 'upload-calling-leads': CallingController::uploadLeads(); break;
     case 'update-calling-disposition': CallingController::updateDisposition(); break;
     case 'upload-smart-sheet': SmartSheetController::upload(); break;

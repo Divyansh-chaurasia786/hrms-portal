@@ -24,6 +24,21 @@ $pendingLeavesCount = (int)$pendingLeavesStmt->fetchColumn();
 // Live team roster
 $teamMembers = AttendanceController::getTeamLiveStatus($user['id']);
 
+// BDA Calling Stats (for BDA Team Lead)
+$isBDATeam = (($user['department_name'] ?? '') === 'Calling / BDA Team');
+$bdaStats = [
+    'total_leads' => 0,
+    'today_calls' => 0,
+    'today_converted' => 0,
+    'today_interested' => 0
+];
+if ($isBDATeam) {
+    $bdaStats['total_leads'] = (int)$db->query("SELECT COUNT(*) FROM calling_leads")->fetchColumn();
+    $bdaStats['today_calls'] = (int)$db->query("SELECT COUNT(*) FROM call_logs WHERE call_date = '$today'")->fetchColumn();
+    $bdaStats['today_converted'] = (int)$db->query("SELECT COUNT(*) FROM call_logs WHERE call_date = '$today' AND disposition = 'converted'")->fetchColumn();
+    $bdaStats['today_interested'] = (int)$db->query("SELECT COUNT(*) FROM call_logs WHERE call_date = '$today' AND disposition = 'interested'")->fetchColumn();
+}
+
 // Submissions needing review
 $subsStmt = $db->prepare("
     SELECT ts.*, t.title as task_title, t.priority, t.due_date, u.name as employee_name, u.avatar, p.title as project_name
@@ -128,14 +143,67 @@ $myEscalations = $escalationsStmt->fetchAll();
         </div>
 
         <div class="flex items-center gap-2.5 flex-wrap">
-            <button type="button" @click="selectedEmpId = ''; selectedEmpName = ''; escalateModalOpen = true" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition shadow-2xs">
-                <i data-lucide="shield-alert" class="w-4 h-4 text-rose-600"></i> Refer to HR
-            </button>
-            <a href="?page=tl-tasks&action=new" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-500/20 transition">
-                <i data-lucide="plus-circle" class="w-4 h-4"></i> Assign Task
+            <?php if ($isBDATeam): ?>
+                <a href="?action=export-calling-history" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer">
+                    <i data-lucide="download" class="w-4 h-4"></i> Export Calls (Excel)
+                </a>
+                <a href="?page=calling-manage" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-500/20 transition">
+                    <i data-lucide="phone-forwarded" class="w-4 h-4"></i> BDA Lead CRM
+                </a>
+            <?php else: ?>
+                <button type="button" @click="selectedEmpId = ''; selectedEmpName = ''; escalateModalOpen = true" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition shadow-2xs">
+                    <i data-lucide="shield-alert" class="w-4 h-4 text-rose-600"></i> Refer to HR
+                </button>
+                <a href="?page=tl-tasks&action=new" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-500/20 transition">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Assign Task
+                </a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+<?php if ($isBDATeam): ?>
+<!-- BDA Calling Quick Hub Banner -->
+<div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-3xl border border-indigo-500/30 shadow-xl mb-6 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-indigo-800/40 pb-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center font-bold shrink-0">
+                <i data-lucide="phone-call" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-sm font-extrabold tracking-wide uppercase text-indigo-200">BDA Telecalling & Team Metrics</h2>
+                <p class="text-xs text-slate-400">Live summary of today's calls, conversions, and lead pool management.</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="?page=calling-manage" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Upload / Allocate Leads
+            </a>
+            <a href="?action=export-calling-history" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Excel
             </a>
         </div>
     </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-slate-950/60 p-3.5 rounded-2xl border border-indigo-500/20">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Leads Pool</span>
+            <div class="text-xl font-extrabold text-white mt-0.5"><?= $bdaStats['total_leads'] ?></div>
+        </div>
+        <div class="bg-slate-950/60 p-3.5 rounded-2xl border border-indigo-500/20">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Calls Made Today</span>
+            <div class="text-xl font-extrabold text-indigo-400 mt-0.5"><?= $bdaStats['today_calls'] ?></div>
+        </div>
+        <div class="bg-slate-950/60 p-3.5 rounded-2xl border border-indigo-500/20">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Interested Today</span>
+            <div class="text-xl font-extrabold text-blue-400 mt-0.5"><?= $bdaStats['today_interested'] ?></div>
+        </div>
+        <div class="bg-slate-950/60 p-3.5 rounded-2xl border border-indigo-500/20">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Deals Closed Today</span>
+            <div class="text-xl font-extrabold text-emerald-400 mt-0.5"><?= $bdaStats['today_converted'] ?></div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Metric Stat Cards (2x2 Grid on Mobile, 4 Cols on Desktop) -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
