@@ -252,11 +252,43 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
                 <!-- Action Button -->
                 <?php if ($isCurrentlyIn): ?>
-                    <form action="?action=clock-out" method="POST">
-                        <button type="submit" class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition flex items-center justify-center gap-1.5">
-                            <i data-lucide="stop-circle" class="w-4 h-4"></i> Punch Out (End Shift)
-                        </button>
-                    </form>
+                    <div x-data="{
+                        outState: 'idle',
+                        outLat: 0,
+                        outLng: 0,
+                        doEmpPunchOut() {
+                            this.outState = 'saving';
+                            if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition(
+                                    (p) => {
+                                        this.outLat = p.coords.latitude;
+                                        this.outLng = p.coords.longitude;
+                                        this.$nextTick(() => this.$refs.empPunchOutForm.submit());
+                                    },
+                                    (e) => {
+                                        this.$nextTick(() => this.$refs.empPunchOutForm.submit());
+                                    },
+                                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                                );
+                            } else {
+                                this.$nextTick(() => this.$refs.empPunchOutForm.submit());
+                            }
+                        }
+                    }">
+                        <form x-ref="empPunchOutForm" action="?action=clock-out" method="POST" @submit.prevent="doEmpPunchOut()">
+                            <input type="hidden" name="latitude" :value="outLat">
+                            <input type="hidden" name="longitude" :value="outLng">
+                            <button type="submit" :disabled="outState === 'saving'" class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-500 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <template x-if="outState === 'saving'">
+                                    <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                </template>
+                                <template x-if="outState !== 'saving'">
+                                    <i data-lucide="stop-circle" class="w-4 h-4"></i>
+                                </template>
+                                <span x-text="outState === 'saving' ? 'Recording Location...' : 'Punch Out (End Shift)'"></span>
+                            </button>
+                        </form>
+                    </div>
                 <?php else: ?>
                     <div x-data="{
                         status: 'present',
