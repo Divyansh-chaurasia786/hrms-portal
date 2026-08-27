@@ -434,18 +434,10 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                     
                     <!-- LEFT HORIZONTAL PANEL: Profile & Role -->
                     <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-                        <div class="flex items-center justify-between pb-1 border-b border-slate-200/60">
+                        <div class="pb-1 border-b border-slate-200/60">
                             <span class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
                                 <i data-lucide="user" class="w-3.5 h-3.5"></i> 1. Member Profile & Role
                             </span>
-                            <div class="flex items-center gap-1">
-                                <button type="button" @click="addRolePopupOpen = true" class="px-2 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded text-[10px] font-extrabold transition cursor-pointer" title="Add Role">
-                                    + Add Role
-                                </button>
-                                <button type="button" @click="manageRolesPopupOpen = true" class="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded text-[10px] font-bold transition cursor-pointer" title="Manage Roles">
-                                    - Del
-                                </button>
-                            </div>
                         </div>
 
                         <div>
@@ -468,14 +460,39 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                     <option value="HR & Administration">👑 HR</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Designation <span class="text-rose-500">*</span></label>
-                                <select name="designation" x-model="selectedDesig" required class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-indigo-950 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
-                                    <option value="">Select...</option>
+                            <div class="relative" @click.away="roleDropdownOpen = false">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase">Designation <span class="text-rose-500">*</span></label>
+                                    <button type="button" @click="addRolePopupOpen = true" class="w-5 h-5 rounded-md bg-indigo-100 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 flex items-center justify-center text-xs font-extrabold transition cursor-pointer shadow-2xs" title="Add New Role (+)">
+                                        +
+                                    </button>
+                                </div>
+
+                                <input type="hidden" name="designation" :value="selectedDesig" required>
+
+                                <!-- Dropdown Trigger -->
+                                <button type="button" @click="roleDropdownOpen = !roleDropdownOpen" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-left flex items-center justify-between focus:ring-2 focus:ring-indigo-500 shadow-2xs transition cursor-pointer">
+                                    <span :class="selectedDesig ? 'text-indigo-950 font-bold truncate' : 'text-slate-400 font-normal'" x-text="selectedDesig || 'Select Designation...'"></span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                                </button>
+
+                                <!-- Custom Dropdown List with - on every role -->
+                                <div x-show="roleDropdownOpen" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-1.5 max-h-48 overflow-y-auto space-y-1" x-cloak>
                                     <template x-for="r in rolesList" :key="r.id">
-                                        <option :value="r.name" x-text="r.name + (Number(r.can_be_reporting_authority) === 1 ? ' 👑' : '')"></option>
+                                        <div @click="selectedDesig = r.name; roleDropdownOpen = false" class="px-2.5 py-1.5 rounded-xl hover:bg-indigo-50 flex items-center justify-between cursor-pointer group transition">
+                                            <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                                                <span class="text-xs font-bold text-slate-800 truncate" x-text="r.name"></span>
+                                                <span x-show="Number(r.can_be_reporting_authority) === 1" class="text-[9px] px-1 py-0.2 bg-emerald-100 text-emerald-800 font-extrabold rounded">👑</span>
+                                            </div>
+                                            <button type="button" @click.stop="deleteRole(r.id, $event)" class="w-5 h-5 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white flex items-center justify-center font-bold text-xs transition shrink-0 cursor-pointer shadow-2xs" title="Delete Role (-)">
+                                                -
+                                            </button>
+                                        </div>
                                     </template>
-                                </select>
+                                    <div x-show="!rolesList || !rolesList.length" class="p-3 text-center text-xs text-slate-400 italic">
+                                        No roles found. Click + to add one.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
