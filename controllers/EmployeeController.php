@@ -4,7 +4,7 @@
 class EmployeeController {
     public static function create(): void {
         requireRole(['admin']);
-        // requireActiveShift();
+        requireActiveShift();
         $name = trim($_POST['name'] ?? '');
         $email = strtolower(trim($_POST['email'] ?? ''));
         $role = $_POST['role'] ?? 'employee';
@@ -81,7 +81,7 @@ class EmployeeController {
 
     public static function delete(): void {
         requireRole(['admin']);
-        // requireActiveShift();
+        requireActiveShift();
         $userId = (int)($_POST['user_id'] ?? 0);
         $newTlId = (int)($_POST['new_tl_id'] ?? 0);
         $user = authUser();
@@ -162,7 +162,7 @@ class EmployeeController {
 
         public static function update(): void {
         requireRole(['admin']);
-        // requireActiveShift();
+        requireActiveShift();
         $userId = (int)($_POST['user_id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
         $email = strtolower(trim($_POST['email'] ?? ''));
@@ -226,7 +226,7 @@ class EmployeeController {
 
     public static function assignTeam(): void {
         requireRole(['admin']);
-        // requireActiveShift();
+        requireActiveShift();
         $tlId = (int)($_POST['tl_id'] ?? 0);
         $assignedIds = isset($_POST['assigned_member_ids']) && is_array($_POST['assigned_member_ids']) 
             ? array_filter(array_map('intval', $_POST['assigned_member_ids']))

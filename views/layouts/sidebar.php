@@ -256,7 +256,7 @@ $page = $_GET['page'] ?? 'dashboard';
             </div>
         <?php endif; ?>
 
-        <?php if (!isInActiveShift() && ($user['role'] ?? '') !== 'admin'): ?>
+        <?php if (!isInActiveShift()): ?>
             <div class="mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold shrink-0">
@@ -264,15 +264,11 @@ $page = $_GET['page'] ?? 'dashboard';
                     </div>
                     <div>
                         <span class="font-bold uppercase tracking-wide text-amber-800 text-[11px]">Workspace in Read-Only Mode</span>
-                        <?php if ($currRole === 'admin'): ?>
-                            <p class="text-[11px] text-amber-700 mt-0.5">HR Administration Hub is active. Please <strong>Punch In (Office Login)</strong> for daily shift attendance.</p>
-                        <?php else: ?>
-                            <p class="text-[11px] text-amber-700 mt-0.5">You have not punched in yet today. (<strong>Apply for Leave</strong> and <strong>Tech Cloud Drive</strong> remain <strong>open 24/7 from home</strong>). Please <strong>Punch In (Office Login)</strong> when at the office to submit tasks or review files.</p>
-                        <?php endif; ?>
+                        <p class="text-[11px] text-amber-700 mt-0.5">You have not punched in yet today. Please <strong>Punch In (Top Right Button)</strong> to enable onboarding, employee profile editing, and all operations.</p>
                     </div>
                 </div>
                 <div class="shrink-0 flex items-center gap-2">
-                    <?php if ($currRole === 'admin'): ?>
+                    <?php if (($user['role'] ?? '') === 'admin'): ?>
                         <a href="?page=admin-leaves" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
                             <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i> Review Leave Queue
                         </a>

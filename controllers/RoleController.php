@@ -11,6 +11,7 @@ class RoleController {
 
     public static function create(): void {
         requireAuth('admin');
+        requireActiveShift();
         $name = trim($_POST['name'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $canAuth = !empty($_POST['can_be_reporting_authority']) ? 1 : 0;
@@ -69,6 +70,7 @@ class RoleController {
 
     public static function delete(): void {
         requireAuth('admin');
+        requireActiveShift();
         $roleId = (int)($_POST['role_id'] ?? $_POST['id'] ?? 0);
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' || !empty($_POST['ajax']);
 
