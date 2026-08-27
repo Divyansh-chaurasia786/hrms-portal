@@ -278,8 +278,11 @@ $recentAudits = $db->query("
                                 <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
                                     <?= getStatusBadge($r['status']) ?>
                                 </td>
-                                                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
-                                    <?php $isExemptUser = (($r['role'] ?? '') === 'admin' || ($r['work_mode'] ?? '') === 'field' || ($r['work_mode'] ?? '') === 'wfh' || ($r['status'] ?? '') === 'wfh'); ?>
+                                                                                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
+                                    <?php 
+                                    $isExemptUser = (($r['role'] ?? '') === 'admin' || ($r['work_mode'] ?? '') === 'field' || ($r['work_mode'] ?? '') === 'wfh' || ($r['status'] ?? '') === 'wfh');
+                                    $sessCount = !empty($allTodaySessions[$r['id']]) ? count($allTodaySessions[$r['id']]) : 1;
+                                    ?>
                                     <?php if ($isExemptUser): ?>
                                         <button type="button" @click="$dispatch('open-loc-modal', {
                                             attId: <?= (int)$r['id'] ?>,
@@ -294,13 +297,15 @@ $recentAudits = $db->query("
                                             in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
                                             out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
                                             out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
-                                        })" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center gap-1 font-bold text-[10px]" title="View Login / Logout Location">
+                                        })" class="px-2 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center gap-1.5 font-bold text-[10px] border border-indigo-100" title="View <?= $sessCount ?> Punch In/Out Sessions">
                                             <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600"></i>
-                                            <span>GPS 🗺️</span>
+                                            <span>GPS</span>
+                                            <span class="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full font-mono text-[9px] font-extrabold"><?= $sessCount ?></span>
                                         </button>
                                     <?php else: ?>
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60" title="Fixed 150m Geofence Verified">
                                             <i data-lucide="building" class="w-3 h-3"></i> In-Office
+                                            <span class="ml-0.5 px-1 bg-emerald-200/60 text-emerald-900 rounded font-mono text-[9px]"><?= $sessCount ?></span>
                                         </span>
                                     <?php endif; ?>
                                 </td>
