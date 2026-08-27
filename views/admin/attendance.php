@@ -1,4 +1,7 @@
 <!-- views/admin/attendance.php -->
+<script>
+    window.auditAttendanceSessions = <?= json_encode($allAttendanceSessions ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+</script>
 <?php
 $user = authUser();
 $db = getDBConnection();
@@ -777,7 +780,22 @@ $orgAvgCompliance = ($totalOrgEntries > 0) ? round(($totalOrgPresent / max(1, $t
 </div>
 
 <!-- Attendance Location & Collapsible Multi-Session Timeline Modal -->
-<div x-data="{ locModalOpen: false, locData: null, activeSessionIdx: 0 }" @open-loc-modal.window="locData = $event.detail; activeSessionIdx = ($event.detail.sessions && $event.detail.sessions.length) ? ($event.detail.sessions.length - 1) : 0; locModalOpen = true">
+<div x-data="{ 
+    locModalOpen: false, 
+    locData: null, 
+    activeSessionIdx: 0,
+    getSessions(attId) {
+        if (!attId) return [];
+        const map = window.todayAttendanceSessions || window.auditAttendanceSessions || {};
+        return map[attId] || [];
+    }
+}" @open-loc-modal.window="
+    locData = $event.detail;
+    const sess = getSessions($event.detail.attId);
+    locData.sessions = sess;
+    activeSessionIdx = (sess && sess.length) ? (sess.length - 1) : 0;
+    locModalOpen = true;
+">
     <div x-show="locModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
         <div @click.away="locModalOpen = false" class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-left my-auto">
             
