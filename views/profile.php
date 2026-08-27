@@ -210,9 +210,63 @@ $emailChangeReq = $_SESSION['email_change_request'] ?? null;
                 </div>
             </div>
         </div>
-    </div>
+        <!-- 🔒 SUPER ADMIN MASTER DATABASE VAULT (STRICTLY ADMIN ONLY & DISCRETE) -->
+    <?php if (($user['role'] ?? '') === 'admin'): ?>
+        <?php $storageStats = getDatabaseStorageStats(); ?>
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-extrabold border border-purple-500/30">
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm font-extrabold text-white tracking-wide">Super Admin Database Vault & Automated Archival</h2>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                80% Auto-Archival Active
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Discrete master vault for database health monitoring, automated 3-year cleanup, and offsite dumps.</p>
+                    </div>
+                </div>
 
-    <!-- Dual Email Verification Modal -->
+                <div class="flex items-center gap-2">
+                    <a href="?action=admin-download-archive-backup" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Master Backup
+                    </a>
+                    <a href="?action=admin-run-archival" onclick="return confirm('Execute 3-year data archival check now?');" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
+                        <i data-lucide="archive" class="w-3.5 h-3.5"></i> Run Archival Check
+                    </a>
+                </div>
+            </div>
+
+            <!-- Health Bar & Telemetry -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/5 space-y-1.5 sm:col-span-2">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="text-slate-300">TiDB Cloud Free Tier: <strong class="text-white"><?= $storageStats['used_mb'] ?> MB</strong> used of <?= $storageStats['max_mb'] ?> MB</span>
+                        <span class="font-mono text-emerald-400 font-bold"><?= $storageStats['usage_percent'] ?>%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                        <div class="bg-gradient-to-r from-emerald-500 to-indigo-500 h-full rounded-full" style="width: <?= max(1, min(100, $storageStats['usage_percent'])) ?>%;"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono">
+                        <span>0%</span>
+                        <span class="text-amber-400">80% Auto-Archival Threshold</span>
+                        <span>5.0 GB</span>
+                    </div>
+                </div>
+
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/5 text-center flex flex-col justify-center">
+                    <span class="text-[9px] uppercase font-bold text-slate-400 block">Archive Policy</span>
+                    <strong class="text-amber-300 font-mono mt-0.5 text-xs">Auto-Prune > 3 Yrs</strong>
+                    <span class="text-[9px] text-slate-400 mt-0.5">Triggers at 80% capacity</span>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
+<!-- Dual Email Verification Modal -->
     <div x-show="emailModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
         <div @click.away="emailModalOpen = false" class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
