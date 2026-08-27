@@ -235,7 +235,7 @@ $emailChangeReq = $_SESSION['email_change_request'] ?? null;
 
                 <div class="flex items-center gap-2.5 flex-wrap shrink-0">
                     <a href="?action=admin-download-archive-backup" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/30 cursor-pointer">
-                        <i data-lucide="download" class="w-4 h-4"></i> Download Master Backup
+                        <i data-lucide="download" class="w-4 h-4"></i> 📥 Download Backup (Excel)
                     </a>
                     <a href="?action=admin-run-archival" onclick="return confirm('Execute 3-year data archival check now?');" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-2 border border-slate-700 cursor-pointer">
                         <i data-lucide="archive" class="w-4 h-4"></i> Run Archival Check

@@ -103,15 +103,88 @@ if ($action) {
         case 'admin-download-archive-backup':
             requireRole(['admin']);
             $db = getDBConnection();
-            $tables = ['users', 'attendance', 'tasks', 'leave_applications', 'employee_travel_logs', 'payroll'];
-            $backupData = ['generated_at' => date('Y-m-d H:i:s'), 'company' => 'Ecovista Global Pvt Ltd'];
-            foreach ($tables as $t) {
-                $backupData[$t] = $db->query("SELECT * FROM {$t}")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            // Fetch structured data for all major enterprise modules
+            $usersData = $db->query("SELECT id, emp_id, name, email, role, designation, department_name, work_mode, phone, salary_basic, status, joining_date FROM users ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $attData = $db->query("SELECT a.id, a.date, u.name as employee_name, u.emp_id, a.clock_in, a.clock_out, a.total_hours, a.status, a.late_by_minutes, a.latitude, a.longitude FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.date DESC, a.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $gpsData = $db->query("SELECT l.id, l.recorded_at, u.name as employee_name, u.emp_id, l.latitude, l.longitude, l.speed as speed_kmh, l.distance_meters FROM employee_travel_logs l JOIN users u ON l.user_id = u.id ORDER BY l.id DESC LIMIT 5000")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $tasksData = $db->query("SELECT t.id, t.title, p.title as project_name, u.name as assigned_to, creator.name as assigned_by, t.priority, t.status, t.due_date FROM tasks t LEFT JOIN projects p ON t.project_id = p.id LEFT JOIN users u ON t.assigned_to = u.id LEFT JOIN users creator ON t.created_by = creator.id ORDER BY t.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $leavesData = $db->query("SELECT l.id, u.name as employee_name, u.emp_id, lt.name as leave_type, l.start_date, l.end_date, l.total_days, l.status, l.reason, l.created_at FROM leave_applications l JOIN users u ON l.user_id = u.id JOIN leave_types lt ON l.leave_type_id = lt.id ORDER BY l.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $payrollData = $db->query("SELECT p.id, u.name as employee_name, u.emp_id, p.salary_month, p.basic_salary, p.net_salary, p.status, p.payment_date FROM payroll p JOIN users u ON p.user_id = u.id ORDER BY p.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $sheets = [
+                'Workforce & Employees' => $usersData,
+                'Attendance Logs' => $attData,
+                'Field Travel GPS' => $gpsData,
+                'Tasks & Deliverables' => $tasksData,
+                'Leave Applications' => $leavesData,
+                'Payroll & Salaries' => $payrollData
+            ];
+
+            // Build Official Multi-Sheet Excel XML Spreadsheet (Opens directly in MS Excel & Google Sheets)
+            $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+            $xml .= '<?mso-application progid="Excel.Sheet"?>' . "\n";
+            $xml .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
+                 . 'xmlns:o="urn:schemas-microsoft-com:office:office" '
+                 . 'xmlns:x="urn:schemas-microsoft-com:office:excel" '
+                 . 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" '
+                 . 'xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+
+            // Excel Styles: Corporate Header & Zebra Rows
+            $xml .= '<Styles>' . "\n";
+            $xml .= '<Style ss:ID="HeaderStyle">' . "\n";
+            $xml .= '<Font ss:Bold="1" ss:Color="#FFFFFF" ss:FontName="Segoe UI" ss:Size="10"/>' . "\n";
+            $xml .= '<Interior ss:Color="#4338CA" ss:Pattern="Solid"/>' . "\n";
+            $xml .= '<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>' . "\n";
+            $xml .= '<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#312E81"/></Borders>' . "\n";
+            $xml .= '</Style>' . "\n";
+            $xml .= '<Style ss:ID="DataStyle">' . "\n";
+            $xml .= '<Font ss:FontName="Segoe UI" ss:Size="9"/>' . "\n";
+            $xml .= '<Alignment ss:Vertical="Center"/>' . "\n";
+            $xml .= '</Style>' . "\n";
+            $xml .= '</Styles>' . "\n";
+
+            foreach ($sheets as $sheetName => $dataRows) {
+                $xml .= '<Worksheet ss:Name="' . htmlspecialchars(substr($sheetName, 0, 31)) . '">' . "\n";
+                $xml .= '<Table ss:DefaultRowHeight="20">' . "\n";
+
+                if (!empty($dataRows)) {
+                    // 1. Header Row
+                    $headers = array_keys($dataRows[0]);
+                    $xml .= '<Row ss:Height="24">' . "\n";
+                    foreach ($headers as $h) {
+                        $colLabel = ucwords(str_replace('_', ' ', $h));
+                        $xml .= '<Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">' . htmlspecialchars($colLabel) . '</Data></Cell>' . "\n";
+                    }
+                    $xml .= '</Row>' . "\n";
+
+                    // 2. Data Rows
+                    foreach ($dataRows as $row) {
+                        $xml .= '<Row>' . "\n";
+                        foreach ($row as $val) {
+                            $cellValue = ($val === null) ? '' : (string)$val;
+                            $dataType = is_numeric($cellValue) && !preg_match('/^0[0-9]/', $cellValue) ? 'Number' : 'String';
+                            $xml .= '<Cell ss:StyleID="DataStyle"><Data ss:Type="' . $dataType . '">' . htmlspecialchars($cellValue) . '</Data></Cell>' . "\n";
+                        }
+                        $xml .= '</Row>' . "\n";
+                    }
+                } else {
+                    $xml .= '<Row><Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">Status</Data></Cell></Row>' . "\n";
+                    $xml .= '<Row><Cell ss:StyleID="DataStyle"><Data ss:Type="String">No records available in this module</Data></Cell></Row>' . "\n";
+                }
+
+                $xml .= '</Table>' . "\n";
+                $xml .= '</Worksheet>' . "\n";
             }
-            $json = json_encode($backupData, JSON_PRETTY_PRINT);
-            header('Content-Type: application/json');
-            header('Content-Disposition: attachment; filename="hrms_complete_backup_' . date('Y_m_d_His') . '.json"');
-            echo $json;
+
+            $xml .= '</Workbook>';
+
+            $filename = "HRMS_Enterprise_Backup_" . date('Y_m_d_His') . ".xls";
+            header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+            echo $xml;
             exit;
         case 'record-travel-gps':
             requireAuth();
