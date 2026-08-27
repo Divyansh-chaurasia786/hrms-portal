@@ -93,7 +93,7 @@ class CallingController {
 
     // Upload & Auto-Distribute Lead Sheets (Only TL & Admin)
     public static function uploadLeads(): void {
-        requireRole(['admin', 'team_lead']);
+        requireRole(['team_lead']);
         $user = authUser();
         $db = getDBConnection();
 

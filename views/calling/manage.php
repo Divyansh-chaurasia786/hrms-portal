@@ -66,7 +66,11 @@ if (!isset($recentCallLogs)) {
             </div>
             <div>
                 <h1 class="text-xl font-bold text-slate-900 tracking-tight">BDA Telecalling CRM & Live History</h1>
-                <p class="text-xs text-slate-500 mt-0.5">Upload lead numbers sheet, auto-distribute to team, track every call with caller name, and export to Excel.</p>
+                <?php if ($user['role'] === 'admin'): ?>
+                <p class="text-xs text-slate-500 mt-0.5">HR Audit View: Monitor live telecalling performance, call logs history, and export data records to Excel.</p>
+            <?php else: ?>
+                <p class="text-xs text-slate-500 mt-0.5">TL Operations Hub: Upload lead sheets, auto-distribute numbers across callers, and monitor daily conversions.</p>
+            <?php endif; ?>
             </div>
         </div>
 
@@ -76,10 +80,12 @@ if (!isset($recentCallLogs)) {
                 <i data-lucide="download" class="w-4 h-4"></i> Export Call History (Excel)
             </a>
 
-            <!-- UPLOAD SHEET BUTTON -->
-            <button type="button" @click="uploadModalOpen = true" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="upload" class="w-4 h-4"></i> Upload & Distribute Numbers
-            </button>
+            <?php if ($user['role'] === 'team_lead'): ?>
+                <!-- UPLOAD SHEET BUTTON (Strictly for Team Lead) -->
+                <button type="button" @click="uploadModalOpen = true" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="upload" class="w-4 h-4"></i> Upload & Distribute Numbers
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 
