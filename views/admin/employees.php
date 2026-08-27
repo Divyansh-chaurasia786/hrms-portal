@@ -593,16 +593,16 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                         </div>
 
                         <div class="grid grid-cols-2 gap-2.5">
-                            <div>
+                            <div :class="workMode !== 'office' ? 'col-span-2' : ''">
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Work Mode <span class="text-rose-500">*</span></label>
                                 <select name="work_mode" x-model="workMode" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
-                                    <option value="office">🏢 In-Office (150m)</option>
-                                    <option value="field">🚗 Field Staff (GPS)</option>
-                                    <option value="wfh">🏠 WFH / Remote</option>
+                                    <option value="office">🏢 In-Office (150m Geo-Fence)</option>
+                                    <option value="field">🚗 Field Staff (Remote / GPS Everywhere)</option>
+                                    <option value="wfh">🏠 WFH / Remote (GPS Everywhere)</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location</label>
+                            <div x-show="workMode === 'office'" x-cloak>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location <span class="text-rose-500">*</span></label>
                                 <select name="assigned_office_location" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                     <?php foreach ($officeLocations as $loc): ?>
                                         <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
@@ -804,16 +804,16 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             </div>
 
                             <div class="grid grid-cols-2 gap-2.5">
-                                <div>
+                                <div :class="selectedEmp && selectedEmp.work_mode !== 'office' ? 'col-span-2' : ''">
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Work Mode <span class="text-rose-500">*</span></label>
                                     <select name="work_mode" x-model="selectedEmp.work_mode" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
-                                        <option value="office">🏢 In-Office (150m)</option>
-                                        <option value="field">🚗 Field Staff (GPS)</option>
-                                        <option value="wfh">🏠 WFH / Remote</option>
+                                        <option value="office">🏢 In-Office (150m Geo-Fence)</option>
+                                        <option value="field">🚗 Field Staff (Remote / GPS Everywhere)</option>
+                                        <option value="wfh">🏠 WFH / Remote (GPS Everywhere)</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location</label>
+                                <div x-show="selectedEmp && selectedEmp.work_mode === 'office'" x-cloak>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location <span class="text-rose-500">*</span></label>
                                     <select name="assigned_office_location" x-model="selectedEmp.assigned_office_location" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                         <?php foreach ($officeLocations as $loc): ?>
                                             <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
