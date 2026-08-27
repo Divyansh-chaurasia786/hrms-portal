@@ -56,6 +56,19 @@ class EmployeeController {
             }
         }
         $workMode = $_POST['work_mode'] ?? 'office';
+
+        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
+            $workMode = 'field';
+        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
+            $workMode = 'wfh';
+        }
+
+        // Auto-enforce Remote / GPS Everywhere for Field and HR departments
+        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
+            $workMode = 'field';
+        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
+            $workMode = 'wfh';
+        }
         $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
         $whatsappNumber = trim($_POST['whatsapp_number'] ?? ($_POST['phone'] ?? ''));
 
@@ -182,6 +195,19 @@ class EmployeeController {
         $salary = (float)($_POST['salary_basic'] ?? 0);
         $reportingTLId = !empty($_POST['reporting_tl_id']) ? (int)$_POST['reporting_tl_id'] : null;
         $workMode = $_POST['work_mode'] ?? 'office';
+
+        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
+            $workMode = 'field';
+        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
+            $workMode = 'wfh';
+        }
+
+        // Auto-enforce Remote / GPS Everywhere for Field and HR departments
+        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
+            $workMode = 'field';
+        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
+            $workMode = 'wfh';
+        }
         $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
         $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
         

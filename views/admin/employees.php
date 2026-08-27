@@ -457,7 +457,16 @@ onboardModalOpen: false,
                         <div class="grid grid-cols-2 gap-2.5">
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
-                                <select name="department_name" x-model="deptName" @change="if (deptName && deptName.includes('Field')) { workMode = 'field'; } else if (workMode === 'field') { workMode = 'office'; }" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                <select name="department_name" x-model="deptName" @change="
+    if (deptName && deptName.includes('Field')) { 
+        workMode = 'field'; 
+    } else if (deptName && deptName.includes('HR')) { 
+        workMode = 'wfh'; 
+        userRole = 'admin';
+    } else if (workMode === 'field' || workMode === 'wfh') { 
+        workMode = 'office'; 
+    }
+" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                     <option value="Tech / Development">💻 Tech</option>
                                     <option value="Calling / BDA Team">📞 BDA Team</option>
                                     <option value="Field Operations">🚗 Field</option>
@@ -578,7 +587,16 @@ onboardModalOpen: false,
                         <div class="grid grid-cols-2 gap-2.5">
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">System Role <span class="text-rose-500">*</span></label>
-                                <select name="role" x-model="userRole" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                <select name="role" x-model="userRole" @change="
+    if (userRole === 'admin') { 
+        workMode = 'wfh'; 
+        deptName = 'HR & Administration';
+    } else if (deptName && deptName.includes('Field')) { 
+        workMode = 'field'; 
+    } else { 
+        workMode = 'office'; 
+    }
+" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                     <option value="employee">Employee / Intern</option>
                                     <option value="team_lead">Team Lead / TL Support</option>
                                     <option value="admin">HR Administration</option>
@@ -811,7 +829,14 @@ onboardModalOpen: false,
                             <div class="grid grid-cols-2 gap-2.5">
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Account Role <span class="text-rose-500">*</span></label>
-                                    <select name="role" x-model="selectedEmp.role" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                    <select name="role" x-model="selectedEmp.role" @change="
+    if (selectedEmp.role === 'admin') { 
+        selectedEmp.work_mode = 'wfh'; 
+        selectedEmp.department_name = 'HR & Administration';
+    } else if (selectedEmp.department_name && selectedEmp.department_name.includes('Field')) { 
+        selectedEmp.work_mode = 'field'; 
+    }
+" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                         <option value="employee">Employee / Intern</option>
                                         <option value="team_lead">Team Lead / TL Support</option>
                                         <option value="admin">HR Administration</option>
