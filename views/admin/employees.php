@@ -353,7 +353,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                         <td class="py-3.5 px-3 align-middle text-xs">
                             <?php if ($isHeadHR && empty($e['reporting_tl_id'])): ?>
                                 <span class="inline-flex items-center gap-1 text-purple-700 font-bold">
-                                    <i data-lucide="crown" class="w-3.5 h-3.5 text-purple-600"></i> Apex Authority
+                                    <i data-lucide="crown" class="w-3.5 h-3.5 text-purple-600"></i> Director / CEO
                                 </span>
                             <?php elseif (!empty($e['tl_name'])): ?>
                                 <div class="text-slate-800">
