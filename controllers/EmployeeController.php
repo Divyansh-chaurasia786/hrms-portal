@@ -53,7 +53,7 @@ class EmployeeController {
 
         $stmt = $db->prepare("
             INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, work_mode, department_name, phone, whatsapp_number, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
         ");
         $stmt->execute([$empId, $name, $email, $role, $reportingTLId, $designation, $stipend, $empType, $joiningDate, $assignedOfficeLocation, $workMode, $deptName, $whatsappNumber, $whatsappNumber]);
         $newUserId = (int)$db->lastInsertId();
