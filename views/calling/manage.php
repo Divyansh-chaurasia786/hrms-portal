@@ -10,7 +10,7 @@ if (!isset($callers)) {
     $callers = $db->query("
         SELECT id, name, emp_id, designation, role 
         FROM users 
-        WHERE status = 'active' AND (department_name = 'Calling / BDA Team' OR department_name = 'Calling / Sales' OR role = 'team_lead')
+        WHERE status = 'active' AND role = 'employee' AND (department_name = 'Calling / BDA Team' OR department_name = 'Calling / Sales' OR designation LIKE '%BDA%' OR designation LIKE '%Caller%' OR designation LIKE '%Telecaller%')
         ORDER BY name ASC
     ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
@@ -39,7 +39,7 @@ if (!isset($todayCallingStats)) {
             (SELECT COUNT(*) FROM calling_leads WHERE assigned_to = u.id) as total_assigned_leads
         FROM users u
         LEFT JOIN call_logs cl ON cl.caller_id = u.id AND cl.call_date = '{$today}'
-        WHERE u.status = 'active' AND (u.department_name = 'Calling / BDA Team' OR u.department_name = 'Calling / Sales' OR u.role = 'team_lead')
+        WHERE u.status = 'active' AND u.role = 'employee' AND (u.department_name = 'Calling / BDA Team' OR u.department_name = 'Calling / Sales' OR u.designation LIKE '%BDA%' OR u.designation LIKE '%Caller%' OR u.designation LIKE '%Telecaller%')
         GROUP BY u.id, u.name, u.emp_id, u.designation
         ORDER BY today_calls DESC, today_converted DESC
     ")->fetchAll(PDO::FETCH_ASSOC) ?: [];

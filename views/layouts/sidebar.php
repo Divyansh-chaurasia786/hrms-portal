@@ -60,11 +60,8 @@ $page = $_GET['page'] ?? 'dashboard';
             </a>
 
             <?php if (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false): ?>
-                <a href="?page=calling-manage" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-manage' ? 'bg-emerald-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <a href="?page=calling-manage" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-manage' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                     <i data-lucide="phone-forwarded" class="w-4 h-4 text-emerald-400"></i> BDA Lead CRM & Allocation
-                </a>
-                <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> Live Calling Queue
                 </a>
             <?php endif; ?>
 
