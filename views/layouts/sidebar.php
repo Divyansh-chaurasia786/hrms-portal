@@ -51,25 +51,46 @@ $page = $_GET['page'] ?? 'dashboard';
     <nav class="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar text-sm font-medium">
         <?php if ($role === 'team_lead'): ?>
             <!-- Team Lead Links -->
-            <div class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1">Team Operations</div>
+            <div class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1">
+                <?= (($user['department_name'] ?? '') === 'Calling / BDA Team') ? 'BDA Operations & CRM' : 'Team Operations' ?>
+            </div>
+            
             <a href="?page=tl-dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-dashboard' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> TL Dashboard
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <?= (($user['department_name'] ?? '') === 'Calling / BDA Team') ? 'BDA Hub Dashboard' : 'TL Dashboard' ?>
             </a>
+
+            <?php if (($user['department_name'] ?? '') === 'Calling / BDA Team'): ?>
+                <a href="?page=calling-manage" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-manage' ? 'bg-emerald-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="phone-forwarded" class="w-4 h-4 text-emerald-400"></i> BDA Lead CRM & Allocation
+                </a>
+                <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> Live Calling Queue
+                </a>
+            <?php endif; ?>
+
             <a href="?page=tl-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="clock" class="w-4 h-4"></i> Team Attendance
             </a>
-            <a href="?page=tl-tasks" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-tasks' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="check-square" class="w-4 h-4"></i> Task Assignment & Review
-            </a>
+
+            <?php if (($user['department_name'] ?? '') !== 'Calling / BDA Team'): ?>
+                <a href="?page=tl-tasks" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-tasks' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="check-square" class="w-4 h-4"></i> Task Assignment & Review
+                </a>
+            <?php endif; ?>
+
             <a href="?page=tl-reports" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-reports' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="file-text" class="w-4 h-4 text-purple-400"></i> Daily Work Reports & HR
+                <i data-lucide="file-text" class="w-4 h-4 text-purple-400"></i> <?= (($user['department_name'] ?? '') === 'Calling / BDA Team') ? 'Calling Reports & HR' : 'Daily Work Reports & HR' ?>
             </a>
+            
             <a href="?page=tl-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="calendar-check" class="w-4 h-4"></i> Team Leave Reviews
             </a>
-            <a href="?page=tech-drive" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tech-drive' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-400"></i> Tech Cloud Drive
-            </a>
+
+            <?php if (($user['department_name'] ?? '') === 'Tech / Development'): ?>
+                <a href="?page=tech-drive" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tech-drive' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                    <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-400"></i> Tech Cloud Drive
+                </a>
+            <?php endif; ?>
 
         <?php elseif ($role === 'employee'): ?>
             <!-- Employee Links -->
@@ -94,9 +115,11 @@ $page = $_GET['page'] ?? 'dashboard';
             <a href="?page=employee-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="calendar-heart" class="w-4 h-4"></i> Apply Leave
             </a>
+            <?php if (($user['department_name'] ?? '') === 'Tech / Development'): ?>
             <a href="?page=tech-drive" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tech-drive' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-400"></i> Tech Cloud Drive
             </a>
+            <?php endif; ?>
 
         <?php elseif ($role === 'admin'): ?>
                         <!-- Admin / HR Links -->
@@ -138,9 +161,11 @@ $page = $_GET['page'] ?? 'dashboard';
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white animate-pulse" title="<?= $pendingEscCount ?> Pending TL Referral(s)"><?= $pendingEscCount ?></span>
                 <?php endif; ?>
             </a>
+            <?php if (($user['department_name'] ?? '') === 'Tech / Development'): ?>
             <a href="?page=tech-drive" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tech-drive' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-400"></i> Tech Cloud Drive
             </a>
+            <?php endif; ?>
         <?php endif; ?>
 
         <!-- Dedicated My Profile & Settings Link for all roles -->
