@@ -2,33 +2,39 @@
 <?php
 $user = authUser();
 $db = getDBConnection();
-$today = date('Y-m-d');
+$selectedDate = !empty($_GET['date']) ? trim($_GET['date']) : date('Y-m-d');
+$selectedUserId = !empty($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
 
-// Fetch all active field staff with their shift attendance and latest coordinates
+// Fetch all active field staff with their shift attendance and latest coordinates for $selectedDate
 $fieldEmployees = $db->query("
     SELECT u.id, u.name, u.emp_id, u.designation, u.work_mode, u.department_name, u.avatar,
-           a.id as attendance_id, a.clock_in, a.clock_out, a.punch_in_lat, a.punch_in_lng, a.latitude as last_lat, a.longitude as last_lng,
+           a.id as attendance_id, a.clock_in, a.clock_out, a.punch_in_lat, a.punch_in_lng, a.punch_out_lat, a.punch_out_lng, a.latitude as last_lat, a.longitude as last_lng,
            tl.name as tl_name,
-           (SELECT COUNT(*) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$today}') as waypoints_count,
-           (SELECT COALESCE(SUM(l.distance_meters), 0) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$today}') as total_distance_meters,
-           (SELECT l.speed FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$today}' ORDER BY l.id DESC LIMIT 1) as current_speed
+           (SELECT COUNT(*) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$selectedDate}') as waypoints_count,
+           (SELECT COALESCE(SUM(l.distance_meters), 0) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$selectedDate}') as total_distance_meters,
+           (SELECT l.speed FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$selectedDate}' ORDER BY l.id DESC LIMIT 1) as current_speed
     FROM users u
-    LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$today}'
+    LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$selectedDate}'
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
     WHERE (u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%') AND u.status = 'active'
     ORDER BY CASE WHEN a.clock_in IS NOT NULL AND a.clock_out IS NULL THEN 1 ELSE 2 END, u.name ASC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-// Fetch all travel waypoints grouped by user for today
+// Default selected user to first employee if not set
+if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
+    $selectedUserId = (int)$fieldEmployees[0]['id'];
+}
+
+// Fetch all travel waypoints grouped by user for $selectedDate
 $travelWaypoints = $db->query("
     SELECT l.*, u.name as emp_name, u.emp_id as emp_code
     FROM employee_travel_logs l
     JOIN users u ON l.user_id = u.id
-    WHERE DATE(l.recorded_at) = '{$today}'
+    WHERE DATE(l.recorded_at) = '{$selectedDate}'
     ORDER BY l.id ASC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-// Also if any employee punched in today, ensure their punch-in coord is treated as waypoint #1
+// Also if any employee punched in on selected date, ensure their punch-in/out coords are registered as waypoints
 foreach ($fieldEmployees as $fe) {
     if (!empty($fe['punch_in_lat']) && !empty($fe['punch_in_lng'])) {
         $hasLogs = false;
@@ -46,7 +52,7 @@ foreach ($fieldEmployees as $fe) {
                 'longitude' => $fe['punch_in_lng'],
                 'speed' => 0,
                 'distance_meters' => 0,
-                'recorded_at' => $fe['clock_in'] ?: date('Y-m-d H:i:s'),
+                'recorded_at' => $fe['clock_in'] ?: "{$selectedDate} 09:00:00",
                 'emp_name' => $fe['name'],
                 'emp_code' => $fe['emp_id']
             ];
@@ -55,10 +61,17 @@ foreach ($fieldEmployees as $fe) {
 }
 ?>
 
+<!-- Global JSON Data for Map & Alpine -->
+<script>
+    window.fieldEmployeesRadarData = <?= json_encode($fieldEmployees, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    window.travelWaypointsRadarData = <?= json_encode($travelWaypoints, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+</script>
+
 <div class="space-y-6" x-data="{ 
-    selectedUserId: <?= !empty($fieldEmployees[0]['id']) ? (int)$fieldEmployees[0]['id'] : 0 ?>,
-    fieldEmployees: <?= json_encode($fieldEmployees, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
-    waypoints: <?= json_encode($travelWaypoints, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    selectedUserId: <?= $selectedUserId ?>,
+    selectedDate: '<?= htmlspecialchars($selectedDate) ?>',
+    fieldEmployees: window.fieldEmployeesRadarData || [],
+    waypoints: window.travelWaypointsRadarData || [],
     selectedEmp: null,
     init() {
         this.selectedEmp = this.fieldEmployees.find(e => Number(e.id) === Number(this.selectedUserId)) || (this.fieldEmployees[0] || null);
@@ -73,25 +86,39 @@ foreach ($fieldEmployees as $fe) {
         });
     }
 }">
-    <!-- Header Banner -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+    <!-- Header Banner & History Date Filter -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-extrabold shrink-0 border border-amber-100 shadow-sm">
                 <i data-lucide="map" class="w-6 h-6"></i>
             </div>
             <div>
                 <h1 class="text-xl font-bold text-slate-900 tracking-tight">Field Staff Travel Radar & Route Tracker</h1>
-                <p class="text-xs text-slate-500 mt-0.5">Live GPS location trail, km traveled, real-time speed, client route, and stoppage history.</p>
+                <p class="text-xs text-slate-500 mt-0.5">Live GPS location trail, km traveled, real-time speed, client route, and date-wise history.</p>
             </div>
         </div>
 
+        <!-- Date History Selector Form -->
         <div class="flex items-center gap-2 flex-wrap">
-            <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold shadow-2xs">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <?= count(array_filter($fieldEmployees, fn($f) => !empty($f['clock_in']) && empty($f['clock_out']))) ?> Live On Field
-            </span>
-            <button type="button" onclick="location.reload()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Radar
+            <form method="GET" action="" class="flex items-center gap-2 m-0">
+                <input type="hidden" name="page" value="admin-travel-radar">
+                <input type="hidden" name="user_id" :value="selectedUserId">
+                
+                <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 shadow-2xs">
+                    <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
+                    <input type="date" name="date" value="<?= htmlspecialchars($selectedDate) ?>" onchange="this.form.submit()" class="bg-transparent text-xs font-bold text-slate-800 border-none outline-hidden cursor-pointer">
+                </div>
+
+                <a href="?page=admin-travel-radar&date=<?= date('Y-m-d') ?>" class="px-3 py-2 <?= $selectedDate === date('Y-m-d') ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' ?> text-xs font-bold rounded-xl transition">
+                    Today
+                </a>
+                <a href="?page=admin-travel-radar&date=<?= date('Y-m-d', strtotime('-1 day')) ?>" class="px-3 py-2 <?= $selectedDate === date('Y-m-d', strtotime('-1 day')) ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' ?> text-xs font-bold rounded-xl transition">
+                    Yesterday
+                </a>
+            </form>
+
+            <button type="button" onclick="location.reload()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
             </button>
         </div>
     </div>
@@ -106,7 +133,7 @@ foreach ($fieldEmployees as $fe) {
                     <i data-lucide="users" class="w-4 h-4 text-slate-400"></i>
                     Field Workforce (<?= count($fieldEmployees) ?>)
                 </span>
-                <span class="text-[10px] font-mono text-slate-400"><?= date('d M Y') ?></span>
+                <span class="text-[10px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg"><?= date('d M Y', strtotime($selectedDate)) ?></span>
             </div>
 
             <?php if (empty($fieldEmployees)): ?>
@@ -119,7 +146,7 @@ foreach ($fieldEmployees as $fe) {
                     <template x-for="emp in fieldEmployees" :key="emp.id">
                         <div @click="selectStaff(emp)" 
                              class="p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 relative overflow-hidden"
-                             :class="Number(selectedUserId) === Number(emp.id) ? 'bg-indigo-50/80 border-indigo-400 ring-2 ring-indigo-500/20 shadow-sm' : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/80'">
+                             :class="Number(selectedUserId) === Number(emp.id) ? 'bg-indigo-50/90 border-indigo-500 ring-2 ring-indigo-500/20 shadow-sm' : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/80'">
                             
                             <div class="flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-2.5 min-w-0">
@@ -128,7 +155,7 @@ foreach ($fieldEmployees as $fe) {
                                     </div>
                                     <div class="min-w-0">
                                         <h4 class="font-bold text-xs text-slate-900 truncate" x-text="emp.name"></h4>
-                                        <p class="text-[10px] text-slate-500 truncate" x-text="emp.designation || 'Field Executive'"></p>
+                                        <p class="text-[10px] text-slate-500 truncate" x-text="(emp.designation || 'Field Executive') + ' • ' + (emp.tl_name || 'HR Direct')"></p>
                                     </div>
                                 </div>
                                 <div class="shrink-0 text-right">
@@ -139,7 +166,7 @@ foreach ($fieldEmployees as $fe) {
                                         </span>
                                     </template>
                                     <template x-if="!emp.clock_in || emp.clock_out">
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600" x-text="emp.clock_out ? 'Shift Ended' : 'Not In'"></span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600" x-text="emp.clock_out ? 'Shift Ended' : 'No Shift'"></span>
                                     </template>
                                 </div>
                             </div>
@@ -148,15 +175,15 @@ foreach ($fieldEmployees as $fe) {
                             <div class="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-200/60 text-center text-[10px]">
                                 <div class="bg-white p-1 rounded-lg border border-slate-100">
                                     <span class="text-slate-400 block text-[9px]">Distance</span>
-                                    <strong class="text-slate-800" x-text="(Number(emp.total_distance_meters || 0) / 1000).toFixed(1) + ' km'"></strong>
+                                    <strong class="text-slate-800 font-mono" x-text="(Number(emp.total_distance_meters || 0) / 1000).toFixed(1) + ' km'"></strong>
                                 </div>
                                 <div class="bg-white p-1 rounded-lg border border-slate-100">
-                                    <span class="text-slate-400 block text-[9px]">Live Speed</span>
-                                    <strong class="text-indigo-600" x-text="(Number(emp.current_speed || 0)).toFixed(0) + ' km/h'"></strong>
+                                    <span class="text-slate-400 block text-[9px]">Speed</span>
+                                    <strong class="text-indigo-600 font-mono" x-text="(Number(emp.current_speed || 0)).toFixed(0) + ' km/h'"></strong>
                                 </div>
                                 <div class="bg-white p-1 rounded-lg border border-slate-100">
                                     <span class="text-slate-400 block text-[9px]">Waypoints</span>
-                                    <strong class="text-slate-800" x-text="emp.waypoints_count || (emp.punch_in_lat ? 1 : 0)"></strong>
+                                    <strong class="text-slate-800 font-mono" x-text="emp.waypoints_count || (emp.punch_in_lat ? 1 : 0)"></strong>
                                 </div>
                             </div>
                         </div>
@@ -182,7 +209,7 @@ foreach ($fieldEmployees as $fe) {
                             </div>
                             <p class="text-xs text-slate-500">
                                 Reporting to: <strong class="text-slate-700" x-text="selectedEmp.tl_name || 'HR Direct'"></strong> • 
-                                <span x-text="selectedEmp.clock_in ? 'Punched In at ' + selectedEmp.clock_in.substring(11, 16) : 'No active shift today'"></span>
+                                <span x-text="selectedEmp.clock_in ? 'In: ' + selectedEmp.clock_in.substring(11, 16) + (selectedEmp.clock_out ? ' | Out: ' + selectedEmp.clock_out.substring(11, 16) : ' (Active)') : 'No shift records on this date'"></span>
                             </p>
                         </div>
                     </div>
@@ -203,14 +230,14 @@ foreach ($fieldEmployees as $fe) {
 
             <!-- Map Container -->
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between flex-wrap gap-2">
                     <div class="flex items-center gap-2">
                         <i data-lucide="navigation" class="w-4 h-4 text-indigo-600"></i>
-                        <span class="font-bold text-xs text-slate-800 uppercase tracking-wider">Live Route Map & Stop Points</span>
+                        <span class="font-bold text-xs text-slate-800 uppercase tracking-wider">Route Trail & Stop History</span>
                     </div>
                     <div class="flex items-center gap-3 text-[11px]">
                         <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Start (Punch In)</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> Current Location</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> Latest Location</span>
                         <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Client Visit / Stop</span>
                     </div>
                 </div>
@@ -235,8 +262,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let currentLayerGroup = L.layerGroup().addTo(map);
 
-    const allWaypoints = <?= json_encode($travelWaypoints) ?>;
-    const allEmployees = <?= json_encode($fieldEmployees) ?>;
+    const allWaypoints = window.travelWaypointsRadarData || [];
+    const allEmployees = window.fieldEmployeesRadarData || [];
 
     window.renderStaffTrailOnMap = function(userId) {
         currentLayerGroup.clearLayers();
@@ -246,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const coords = [];
 
-        // If punch in coordinates exist
+        // 1. If punch in coordinates exist
         if (emp && emp.punch_in_lat && emp.punch_in_lng) {
             coords.push([parseFloat(emp.punch_in_lat), parseFloat(emp.punch_in_lng)]);
         }
@@ -256,6 +283,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 coords.push([parseFloat(wp.latitude), parseFloat(wp.longitude)]);
             }
         });
+
+        // 2. If punch out coordinates exist
+        if (emp && emp.punch_out_lat && emp.punch_out_lng) {
+            coords.push([parseFloat(emp.punch_out_lat), parseFloat(emp.punch_out_lng)]);
+        }
 
         if (coords.length > 0) {
             // Draw Route Polyline
@@ -268,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     lineJoin: 'round'
                 }).addTo(currentLayerGroup);
 
-                map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+                map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
             } else {
                 map.setView(coords[0], 15);
             }
@@ -290,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 iconAnchor: [30, 20]
             });
             L.marker(latestCoord, { icon: liveIcon }).addTo(currentLayerGroup)
-             .bindPopup(`<strong>🚗 Current Location: ${emp ? emp.name : 'Staff'}</strong><br>⚡ Live Speed: ${(emp ? emp.current_speed || 0 : 0)} km/h<br>📍 Status: ${emp && emp.clock_in && !emp.clock_out ? 'On Field Duty' : 'Shift Concluded'}`);
+             .bindPopup(`<strong>🚗 Location: ${emp ? emp.name : 'Staff'}</strong><br>⚡ Speed: ${(emp ? emp.current_speed || 0 : 0)} km/h<br>📍 Status: ${emp && emp.clock_in && !emp.clock_out ? 'On Field Duty' : 'Shift Concluded'}`);
 
         } else {
             // No coordinates logged yet
@@ -299,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Render initially selected user
-    const initUserId = <?= !empty($fieldEmployees[0]['id']) ? (int)$fieldEmployees[0]['id'] : 0 ?>;
+    const initUserId = <?= $selectedUserId ?>;
     if (initUserId > 0) {
         window.renderStaffTrailOnMap(initUserId);
     }
