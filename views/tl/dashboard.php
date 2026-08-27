@@ -25,7 +25,7 @@ $pendingLeavesCount = (int)$pendingLeavesStmt->fetchColumn();
 $teamMembers = AttendanceController::getTeamLiveStatus($user['id']);
 
 // BDA Calling Stats (for BDA Team Lead)
-$isBDATeam = (($user['department_name'] ?? '') === 'Calling / BDA Team');
+$isBDATeam = (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false);
 $bdaStats = [
     'total_leads' => 0,
     'today_calls' => 0,

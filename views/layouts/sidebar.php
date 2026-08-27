@@ -52,14 +52,14 @@ $page = $_GET['page'] ?? 'dashboard';
         <?php if ($role === 'team_lead'): ?>
             <!-- Team Lead Links -->
             <div class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1">
-                <?= (($user['department_name'] ?? '') === 'Calling / BDA Team') ? 'BDA Operations & CRM' : 'Team Operations' ?>
+                <?= (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false) ? 'BDA Operations & CRM' : 'Team Operations' ?>
             </div>
             
             <a href="?page=tl-dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-dashboard' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <?= (($user['department_name'] ?? '') === 'Calling / BDA Team') ? 'BDA Hub Dashboard' : 'TL Dashboard' ?>
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <?= (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false) ? 'BDA Hub Dashboard' : 'TL Dashboard' ?>
             </a>
 
-            <?php if (($user['department_name'] ?? '') === 'Calling / BDA Team'): ?>
+            <?php if (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false): ?>
                 <a href="?page=calling-manage" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-manage' ? 'bg-emerald-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                     <i data-lucide="phone-forwarded" class="w-4 h-4 text-emerald-400"></i> BDA Lead CRM & Allocation
                 </a>
@@ -79,7 +79,7 @@ $page = $_GET['page'] ?? 'dashboard';
             <?php endif; ?>
 
             <a href="?page=tl-reports" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-reports' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="file-text" class="w-4 h-4 text-purple-400"></i> <?= (($user['department_name'] ?? '') === 'Calling / BDA Team') ? 'Calling Reports & HR' : 'Daily Work Reports & HR' ?>
+                <i data-lucide="file-text" class="w-4 h-4 text-purple-400"></i> <?= (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false) ? 'Calling Reports & HR' : 'Daily Work Reports & HR' ?>
             </a>
             
             <a href="?page=tl-leaves" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'tl-leaves' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
@@ -104,7 +104,7 @@ $page = $_GET['page'] ?? 'dashboard';
             <a href="?page=employee-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="clock" class="w-4 h-4"></i> Attendance History
             </a>
-                        <?php if (($user['department_name'] ?? '') === 'Calling / BDA Team'): ?>
+                        <?php if (stripos($user['department_name'] ?? '', 'BDA') !== false || stripos($user['department_name'] ?? '', 'Calling') !== false || stripos($user['designation'] ?? '', 'BDA') !== false || stripos($user['designation'] ?? '', 'Calling') !== false): ?>
                 <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                     <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My BDA Queue
                 </a>

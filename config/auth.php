@@ -69,6 +69,15 @@ function clearAuthCookie(): void {
 
 function authUser(): ?array {
     if (!empty($_SESSION['user']) && is_array($_SESSION['user'])) {
+        if (empty($_SESSION['user']['department_name']) || empty($_SESSION['user']['designation'])) {
+            try {
+                $db = getDBConnection();
+                $fresh = $db->query("SELECT * FROM users WHERE id = " . (int)$_SESSION['user']['id'])->fetch(PDO::FETCH_ASSOC);
+                if ($fresh) {
+                    $_SESSION['user'] = array_merge($_SESSION['user'], $fresh);
+                }
+            } catch (Throwable $e) {}
+        }
         return $_SESSION['user'];
     }
 
@@ -78,7 +87,7 @@ function authUser(): ?array {
         if ($data && !empty($data['id'])) {
             try {
                 $db = getDBConnection();
-                $stmt = $db->prepare("SELECT u.*, d.name as department_name FROM users u LEFT JOIN departments d ON u.department_id = d.id WHERE u.id = ?");
+                $stmt = $db->prepare("SELECT u.* FROM users u WHERE u.id = ?");
                 $stmt->execute([(int)$data['id']]);
                 $user = $stmt->fetch();
                 if ($user && empty($user['is_dismissed']) && $user['status'] === 'active') {
