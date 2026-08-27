@@ -2,6 +2,97 @@
 // controllers/ReportController.php
 
 class ReportController {
+    /**
+     * Auto-compile and transmit Daily TL Executive Report to HR when Team Lead Punches Out
+     */
+    public static function autoSubmitTLReportOnShiftEnd(int $tlUserId, float $shiftHours): void {
+        try {
+            $db = getDBConnection();
+            $today = date('Y-m-d');
+            $tl = $db->query("SELECT * FROM users WHERE id = {$tlUserId} AND role = 'team_lead'")->fetch(PDO::FETCH_ASSOC);
+            if (!$tl) return;
+
+            // Check if report already exists for today
+            $existing = $db->query("SELECT id FROM daily_work_reports WHERE user_id = {$tlUserId} AND report_date = '{$today}'")->fetch();
+            if ($existing) return; // Already submitted
+
+            $adminId = (int)$db->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
+            if (!$adminId) $adminId = 1;
+
+            $isBDA = (stripos($tl['department_name'] ?? '', 'BDA') !== false || stripos($tl['department_name'] ?? '', 'Calling') !== false || stripos($tl['designation'] ?? '', 'BDA') !== false);
+
+            $teamMembers = $db->query("SELECT id, name, emp_id, designation FROM users WHERE reporting_tl_id = {$tlUserId} AND status = 'active'")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $inTeam = !empty($teamMembers) ? implode(',', array_column($teamMembers, 'id')) : '0';
+
+            $title = "Daily Executive Shift Summary - {$tl['name']} (" . date('d M Y') . ")";
+            $tasksSnapshotJson = null;
+
+            if ($isBDA) {
+                // BDA Team: Capture calling performance & stats
+                $todayCalls = (int)$db->query("SELECT COUNT(*) FROM call_logs WHERE call_date = '{$today}'")->fetchColumn();
+                $todayConverted = (int)$db->query("SELECT COUNT(*) FROM call_logs WHERE call_date = '{$today}' AND disposition = 'converted'")->fetchColumn();
+                $todayInterested = (int)$db->query("SELECT COUNT(*) FROM call_logs WHERE call_date = '{$today}' AND disposition = 'interested'")->fetchColumn();
+                $teamCount = count($teamMembers);
+
+                $tasksCompleted = "Shift Completed: {$shiftHours} hrs logged. BDA Operations monitored. Total Calls Today: {$todayCalls}, Deals Converted: {$todayConverted}, Interested Prospects: {$todayInterested}.";
+                $tasksInProgress = "Team Pipeline: Managing {$teamCount} BDA calling executive(s). Ongoing prospect follow-ups scheduled.";
+                $blockers = "None reported on shift conclusion.";
+                $planTomorrow = "Execute morning campaign allocation, monitor caller talk time targets, and review follow-ups.";
+                
+                $tasksSnapshotJson = json_encode([
+                    'type' => 'bda_summary',
+                    'today_calls' => $todayCalls,
+                    'today_converted' => $todayConverted,
+                    'today_interested' => $todayInterested,
+                    'team_members' => $teamMembers
+                ]);
+            } else {
+                // Tech / General Team: Capture tasks snapshot
+                $tasksStmt = $db->query("
+                    SELECT t.id, t.title, t.priority, t.status, t.due_date, u.name as employee_name
+                    FROM tasks t
+                    JOIN users u ON t.assigned_to = u.id
+                    WHERE t.assigned_to IN ($inTeam) OR t.created_by = {$tlUserId}
+                ");
+                $taskList = $tasksStmt ? $tasksStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+                $tasksSnapshotJson = json_encode($taskList);
+
+                $completedCount = 0;
+                $inProgCount = 0;
+                foreach ($taskList as $tk) {
+                    if ($tk['status'] === 'completed') $completedCount++;
+                    if ($tk['status'] === 'in_progress') $inProgCount++;
+                }
+
+                $tasksCompleted = "Shift Completed: {$shiftHours} hrs logged. Supervised team sprint: {$completedCount} tasks completed today.";
+                $tasksInProgress = "{$inProgCount} sprint tasks actively in development across team roster.";
+                $blockers = "None on shift conclusion.";
+                $planTomorrow = "Morning standup, sprint code review, and blocker resolution.";
+            }
+
+            // Insert executive report
+            $stmt = $db->prepare("
+                INSERT INTO daily_work_reports 
+                (user_id, user_role, submitted_to_id, report_date, title, tasks_completed, tasks_in_progress, blockers, plan_for_tomorrow, total_hours_logged, tasks_snapshot_json, status)
+                VALUES (?, 'team_lead', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted')
+            ");
+            $stmt->execute([
+                $tlUserId,
+                $adminId,
+                $today,
+                $title,
+                $tasksCompleted,
+                $tasksInProgress,
+                $blockers,
+                $planTomorrow,
+                $shiftHours,
+                $tasksSnapshotJson
+            ]);
+        } catch (Throwable $e) {
+            error_log("TL Auto Report Error: " . $e->getMessage());
+        }
+    }
+
     public static function submitReport(): void {
         requireAuth();
         requireActiveShift();

@@ -580,7 +580,7 @@ $pendingRepCount = count(array_filter($dailyTlReports, fn($r) => $r['status'] ==
                                     <?php endif; ?>
                                 </div>
                                 <p class="text-[11px] text-slate-500 mt-0.5">
-                                    <?= htmlspecialchars($r['tl']['name']) ?>, TL Support, and all <?= count($r['team_members']) ?> team members punch in from this location.
+                                    <?= htmlspecialchars($r['tl']['name']) ?>, TL Support, and all <?= (int)($r['team_count'] ?? 0) ?> team members punch in from this location.
                                     <?php if ($isTempActive): ?>
                                         <span class="text-slate-400 font-medium">(Permanent: <?= htmlspecialchars($currentPermLoc['name'] ?? 'HQ') ?>)</span>
                                     <?php endif; ?>

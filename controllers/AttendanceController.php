@@ -143,6 +143,11 @@ class AttendanceController {
 
             TaskController::autoSubmitOnShiftEnd($user['id']);
 
+            // If Team Lead punches out, auto-compile and transmit Daily TL Executive Report to HR
+            if ($user['role'] === 'team_lead') {
+                ReportController::autoSubmitTLReportOnShiftEnd($user['id'], $totalHours);
+            }
+
             setFlash('success', 'Clocked out at ' . date('h:i A') . ". Total Shift Hours: {$totalHours} hrs");
         }
 
