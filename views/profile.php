@@ -209,7 +209,8 @@ $emailChangeReq = $_SESSION['email_change_request'] ?? null;
                     Corporate identity parameters are locked & verified by HR Administration.
                 </div>
             </div>
-            </div> <!-- Close 3-column grid -->
+        </div> <!-- Close Right Panel -->
+    </div> <!-- Close 3-Column Grid -->
 
     <!-- 🔒 SUPER ADMIN MASTER DATABASE VAULT (FULL WIDTH, CLEAN & USER FRIENDLY) -->
     <?php if (($user['role'] ?? '') === 'admin'): ?>
@@ -273,7 +274,7 @@ $emailChangeReq = $_SESSION['email_change_request'] ?? null;
             </div>
         </div>
     <?php endif; ?>
-</div>
+
 <!-- Dual Email Verification Modal -->
     <div x-show="emailModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
         <div @click.away="emailModalOpen = false" class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
