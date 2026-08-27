@@ -104,13 +104,13 @@ if ($action) {
             requireRole(['admin']);
             $db = getDBConnection();
 
-            // Fetch structured data for all major enterprise modules
+            // Fetch structured data for all major enterprise modules (Exact schema verified)
             $usersData = $db->query("SELECT id, emp_id, name, email, role, designation, department_name, work_mode, phone, salary_basic, status, joining_date FROM users ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-            $attData = $db->query("SELECT a.id, a.date, u.name as employee_name, u.emp_id, a.clock_in, a.clock_out, a.total_hours, a.status, a.late_by_minutes, a.latitude, a.longitude FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.date DESC, a.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $attData = $db->query("SELECT a.id, a.date, u.name as employee_name, u.emp_id, a.clock_in, a.clock_out, a.total_hours, a.status, a.notes, a.tl_approved, a.latitude, a.longitude FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.date DESC, a.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $gpsData = $db->query("SELECT l.id, l.recorded_at, u.name as employee_name, u.emp_id, l.latitude, l.longitude, l.speed as speed_kmh, l.distance_meters FROM employee_travel_logs l JOIN users u ON l.user_id = u.id ORDER BY l.id DESC LIMIT 5000")->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $tasksData = $db->query("SELECT t.id, t.title, p.title as project_name, u.name as assigned_to, creator.name as assigned_by, t.priority, t.status, t.due_date FROM tasks t LEFT JOIN projects p ON t.project_id = p.id LEFT JOIN users u ON t.assigned_to = u.id LEFT JOIN users creator ON t.created_by = creator.id ORDER BY t.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $leavesData = $db->query("SELECT l.id, u.name as employee_name, u.emp_id, lt.name as leave_type, l.start_date, l.end_date, l.total_days, l.status, l.reason, l.created_at FROM leave_applications l JOIN users u ON l.user_id = u.id JOIN leave_types lt ON l.leave_type_id = lt.id ORDER BY l.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-            $payrollData = $db->query("SELECT p.id, u.name as employee_name, u.emp_id, p.salary_month, p.basic_salary, p.net_salary, p.status, p.payment_date FROM payroll p JOIN users u ON p.user_id = u.id ORDER BY p.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $payrollData = $db->query("SELECT p.id, u.name as employee_name, u.emp_id, p.month, p.year, p.basic_salary, p.allowances, p.deductions, p.net_salary, p.status, p.payment_date FROM payroll p JOIN users u ON p.user_id = u.id ORDER BY p.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
             $sheets = [
                 'Workforce & Employees' => $usersData,
