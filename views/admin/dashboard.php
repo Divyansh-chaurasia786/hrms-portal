@@ -24,7 +24,7 @@ $pendingEscCount = (int)($stats['pendingEscCount'] ?? 0);
 
 // Recent Live Attendance Check-ins
 $recentAtt = $db->query("
-    SELECT a.*, u.name, u.emp_id, u.avatar, u.role, u.designation, tl.name as tl_name
+    SELECT a.*, u.name, u.emp_id, u.avatar, u.role, u.designation, u.work_mode, tl.name as tl_name
     FROM attendance a
     JOIN users u ON a.user_id = u.id
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
@@ -276,21 +276,29 @@ $recentAudits = $db->query("
                                 <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
                                     <?= getStatusBadge($r['status']) ?>
                                 </td>
-                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
-                                    <button type="button" @click="$dispatch('open-loc-modal', {
-                                        attId: <?= (int)$r['id'] ?>,
-                                        name: '<?= addslashes($r['name'] ?? 'Staff') ?>',
-                                        date: '<?= date('d M Y') ?>',
-                                        total_hours: '<?= $r['total_hours'] ?? '' ?>',
-                                        clock_in: '<?= $r['clock_in'] ? date('h:i A', strtotime($r['clock_in'])) : '-' ?>',
-                                        clock_out: '<?= !empty($r['clock_out']) ? date('h:i A', strtotime($r['clock_out'])) : '' ?>',
-                                        in_lat: '<?= $r['punch_in_lat'] ?? $r['latitude'] ?? '' ?>',
-                                        in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
-                                        out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
-                                        out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
-                                    })" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center justify-center" title="View Login / Logout Location">
-                                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
-                                    </button>
+                                                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
+                                    <?php $isExemptUser = (($r['role'] ?? '') === 'admin' || ($r['work_mode'] ?? '') === 'field' || ($r['work_mode'] ?? '') === 'wfh' || ($r['status'] ?? '') === 'wfh'); ?>
+                                    <?php if ($isExemptUser): ?>
+                                        <button type="button" @click="$dispatch('open-loc-modal', {
+                                            attId: <?= (int)$r['id'] ?>,
+                                            name: '<?= addslashes($r['name'] ?? 'Staff') ?>',
+                                            date: '<?= date('d M Y') ?>',
+                                            total_hours: '<?= $r['total_hours'] ?? '' ?>',
+                                            clock_in: '<?= $r['clock_in'] ? date('h:i A', strtotime($r['clock_in'])) : '-' ?>',
+                                            clock_out: '<?= !empty($r['clock_out']) ? date('h:i A', strtotime($r['clock_out'])) : '' ?>',
+                                            in_lat: '<?= $r['punch_in_lat'] ?? $r['latitude'] ?? '' ?>',
+                                            in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
+                                            out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
+                                            out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
+                                        })" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center gap-1 font-bold text-[10px]" title="View Login / Logout Location">
+                                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                            <span>GPS 🗺️</span>
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60" title="Fixed 150m Geofence Verified">
+                                            <i data-lucide="building" class="w-3 h-3"></i> In-Office
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

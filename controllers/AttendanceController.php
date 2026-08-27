@@ -2,29 +2,30 @@
 // controllers/AttendanceController.php
 
 class AttendanceController {
-            public static function clockIn(): void {
+                public static function clockIn(): void {
         requireAuth();
         $user = authUser();
         $today = date('Y-m-d');
         $now = date('Y-m-d H:i:s');
         $status = $_POST['status'] ?? 'present';
         $notes = trim($_POST['notes'] ?? '');
-        $userLat = isset($_POST['latitude']) && $_POST['latitude'] !== '' ? (float)$_POST['latitude'] : null;
-        $userLng = isset($_POST['longitude']) && $_POST['longitude'] !== '' ? (float)$_POST['longitude'] : null;
+        $userLat = isset($_POST['latitude']) && $_POST['latitude'] !== '' && $_POST['latitude'] != 0 ? (float)$_POST['latitude'] : null;
+        $userLng = isset($_POST['longitude']) && $_POST['longitude'] !== '' && $_POST['longitude'] != 0 ? (float)$_POST['longitude'] : null;
 
         $db = getDBConnection();
+        $isAdmin = (($user['role'] ?? '') === 'admin');
+        $workMode = $user['work_mode'] ?? 'office';
+        $isGeofenceExempt = $isAdmin || $workMode === 'field' || $workMode === 'wfh' || $status === 'wfh';
 
-        // Geofence check for office-present punch (Admin/HR and WFH are exempt)
-        if (GEOFENCE_ENABLED && $status === 'present' && ($user['role'] ?? '') !== 'admin') {
-            if ($userLat === null || $userLng === null || $userLat == 0 || $userLng == 0) {
+        // Geofence check ONLY for regular in-office staff
+        if (GEOFENCE_ENABLED && !$isGeofenceExempt && $status === 'present') {
+            if ($userLat === null || $userLng === null) {
                 setFlash('error', '📍 Location access denied! Please allow location permission in your browser to punch in from office.');
                 header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
                 exit;
             }
 
-            // Get effective office location
             $officeLocation = getEffectiveUserLocation((int)$user['id']);
-
             if (!$officeLocation) {
                 setFlash('error', '📍 No office location assigned to your team yet. Please contact HR.');
                 header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
@@ -49,7 +50,7 @@ class AttendanceController {
             if ($existing['locked_by_hr']) {
                 setFlash('error', 'Attendance for today is locked and managed by HR.');
             } elseif ($existing['clock_out'] !== null) {
-                // Re-punch for new session (Session #2, #3, etc.)
+                // Re-punch for new session
                 $db->prepare("
                     UPDATE attendance 
                     SET clock_out = NULL, status = ?, notes = ?,
@@ -100,13 +101,13 @@ class AttendanceController {
         return $earthRadius * $c;
     }
 
-            public static function clockOut(): void {
+                public static function clockOut(): void {
         requireAuth();
         $user = authUser();
         $today = date('Y-m-d');
         $now = date('Y-m-d H:i:s');
-        $userLat = isset($_POST['latitude']) && $_POST['latitude'] !== '' ? (float)$_POST['latitude'] : null;
-        $userLng = isset($_POST['longitude']) && $_POST['longitude'] !== '' ? (float)$_POST['longitude'] : null;
+        $userLat = isset($_POST['latitude']) && $_POST['latitude'] !== '' && $_POST['latitude'] != 0 ? (float)$_POST['latitude'] : null;
+        $userLng = isset($_POST['longitude']) && $_POST['longitude'] !== '' && $_POST['longitude'] != 0 ? (float)$_POST['longitude'] : null;
 
         $db = getDBConnection();
         $stmt = $db->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
@@ -140,7 +141,6 @@ class AttendanceController {
             $update = $db->prepare("UPDATE attendance SET clock_out = ?, total_hours = ?, punch_out_lat = ?, punch_out_lng = ? WHERE id = ?");
             $update->execute([$now, $totalHours, $userLat, $userLng, $att['id']]);
 
-            // Auto-submit any unsubmitted tasks for employee, or daily report for TL
             TaskController::autoSubmitOnShiftEnd($user['id']);
 
             setFlash('success', 'Clocked out at ' . date('h:i A') . ". Total Shift Hours: {$totalHours} hrs");
