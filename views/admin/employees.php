@@ -612,7 +612,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                         </div>
 
                         <div class="grid grid-cols-2 gap-2.5">
-                            <div>
+                            <div :class="empType === 'intern_unpaid' ? 'col-span-2' : ''">
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Employment Type</label>
                                 <select name="employment_type" x-model="empType" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                     <option value="full_time">Full Time Staff</option>
@@ -620,8 +620,8 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                     <option value="intern_unpaid">Unpaid Intern</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Monthly Pay (₹)</label>
+                            <div x-show="empType !== 'intern_unpaid'" x-cloak>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1" x-text="empType === 'intern_paid' ? 'Monthly Stipend (₹)' : 'Monthly Pay (₹)'"></label>
                                 <input type="number" step="0.01" name="salary_basic" placeholder="0.00" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                             </div>
                         </div>
@@ -823,7 +823,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             </div>
 
                             <div class="grid grid-cols-2 gap-2.5">
-                                <div>
+                                <div :class="selectedEmp && selectedEmp.employment_type === 'intern_unpaid' ? 'col-span-2' : ''">
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Employment Type</label>
                                     <select name="employment_type" x-model="selectedEmp.employment_type" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                         <option value="full_time">Full Time Staff</option>
@@ -831,9 +831,9 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                         <option value="intern_unpaid">Unpaid Intern</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Monthly Pay (₹)</label>
-                                    <input type="number" step="0.01" name="salary_basic" :value="selectedEmp.salary_basic" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                <div x-show="selectedEmp && selectedEmp.employment_type !== 'intern_unpaid'" x-cloak>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1" x-text="selectedEmp && selectedEmp.employment_type === 'intern_paid' ? 'Monthly Stipend (₹)' : 'Monthly Pay (₹)'"></label>
+                                    <input type="number" step="0.01" name="salary_basic" :value="selectedEmp ? selectedEmp.salary_basic : '0.00'" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                 </div>
                             </div>
                         </div>
