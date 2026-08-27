@@ -226,7 +226,7 @@ $recentAudits = $db->query("
                             <th class="min-w-[160px] px-4 py-3">Employee</th>
                             <th class="min-w-[140px] px-4 py-3 whitespace-nowrap">Reporting Line</th>
                             <th class="min-w-[110px] px-4 py-3 whitespace-nowrap">Punch In</th>
-                            <th class="min-w-[90px] px-4 py-3 text-right whitespace-nowrap">Status</th>
+                            <th class="min-w-[80px] px-4 py-3 whitespace-nowrap">Status</th><th class="min-w-[60px] px-4 py-3 text-right whitespace-nowrap">Location</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
@@ -258,8 +258,22 @@ $recentAudits = $db->query("
                                 <td class="px-4 py-3.5 align-middle font-mono text-[11px] text-slate-700">
                                     <?= formatTime($r['clock_in']) ?>
                                 </td>
-                                <td class="px-4 py-3.5 align-middle text-right">
+                                                                <td class="px-4 py-3.5 align-middle whitespace-nowrap">
                                     <?= getStatusBadge($r['status']) ?>
+                                </td>
+                                <td class="px-4 py-3.5 align-middle text-right whitespace-nowrap">
+                                    <button type="button" @click="$dispatch('open-loc-modal', {
+                                        name: '<?= addslashes($r['name'] ?? 'Staff') ?>',
+                                        date: '<?= date('d M Y') ?>',
+                                        clock_in: '<?= $r['clock_in'] ? date('h:i A', strtotime($r['clock_in'])) : '-' ?>',
+                                        clock_out: '<?= !empty($r['clock_out']) ? date('h:i A', strtotime($r['clock_out'])) : '' ?>',
+                                        in_lat: '<?= $r['punch_in_lat'] ?? $r['latitude'] ?? '' ?>',
+                                        in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
+                                        out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
+                                        out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
+                                    })" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer" title="View Login / Logout Location">
+                                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -352,3 +366,79 @@ $recentAudits = $db->query("
 
 </div>
 
+
+<!-- Attendance Location Viewer Modal (Dashboard) -->
+<div x-data="{ locModalOpen: false, locData: null }" @open-loc-modal.window="locData = $event.detail; locModalOpen = true">
+    <div x-show="locModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+        <div @click.away="locModalOpen = false" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-left my-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900" x-text="locData ? locData.name : 'Attendance Location'"></h3>
+                        <p class="text-[11px] text-slate-400" x-text="locData ? ('Date: ' + locData.date) : ''"></p>
+                    </div>
+                </div>
+                <button type="button" @click="locModalOpen = false" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3.5" x-show="locData">
+                <!-- Punch In Location -->
+                <div class="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold uppercase text-emerald-800 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 🟢 Login / Punch In Location
+                        </span>
+                        <span class="text-[10px] font-mono font-bold text-emerald-700" x-text="locData ? locData.clock_in : ''"></span>
+                    </div>
+                    <template x-if="locData && locData.in_lat">
+                        <div class="space-y-1">
+                            <div class="text-xs font-mono text-slate-700">
+                                Coordinates: <strong x-text="Number(locData.in_lat).toFixed(6) + ', ' + Number(locData.in_lng).toFixed(6)"></strong>
+                            </div>
+                            <a :href="'https://www.google.com/maps?q=' + locData.in_lat + ',' + locData.in_lng" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline mt-1">
+                                <i data-lucide="external-link" class="w-3 h-3"></i> View Punch-In on Google Maps 🗺️
+                            </a>
+                        </div>
+                    </template>
+                    <template x-if="!locData || !locData.in_lat">
+                        <div class="text-xs text-slate-500 italic">No GPS coordinates recorded for this login.</div>
+                    </template>
+                </div>
+
+                <!-- Punch Out Location -->
+                <div class="p-3.5 bg-rose-50/70 rounded-2xl border border-rose-200/80 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold uppercase text-rose-800 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span> 🔴 Logout / Punch Out Location
+                        </span>
+                        <span class="text-[10px] font-mono font-bold text-rose-700" x-text="locData ? (locData.clock_out || 'Shift Active') : ''"></span>
+                    </div>
+                    <template x-if="locData && locData.out_lat">
+                        <div class="space-y-1">
+                            <div class="text-xs font-mono text-slate-700">
+                                Coordinates: <strong x-text="Number(locData.out_lat).toFixed(6) + ', ' + Number(locData.out_lng).toFixed(6)"></strong>
+                            </div>
+                            <a :href="'https://www.google.com/maps?q=' + locData.out_lat + ',' + locData.out_lng" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 hover:text-rose-900 underline mt-1">
+                                <i data-lucide="external-link" class="w-3 h-3"></i> View Punch-Out on Google Maps 🗺️
+                            </a>
+                        </div>
+                    </template>
+                    <template x-if="!locData || !locData.out_lat">
+                        <div class="text-xs text-slate-500 italic" x-text="locData && !locData.clock_out ? 'Shift is currently active (Not punched out yet).' : 'No GPS coordinates recorded for this logout.'"></div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-3 border-t border-slate-100 mt-4">
+                <button type="button" @click="locModalOpen = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

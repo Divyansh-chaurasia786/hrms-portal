@@ -256,7 +256,7 @@ $page = $_GET['page'] ?? 'dashboard';
             </div>
         <?php endif; ?>
 
-        <?php if (!isInActiveShift()): ?>
+        <?php if (!isInActiveShift() && ($user['role'] ?? '') !== 'admin'): ?>
             <div class="mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold shrink-0">

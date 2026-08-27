@@ -2,7 +2,7 @@
 // controllers/AttendanceController.php
 
 class AttendanceController {
-    public static function clockIn(): void {
+        public static function clockIn(): void {
         requireAuth();
         $user = authUser();
         $today = date('Y-m-d');
@@ -14,19 +14,18 @@ class AttendanceController {
 
         $db = getDBConnection();
 
-        // Geofence check for office-present punch (WFH is exempt)
-        if (GEOFENCE_ENABLED && $status === 'present') {
+        // Geofence check for office-present punch (Admin/HR and WFH are exempt)
+        if (GEOFENCE_ENABLED && $status === 'present' && $user['role'] !== 'admin') {
             if ($userLat === null || $userLng === null || $userLat == 0 || $userLng == 0) {
                 setFlash('error', '📍 Location access denied! Please allow location permission in your browser to punch in from office.');
                 header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
                 exit;
             }
 
-            // Get effective office location (TL location inherited by team members & TL support; handles permanent & temporary override)
+            // Get effective office location
             $officeLocation = getEffectiveUserLocation((int)$user['id']);
 
             if (!$officeLocation) {
-                // No location assigned by HR yet — allow punch (fallback)
                 setFlash('error', '📍 No office location assigned to your team yet. Please contact HR.');
                 header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
                 exit;
@@ -50,13 +49,14 @@ class AttendanceController {
             if ($existing['locked_by_hr']) {
                 setFlash('error', 'Attendance for today is locked and managed by HR.');
             } elseif ($existing['clock_out'] !== null) {
-                // Re-punch for new session (Session #2, #3, etc.)
+                // Re-punch for new session
                 $db->prepare("
                     UPDATE attendance 
                     SET clock_in = ?, clock_out = NULL, status = ?, notes = ?,
+                        punch_in_lat = ?, punch_in_lng = ?, latitude = ?, longitude = ?,
                         tl_approved = 0, force_logged_out_by = NULL, force_logout_at = NULL
                     WHERE id = ?
-                ")->execute([$now, $status, $notes, $existing['id']]);
+                ")->execute([$now, $status, $notes, $userLat, $userLng, $userLat, $userLng, $existing['id']]);
 
                 // Get next session number
                 $maxSess = (int)$db->query("SELECT COALESCE(MAX(session_number), 0) FROM attendance_sessions WHERE attendance_id = {$existing['id']}")->fetchColumn();
@@ -70,15 +70,15 @@ class AttendanceController {
                 setFlash('error', 'You are already clocked in! Punch out first to end your current session.');
             }
         } else {
-            $insert = $db->prepare("INSERT INTO attendance (user_id, date, clock_in, status, notes, tl_approved, hr_corrected, locked_by_hr) VALUES (?, ?, ?, ?, ?, 0, 0, 0)");
-            $insert->execute([$user['id'], $today, $now, $status, $notes]);
+            $insert = $db->prepare("INSERT INTO attendance (user_id, date, clock_in, status, notes, punch_in_lat, punch_in_lng, latitude, longitude, tl_approved, hr_corrected, locked_by_hr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)");
+            $insert->execute([$user['id'], $today, $now, $status, $notes, $userLat, $userLng, $userLat, $userLng]);
             $attId = $db->lastInsertId();
 
             // Create Session #1
             $db->prepare("INSERT INTO attendance_sessions (attendance_id, user_id, session_number, clock_in) VALUES (?, ?, 1, ?)")
                ->execute([$attId, $user['id'], $now]);
 
-            setFlash('success', 'Clocked in successfully at ' . date('h:i A') . '! (Pending TL Review)');
+            setFlash('success', 'Clocked in successfully at ' . date('h:i A') . '!');
         }
 
         header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
@@ -100,11 +100,13 @@ class AttendanceController {
         return $earthRadius * $c;
     }
 
-    public static function clockOut(): void {
+        public static function clockOut(): void {
         requireAuth();
         $user = authUser();
         $today = date('Y-m-d');
         $now = date('Y-m-d H:i:s');
+        $userLat = isset($_POST['latitude']) ? (float)$_POST['latitude'] : null;
+        $userLng = isset($_POST['longitude']) ? (float)$_POST['longitude'] : null;
 
         $db = getDBConnection();
         $stmt = $db->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
@@ -133,13 +135,13 @@ class AttendanceController {
             $totalHours = (float)$db->query("SELECT COALESCE(SUM(hours), 0) FROM attendance_sessions WHERE attendance_id = {$att['id']}")->fetchColumn();
             if ($totalHours == 0) $totalHours = $sessionHours;
 
-            $update = $db->prepare("UPDATE attendance SET clock_out = ?, total_hours = ? WHERE id = ?");
-            $update->execute([$now, $totalHours, $att['id']]);
+            $update = $db->prepare("UPDATE attendance SET clock_out = ?, total_hours = ?, punch_out_lat = ?, punch_out_lng = ? WHERE id = ?");
+            $update->execute([$now, $totalHours, $userLat, $userLng, $att['id']]);
 
             // Auto-submit any unsubmitted tasks for employee, or daily report for TL
             TaskController::autoSubmitOnShiftEnd($user['id']);
 
-            setFlash('success', "Clocked out successfully at " . date('h:i A') . " (Total: {$totalHours} hrs)! Pending tasks/reports auto-submitted.");
+            setFlash('success', 'Clocked out at ' . date('h:i A') . ". Total Shift Hours: {$totalHours} hrs");
         }
 
         header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));

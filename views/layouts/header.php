@@ -54,3 +54,23 @@
     </style>
 </head>
 <body class="h-full antialiased text-slate-800 flex" x-data="{ sidebarOpen: false }">
+
+<script>
+function handlePunchOutGeo(form) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                document.getElementById('punchOutLat').value = pos.coords.latitude;
+                document.getElementById('punchOutLng').value = pos.coords.longitude;
+                form.submit();
+            },
+            function(err) {
+                form.submit();
+            },
+            { timeout: 4000, enableHighAccuracy: true }
+        );
+    } else {
+        form.submit();
+    }
+}
+</script>
