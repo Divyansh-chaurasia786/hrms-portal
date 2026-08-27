@@ -776,10 +776,10 @@ $orgAvgCompliance = ($totalOrgEntries > 0) ? round(($totalOrgPresent / max(1, $t
 
 </div>
 
-<!-- Attendance Location Viewer Modal -->
+<!-- Attendance Location & Multi-Session Timeline Modal (Dashboard) -->
 <div x-data="{ locModalOpen: false, locData: null }" @open-loc-modal.window="locData = $event.detail; locModalOpen = true">
     <div x-show="locModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
-        <div @click.away="locModalOpen = false" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-left my-auto">
+        <div @click.away="locModalOpen = false" class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-left my-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <div class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
@@ -787,7 +787,7 @@ $orgAvgCompliance = ($totalOrgEntries > 0) ? round(($totalOrgPresent / max(1, $t
                     </div>
                     <div>
                         <h3 class="text-sm font-bold text-slate-900" x-text="locData ? locData.name : 'Attendance Location'"></h3>
-                        <p class="text-[11px] text-slate-400" x-text="locData ? ('Date: ' + locData.date) : ''"></p>
+                        <p class="text-[11px] text-slate-400" x-text="locData ? ('Date: ' + locData.date + (locData.total_hours ? ' • Total: ' + locData.total_hours + ' hrs' : '')) : ''"></p>
                     </div>
                 </div>
                 <button type="button" @click="locModalOpen = false" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition cursor-pointer">
@@ -795,56 +795,88 @@ $orgAvgCompliance = ($totalOrgEntries > 0) ? round(($totalOrgPresent / max(1, $t
                 </button>
             </div>
 
-            <div class="space-y-3.5" x-show="locData">
-                <!-- Punch In Location -->
-                <div class="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-extrabold uppercase text-emerald-800 flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 🟢 Login / Punch In Location
-                        </span>
-                        <span class="text-[10px] font-mono font-bold text-emerald-700" x-text="locData ? locData.clock_in : ''"></span>
-                    </div>
-                    <template x-if="locData && locData.in_lat">
-                        <div class="space-y-1">
-                            <div class="text-xs font-mono text-slate-700">
-                                Coordinates: <strong x-text="Number(locData.in_lat).toFixed(6) + ', ' + Number(locData.in_lng).toFixed(6)"></strong>
-                            </div>
-                            <a :href="'https://www.google.com/maps?q=' + locData.in_lat + ',' + locData.in_lng" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline mt-1">
-                                <i data-lucide="external-link" class="w-3 h-3"></i> View Punch-In on Google Maps 🗺️
-                            </a>
-                        </div>
-                    </template>
-                    <template x-if="!locData || !locData.in_lat">
-                        <div class="text-xs text-slate-500 italic">No GPS coordinates recorded for this login.</div>
-                    </template>
-                </div>
+            <!-- Sessions Timeline -->
+            <div class="space-y-3 max-h-96 overflow-y-auto pr-1" x-show="locData">
+                <template x-if="locData && locData.sessions && locData.sessions.length">
+                    <div class="space-y-3">
+                        <template x-for="(s, idx) in locData.sessions" :key="s.id || idx">
+                            <div class="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2.5">
+                                <div class="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                                    <span class="text-[11px] font-extrabold uppercase text-indigo-900 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-indigo-600"></span> Session #<span x-text="s.session_number || (idx + 1)"></span>
+                                    </span>
+                                    <span class="text-[11px] font-mono font-bold text-slate-700" x-text="s.hours ? (s.hours + ' hrs') : 'Active Now 🟢'"></span>
+                                </div>
 
-                <!-- Punch Out Location -->
-                <div class="p-3.5 bg-rose-50/70 rounded-2xl border border-rose-200/80 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-extrabold uppercase text-rose-800 flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-rose-500"></span> 🔴 Logout / Punch Out Location
-                        </span>
-                        <span class="text-[10px] font-mono font-bold text-rose-700" x-text="locData ? (locData.clock_out || 'Shift Active') : ''"></span>
-                    </div>
-                    <template x-if="locData && locData.out_lat">
-                        <div class="space-y-1">
-                            <div class="text-xs font-mono text-slate-700">
-                                Coordinates: <strong x-text="Number(locData.out_lat).toFixed(6) + ', ' + Number(locData.out_lng).toFixed(6)"></strong>
+                                <!-- Punch In -->
+                                <div class="flex items-start justify-between text-xs gap-2">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1 text-emerald-700 font-bold text-[11px]">
+                                            <span>🟢 In:</span> <span class="font-mono" x-text="s.clock_in ? new Date(s.clock_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'"></span>
+                                        </div>
+                                        <div x-show="s.punch_in_lat" class="text-[10px] font-mono text-slate-500 mt-0.5">
+                                            GPS: <span x-text="Number(s.punch_in_lat).toFixed(5) + ', ' + Number(s.punch_in_lng).toFixed(5)"></span>
+                                        </div>
+                                    </div>
+                                    <div class="shrink-0" x-show="s.punch_in_lat">
+                                        <a :href="'https://www.google.com/maps?q=' + s.punch_in_lat + ',' + s.punch_in_lng" target="_blank" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold inline-flex items-center gap-1 transition">
+                                            <i data-lucide="external-link" class="w-3 h-3"></i> Maps 🗺️
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Punch Out -->
+                                <div class="flex items-start justify-between text-xs gap-2 pt-1.5 border-t border-slate-200/40">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1 text-rose-700 font-bold text-[11px]">
+                                            <span>🔴 Out:</span> <span class="font-mono" x-text="s.clock_out ? new Date(s.clock_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Still Active...'"></span>
+                                        </div>
+                                        <div x-show="s.punch_out_lat" class="text-[10px] font-mono text-slate-500 mt-0.5">
+                                            GPS: <span x-text="Number(s.punch_out_lat).toFixed(5) + ', ' + Number(s.punch_out_lng).toFixed(5)"></span>
+                                        </div>
+                                    </div>
+                                    <div class="shrink-0" x-show="s.punch_out_lat">
+                                        <a :href="'https://www.google.com/maps?q=' + s.punch_out_lat + ',' + s.punch_out_lng" target="_blank" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-[10px] font-bold inline-flex items-center gap-1 transition">
+                                            <i data-lucide="external-link" class="w-3 h-3"></i> Maps 🗺️
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
-                            <a :href="'https://www.google.com/maps?q=' + locData.out_lat + ',' + locData.out_lng" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 hover:text-rose-900 underline mt-1">
-                                <i data-lucide="external-link" class="w-3 h-3"></i> View Punch-Out on Google Maps 🗺️
-                            </a>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Fallback if no sessions array -->
+                <template x-if="!locData || !locData.sessions || !locData.sessions.length">
+                    <div class="space-y-3">
+                        <div class="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-extrabold uppercase text-emerald-800 flex items-center gap-1">
+                                    🟢 Punch In Location
+                                </span>
+                                <span class="text-[10px] font-mono font-bold text-emerald-700" x-text="locData ? locData.clock_in : ''"></span>
+                            </div>
+                            <div x-show="locData && locData.in_lat">
+                                <a :href="'https://www.google.com/maps?q=' + locData.in_lat + ',' + locData.in_lng" target="_blank" class="text-[11px] font-bold text-emerald-700 underline">View Punch-In on Google Maps 🗺️</a>
+                            </div>
                         </div>
-                    </template>
-                    <template x-if="!locData || !locData.out_lat">
-                        <div class="text-xs text-slate-500 italic" x-text="locData && !locData.clock_out ? 'Shift is currently active (Not punched out yet).' : 'No GPS coordinates recorded for this logout.'"></div>
-                    </template>
-                </div>
+                        <div class="p-3.5 bg-rose-50/70 rounded-2xl border border-rose-200/80 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-extrabold uppercase text-rose-800 flex items-center gap-1">
+                                    🔴 Punch Out Location
+                                </span>
+                                <span class="text-[10px] font-mono font-bold text-rose-700" x-text="locData ? (locData.clock_out || 'Shift Active') : ''"></span>
+                            </div>
+                            <div x-show="locData && locData.out_lat">
+                                <a :href="'https://www.google.com/maps?q=' + locData.out_lat + ',' + locData.out_lng" target="_blank" class="text-[11px] font-bold text-rose-700 underline">View Punch-Out on Google Maps 🗺️</a>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <div class="flex justify-end pt-3 border-t border-slate-100 mt-4">
-                <button type="button" @click="locModalOpen = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+                <button type="button" @click="locModalOpen = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
                     Close
                 </button>
             </div>

@@ -2,20 +2,20 @@
 // controllers/AttendanceController.php
 
 class AttendanceController {
-        public static function clockIn(): void {
+            public static function clockIn(): void {
         requireAuth();
         $user = authUser();
         $today = date('Y-m-d');
         $now = date('Y-m-d H:i:s');
         $status = $_POST['status'] ?? 'present';
         $notes = trim($_POST['notes'] ?? '');
-        $userLat = isset($_POST['latitude']) ? (float)$_POST['latitude'] : null;
-        $userLng = isset($_POST['longitude']) ? (float)$_POST['longitude'] : null;
+        $userLat = isset($_POST['latitude']) && $_POST['latitude'] !== '' ? (float)$_POST['latitude'] : null;
+        $userLng = isset($_POST['longitude']) && $_POST['longitude'] !== '' ? (float)$_POST['longitude'] : null;
 
         $db = getDBConnection();
 
         // Geofence check for office-present punch (Admin/HR and WFH are exempt)
-        if (GEOFENCE_ENABLED && $status === 'present' && $user['role'] !== 'admin') {
+        if (GEOFENCE_ENABLED && $status === 'present' && ($user['role'] ?? '') !== 'admin') {
             if ($userLat === null || $userLng === null || $userLat == 0 || $userLng == 0) {
                 setFlash('error', '📍 Location access denied! Please allow location permission in your browser to punch in from office.');
                 header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
@@ -41,7 +41,7 @@ class AttendanceController {
             }
         }
 
-        $stmt = $db->prepare("SELECT id, locked_by_hr, force_logged_out_by, clock_out FROM attendance WHERE user_id = ? AND date = ?");
+        $stmt = $db->prepare("SELECT id, locked_by_hr, force_logged_out_by, clock_out, clock_in FROM attendance WHERE user_id = ? AND date = ?");
         $stmt->execute([$user['id'], $today]);
         $existing = $stmt->fetch();
 
@@ -49,21 +49,21 @@ class AttendanceController {
             if ($existing['locked_by_hr']) {
                 setFlash('error', 'Attendance for today is locked and managed by HR.');
             } elseif ($existing['clock_out'] !== null) {
-                // Re-punch for new session
+                // Re-punch for new session (Session #2, #3, etc.)
                 $db->prepare("
                     UPDATE attendance 
-                    SET clock_in = ?, clock_out = NULL, status = ?, notes = ?,
-                        punch_in_lat = ?, punch_in_lng = ?, latitude = ?, longitude = ?,
+                    SET clock_out = NULL, status = ?, notes = ?,
+                        punch_in_lat = COALESCE(?, punch_in_lat), punch_in_lng = COALESCE(?, punch_in_lng),
                         tl_approved = 0, force_logged_out_by = NULL, force_logout_at = NULL
                     WHERE id = ?
-                ")->execute([$now, $status, $notes, $userLat, $userLng, $userLat, $userLng, $existing['id']]);
+                ")->execute([$status, $notes, $userLat, $userLng, $existing['id']]);
 
                 // Get next session number
                 $maxSess = (int)$db->query("SELECT COALESCE(MAX(session_number), 0) FROM attendance_sessions WHERE attendance_id = {$existing['id']}")->fetchColumn();
                 $sessNum = $maxSess + 1;
 
-                $db->prepare("INSERT INTO attendance_sessions (attendance_id, user_id, session_number, clock_in) VALUES (?, ?, ?, ?)")
-                   ->execute([$existing['id'], $user['id'], $sessNum, $now]);
+                $db->prepare("INSERT INTO attendance_sessions (attendance_id, user_id, session_number, clock_in, punch_in_lat, punch_in_lng) VALUES (?, ?, ?, ?, ?, ?)")
+                   ->execute([$existing['id'], $user['id'], $sessNum, $now, $userLat, $userLng]);
 
                 setFlash('success', 'Clocked in at ' . date('h:i A') . ' (Session #' . $sessNum . ')');
             } else {
@@ -75,8 +75,8 @@ class AttendanceController {
             $attId = $db->lastInsertId();
 
             // Create Session #1
-            $db->prepare("INSERT INTO attendance_sessions (attendance_id, user_id, session_number, clock_in) VALUES (?, ?, 1, ?)")
-               ->execute([$attId, $user['id'], $now]);
+            $db->prepare("INSERT INTO attendance_sessions (attendance_id, user_id, session_number, clock_in, punch_in_lat, punch_in_lng) VALUES (?, ?, 1, ?, ?, ?)")
+               ->execute([$attId, $user['id'], $now, $userLat, $userLng]);
 
             setFlash('success', 'Clocked in successfully at ' . date('h:i A') . '!');
         }
@@ -100,13 +100,13 @@ class AttendanceController {
         return $earthRadius * $c;
     }
 
-        public static function clockOut(): void {
+            public static function clockOut(): void {
         requireAuth();
         $user = authUser();
         $today = date('Y-m-d');
         $now = date('Y-m-d H:i:s');
-        $userLat = isset($_POST['latitude']) ? (float)$_POST['latitude'] : null;
-        $userLng = isset($_POST['longitude']) ? (float)$_POST['longitude'] : null;
+        $userLat = isset($_POST['latitude']) && $_POST['latitude'] !== '' ? (float)$_POST['latitude'] : null;
+        $userLng = isset($_POST['longitude']) && $_POST['longitude'] !== '' ? (float)$_POST['longitude'] : null;
 
         $db = getDBConnection();
         $stmt = $db->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
@@ -120,16 +120,18 @@ class AttendanceController {
         } elseif ($att['clock_out'] !== null) {
             setFlash('error', 'You have already clocked out for today.');
         } else {
-            $inTime = strtotime($att['clock_in'] ?: $now);
+            // Find active session
+            $activeSess = $db->query("SELECT * FROM attendance_sessions WHERE attendance_id = {$att['id']} AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch();
+            $sessInTime = $activeSess ? strtotime($activeSess['clock_in']) : strtotime($att['clock_in'] ?: $now);
             $outTime = strtotime($now);
-            $sessionHours = round(($outTime - $inTime) / 3600, 2);
+            $sessionHours = round(max(0, $outTime - $sessInTime) / 3600, 2);
 
             // Close active session
             $db->prepare("
                 UPDATE attendance_sessions 
-                SET clock_out = ?, hours = ?, ended_by = 'self'
+                SET clock_out = ?, hours = ?, punch_out_lat = ?, punch_out_lng = ?, ended_by = 'self'
                 WHERE attendance_id = ? AND clock_out IS NULL
-            ")->execute([$now, $sessionHours, $att['id']]);
+            ")->execute([$now, $sessionHours, $userLat, $userLng, $att['id']]);
 
             // Calculate total hours from ALL sessions
             $totalHours = (float)$db->query("SELECT COALESCE(SUM(hours), 0) FROM attendance_sessions WHERE attendance_id = {$att['id']}")->fetchColumn();
