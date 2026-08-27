@@ -89,12 +89,14 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
 <script>
     window.allEmployeesData = <?= json_encode($employees, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
     window.masterRolesData = <?= json_encode($rolesMaster, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    window.reportingAuthoritiesMap = <?= json_encode(array_column($reportingAuthorities, null, 'id'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    window.officeLocationsMap = <?= json_encode(array_column($officeLocations, null, 'id'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 </script>
 
 <div class="space-y-6" x-data="{ 
-        reportingAuthoritiesMap: {"1":{"id":1,"name":"Shra Fatima","role":"admin","designation":"Head HR","assigned_office_location":2},"90002":{"id":90002,"name":"Shruti Singh","role":"admin","designation":"Junior HR","assigned_office_location":1},"120002":{"id":120002,"name":"Divyansh","role":"team_lead","designation":"BDA Team Lead","assigned_office_location":1}},
-        officeLocationsMap: {"1":{"id":1,"name":"Metro Height, Transport Nagar, Lucknow","lat":26.7816122,"lng":80.8852283},"2":{"id":2,"name":"Sachan Complex, Krishna Nagar, Lucknow","lat":26.7897624,"lng":80.8895117}},
-        selectedTL: '',
+    reportingAuthoritiesMap: window.reportingAuthoritiesMap || {},
+    officeLocationsMap: window.officeLocationsMap || {},
+    selectedTL: '',
 onboardModalOpen: false, 
     viewModalOpen: false, 
     reassignModalOpen: false,
