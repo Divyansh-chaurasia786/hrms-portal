@@ -45,6 +45,17 @@ class EmployeeController {
         $empId = 'EMP' . str_pad($count, 3, '0', STR_PAD_LEFT);
         $joiningDate = date('Y-m-d');
 
+        $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
+        $whatsappNumber = trim($_POST['whatsapp_number'] ?? ($_POST['phone'] ?? ''));
+        $workMode = $_POST['work_mode'] ?? 'office';
+
+        // Auto-enforce Remote / GPS Everywhere for Field and HR departments
+        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
+            $workMode = 'field';
+        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
+            $workMode = 'wfh';
+        }
+
         // Assigned permanent office location for Team Lead (or selected for staff)
         $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
         
@@ -55,22 +66,6 @@ class EmployeeController {
                 $assignedOfficeLocation = (int)$tlOffice;
             }
         }
-        $workMode = $_POST['work_mode'] ?? 'office';
-
-        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
-            $workMode = 'field';
-        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
-            $workMode = 'wfh';
-        }
-
-        // Auto-enforce Remote / GPS Everywhere for Field and HR departments
-        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
-            $workMode = 'field';
-        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
-            $workMode = 'wfh';
-        }
-        $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
-        $whatsappNumber = trim($_POST['whatsapp_number'] ?? ($_POST['phone'] ?? ''));
 
         $stmt = $db->prepare("
             INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, work_mode, department_name, phone, whatsapp_number, status)
@@ -194,13 +189,8 @@ class EmployeeController {
         $empType = $_POST['employment_type'] ?? 'full_time';
         $salary = (float)($_POST['salary_basic'] ?? 0);
         $reportingTLId = !empty($_POST['reporting_tl_id']) ? (int)$_POST['reporting_tl_id'] : null;
+        $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
         $workMode = $_POST['work_mode'] ?? 'office';
-
-        if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
-            $workMode = 'field';
-        } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
-            $workMode = 'wfh';
-        }
 
         // Auto-enforce Remote / GPS Everywhere for Field and HR departments
         if (stripos($deptName, 'Field') !== false || stripos($designation, 'Field') !== false) {
@@ -208,7 +198,7 @@ class EmployeeController {
         } elseif (stripos($deptName, 'HR') !== false || $role === 'admin' || stripos($designation, 'HR') !== false) {
             $workMode = 'wfh';
         }
-        $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
+
         $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
         
         // If employee reports to a TL, automatically lock and inherit TL's permanent office location!
