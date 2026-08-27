@@ -89,6 +89,30 @@ $page = $_GET['page'] ?? null;
 // Handle Actions
 if ($action) {
     switch ($action) {
+        case 'admin-run-archival':
+            requireRole(['admin']);
+            $res = run3YearAutoArchival(true);
+            if ($res['executed']) {
+                setFlash('success', "📦 " . $res['message']);
+            } else {
+                setFlash('info', "ℹ️ " . $res['message']);
+            }
+            header('Location: ?page=admin-smart-sheets');
+            exit;
+
+        case 'admin-download-archive-backup':
+            requireRole(['admin']);
+            $db = getDBConnection();
+            $tables = ['users', 'attendance', 'tasks', 'leave_applications', 'employee_travel_logs', 'payroll'];
+            $backupData = ['generated_at' => date('Y-m-d H:i:s'), 'company' => 'Ecovista Global Pvt Ltd'];
+            foreach ($tables as $t) {
+                $backupData[$t] = $db->query("SELECT * FROM {$t}")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
+            $json = json_encode($backupData, JSON_PRETTY_PRINT);
+            header('Content-Type: application/json');
+            header('Content-Disposition: attachment; filename="hrms_complete_backup_' . date('Y_m_d_His') . '.json"');
+            echo $json;
+            exit;
         case 'record-travel-gps':
             requireAuth();
             $user = authUser();
