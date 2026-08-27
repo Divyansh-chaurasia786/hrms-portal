@@ -47,6 +47,14 @@ class EmployeeController {
 
         // Assigned permanent office location for Team Lead (or selected for staff)
         $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
+        
+        // If employee reports to a TL, automatically lock and inherit TL's permanent office location!
+        if ($role === 'employee' && !empty($reportingTLId)) {
+            $tlOffice = $db->query("SELECT assigned_office_location FROM users WHERE id = {$reportingTLId}")->fetchColumn();
+            if ($tlOffice) {
+                $assignedOfficeLocation = (int)$tlOffice;
+            }
+        }
         $workMode = $_POST['work_mode'] ?? 'office';
         $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
         $whatsappNumber = trim($_POST['whatsapp_number'] ?? ($_POST['phone'] ?? ''));
@@ -176,6 +184,14 @@ class EmployeeController {
         $workMode = $_POST['work_mode'] ?? 'office';
         $deptName = trim($_POST['department_name'] ?? 'Tech / Development');
         $assignedOfficeLocation = !empty($_POST['assigned_office_location']) ? (int)$_POST['assigned_office_location'] : 2;
+        
+        // If employee reports to a TL, automatically lock and inherit TL's permanent office location!
+        if ($role === 'employee' && !empty($reportingTLId)) {
+            $tlOffice = $db->query("SELECT assigned_office_location FROM users WHERE id = {$reportingTLId}")->fetchColumn();
+            if ($tlOffice) {
+                $assignedOfficeLocation = (int)$tlOffice;
+            }
+        }
 
         if ($userId <= 0 || empty($name) || empty($email) || empty($designation)) {
             setFlash('error', 'Name, Email, and Designation are required.');

@@ -352,7 +352,7 @@ if ($action) {
                         temp_location_expires_at = NULL,
                         temp_location_days = NULL
                         WHERE id = ?
-                    ")->execute([$locationId, $tlId]);
+                    ")->execute([$locationId, $tlId, $tlId]);
 
                     $tlName = $db->query("SELECT name FROM users WHERE id = {$tlId}")->fetchColumn() ?: 'Team Lead';
                                         $teamMembers = $db->query("SELECT name, email, whatsapp_number, phone FROM users WHERE (id = {$tlId} OR reporting_tl_id = {$tlId}) AND status = 'active'")->fetchAll(PDO::FETCH_ASSOC);

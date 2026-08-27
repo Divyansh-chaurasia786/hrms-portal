@@ -92,7 +92,10 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
 </script>
 
 <div class="space-y-6" x-data="{ 
-    onboardModalOpen: false, 
+        reportingAuthoritiesMap: {"1":{"id":1,"name":"Shra Fatima","role":"admin","designation":"Head HR","assigned_office_location":2},"90002":{"id":90002,"name":"Shruti Singh","role":"admin","designation":"Junior HR","assigned_office_location":1},"120002":{"id":120002,"name":"Divyansh","role":"team_lead","designation":"BDA Team Lead","assigned_office_location":1}},
+        officeLocationsMap: {"1":{"id":1,"name":"Metro Height, Transport Nagar, Lucknow","lat":26.7816122,"lng":80.8852283},"2":{"id":2,"name":"Sachan Complex, Krishna Nagar, Lucknow","lat":26.7897624,"lng":80.8895117}},
+        selectedTL: '',
+onboardModalOpen: false, 
     viewModalOpen: false, 
     reassignModalOpen: false,
     manageTeamModalOpen: false,
@@ -583,7 +586,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Authority</label>
-                                <select name="reporting_tl_id" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                <select name="reporting_tl_id" x-model="selectedTL" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                     <option value="">Direct HR</option>
                                     <?php foreach ($reportingAuthorities as $ra): ?>
                                         <option value="<?= $ra['id'] ?>">
@@ -605,11 +608,33 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             </div>
                             <div x-show="workMode === 'office'" x-cloak>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location <span class="text-rose-500">*</span></label>
-                                <select name="assigned_office_location" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
-                                    <?php foreach ($officeLocations as $loc): ?>
-                                        <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                                
+                                <!-- When Employee has a TL assigned: Auto-Locked to TL's Office -->
+                                <template x-if="userRole === 'employee' && selectedTL && reportingAuthoritiesMap[selectedTL]">
+                                    <div>
+                                        <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl px-3 py-2 text-xs font-bold text-indigo-900 flex items-center justify-between shadow-2xs">
+                                            <span class="truncate flex items-center gap-1.5">
+                                                <i data-lucide="lock" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                                                <span x-text="officeLocationsMap[reportingAuthoritiesMap[selectedTL].assigned_office_location]?.name || 'Auto-Inherited from TL'"></span>
+                                            </span>
+                                            <span class="text-[10px] uppercase font-extrabold bg-indigo-200/70 text-indigo-800 px-1.5 py-0.5 rounded shrink-0">TL Locked</span>
+                                        </div>
+                                        <input type="hidden" name="assigned_office_location" :value="reportingAuthoritiesMap[selectedTL]?.assigned_office_location || 2">
+                                        <p class="text-[10px] text-slate-500 mt-1">Punch-in location automatically mirrors Team Lead's office.</p>
+                                    </div>
+                                </template>
+
+                                <!-- When TL, Admin, or Direct HR (No TL): Manual Selection Allowed -->
+                                <template x-if="userRole !== 'employee' || !selectedTL || !reportingAuthoritiesMap[selectedTL]">
+                                    <div>
+                                        <select name="assigned_office_location" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                            <?php foreach ($officeLocations as $loc): ?>
+                                                <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <p class="text-[10px] text-slate-400 mt-1">Designated base office location for this leader/staff.</p>
+                                    </div>
+                                </template>
                             </div>
                         </div>
 
@@ -816,11 +841,33 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                 </div>
                                 <div x-show="selectedEmp && selectedEmp.work_mode === 'office'" x-cloak>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Office Location <span class="text-rose-500">*</span></label>
-                                    <select name="assigned_office_location" x-model="selectedEmp.assigned_office_location" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
-                                        <?php foreach ($officeLocations as $loc): ?>
-                                            <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
+                                    
+                                    <!-- When Employee has a TL assigned: Auto-Locked to TL's Office -->
+                                    <template x-if="selectedEmp && selectedEmp.role === 'employee' && selectedEmp.reporting_tl_id && reportingAuthoritiesMap[selectedEmp.reporting_tl_id]">
+                                        <div>
+                                            <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl px-3 py-2 text-xs font-bold text-indigo-900 flex items-center justify-between shadow-2xs">
+                                                <span class="truncate flex items-center gap-1.5">
+                                                    <i data-lucide="lock" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                                                    <span x-text="officeLocationsMap[reportingAuthoritiesMap[selectedEmp.reporting_tl_id].assigned_office_location]?.name || 'Auto-Inherited from TL'"></span>
+                                                </span>
+                                                <span class="text-[10px] uppercase font-extrabold bg-indigo-200/70 text-indigo-800 px-1.5 py-0.5 rounded shrink-0">TL Locked</span>
+                                            </div>
+                                            <input type="hidden" name="assigned_office_location" :value="reportingAuthoritiesMap[selectedEmp.reporting_tl_id]?.assigned_office_location || selectedEmp.assigned_office_location">
+                                            <p class="text-[10px] text-slate-500 mt-1">Punch-in location automatically mirrors Team Lead's office.</p>
+                                        </div>
+                                    </template>
+
+                                    <!-- When TL, Admin, or Direct HR (No TL): Manual Selection Allowed -->
+                                    <template x-if="!selectedEmp || selectedEmp.role !== 'employee' || !selectedEmp.reporting_tl_id || !reportingAuthoritiesMap[selectedEmp.reporting_tl_id]">
+                                        <div>
+                                            <select name="assigned_office_location" x-model="selectedEmp.assigned_office_location" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                                <?php foreach ($officeLocations as $loc): ?>
+                                                    <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <p class="text-[10px] text-slate-400 mt-1">Designated base office location for this leader/staff.</p>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
 
