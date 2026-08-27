@@ -97,12 +97,14 @@ class CallingController {
         $user = authUser();
         $db = getDBConnection();
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['lead_file'])) {
-            $file = $_FILES['lead_file']['tmp_name'];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_FILES['lead_file']) || !empty($_POST['sheet_url']))) {
+            $file = $_FILES['lead_file']['tmp_name'] ?? null;
+            $origName = $_FILES['lead_file']['name'] ?? '';
+            $sheetUrl = trim($_POST['sheet_url'] ?? '');
             $selectedCallers = $_POST['callers'] ?? [];
 
-            if (empty($file) || !file_exists($file)) {
-                setFlash('error', 'Please upload a valid CSV or Excel lead sheet.');
+            if (empty($file) && empty($sheetUrl)) {
+                setFlash('error', 'Please upload a valid CSV / Excel sheet or provide a Google Sheet link.');
                 header('Location: ?page=calling-manage');
                 exit;
             }
@@ -113,31 +115,28 @@ class CallingController {
             }
 
             if (empty($selectedCallers)) {
-                // Fallback to current user
                 $selectedCallers = [$user['id']];
             }
 
+            $parsed = parseSpreadsheetData($file, $sheetUrl, $origName);
+            $parsedRows = $parsed['rows'] ?? [];
+
             $rows = [];
-            if (($handle = fopen($file, "r")) !== FALSE) {
-                // Read and detect delimiter/header
-                $header = fgetcsv($handle, 2000, ",");
-                while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
-                    $phone = preg_replace('/[^0-9]/', '', $data[1] ?? ($data[0] ?? ''));
-                    $name = trim($data[0] ?? '');
-                    if (empty($phone) && is_numeric($name)) {
-                        $phone = $name;
-                        $name = 'Prospect';
-                    }
-                    if (!empty($phone)) {
-                        $rows[] = [
-                            'name' => !empty($name) && !is_numeric($name) ? $name : 'Prospect ' . substr($phone, -4),
-                            'phone' => $phone,
-                            'city' => trim($data[2] ?? 'General'),
-                            'notes' => trim($data[3] ?? '')
-                        ];
-                    }
+            foreach ($parsedRows as $data) {
+                $phone = preg_replace('/[^0-9]/', '', (string)($data[1] ?? ($data[0] ?? '')));
+                $name = trim((string)($data[0] ?? ''));
+                if (empty($phone) && is_numeric($name)) {
+                    $phone = $name;
+                    $name = 'Prospect';
                 }
-                fclose($handle);
+                if (!empty($phone)) {
+                    $rows[] = [
+                        'name' => !empty($name) && !is_numeric($name) ? $name : 'Prospect ' . substr($phone, -4),
+                        'phone' => $phone,
+                        'city' => trim((string)($data[2] ?? 'General')),
+                        'notes' => trim((string)($data[3] ?? ''))
+                    ];
+                }
             }
 
             if (empty($rows)) {

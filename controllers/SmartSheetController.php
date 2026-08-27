@@ -16,51 +16,37 @@ class SmartSheetController {
         $user = authUser();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $title = trim($_POST['title'] ?? 'Uploaded Sheet');
+            $title = trim($_POST['title'] ?? '');
             $sheetUrl = trim($_POST['sheet_url'] ?? '');
-            $columns = [];
-            $rows = [];
+            $uploadedFile = $_FILES['sheet_file']['tmp_name'] ?? null;
+            $originalName = $_FILES['sheet_file']['name'] ?? 'Spreadsheet';
 
-            if (!empty($_FILES['sheet_file']['tmp_name'])) {
-                $file = $_FILES['sheet_file']['tmp_name'];
-                if (($handle = fopen($file, "r")) !== FALSE) {
-                    $columns = fgetcsv($handle, 2000, ",") ?: [];
-                    while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
-                        $rows[] = $data;
-                    }
-                    fclose($handle);
-                }
-            } elseif (!empty($sheetUrl)) {
-                // If it's a Google Sheet URL, convert to export CSV
-                if (preg_match('/spreadsheets\/d\/([a-zA-Z0-9-_]+)/', $sheetUrl, $matches)) {
-                    $docId = $matches[1];
-                    $csvUrl = "https://docs.google.com/spreadsheets/d/{$docId}/export?format=csv";
-                    $content = @file_get_contents($csvUrl);
-                    if ($content) {
-                        $lines = explode("\n", $content);
-                        $columns = str_getcsv(array_shift($lines));
-                        foreach ($lines as $line) {
-                            if (trim($line)) $rows[] = str_getcsv($line);
-                        }
-                    }
-                }
+            if (empty($title)) {
+                $title = !empty($uploadedFile) ? pathinfo($originalName, PATHINFO_FILENAME) : 'Google Sheet Import';
             }
 
+            // Parse via Universal Spreadsheet Parser (supports CSV, XLSX, TSV, XML, Google Sheets)
+            $parsed = parseSpreadsheetData($uploadedFile, $sheetUrl, $originalName);
+            $columns = $parsed['columns'] ?? [];
+            $rows = $parsed['rows'] ?? [];
+
             if (empty($columns)) {
-                setFlash('error', 'Unable to parse data from the uploaded sheet or URL.');
+                setFlash('error', 'Unable to parse data from the uploaded sheet or URL. Ensure the Google Sheet is shared ("Anyone with the link can view") or upload a valid CSV / Excel (.xlsx) file.');
                 header('Location: ?page=admin-smart-sheets');
                 exit;
             }
 
             // Auto-Classification Intent Matcher
-            $headerStr = strtolower(implode(' ', $columns));
+            $headerStr = strtolower(implode(' ', array_map('strval', $columns)));
             $category = 'custom';
-            if (str_contains($headerStr, 'punch') || str_contains($headerStr, 'attendance') || str_contains($headerStr, 'clock')) {
+            if (str_contains($headerStr, 'punch') || str_contains($headerStr, 'attendance') || str_contains($headerStr, 'clock') || str_contains($headerStr, 'in time')) {
                 $category = 'attendance';
-            } elseif (str_contains($headerStr, 'salary') || str_contains($headerStr, 'payroll') || str_contains($headerStr, 'net pay')) {
+            } elseif (str_contains($headerStr, 'salary') || str_contains($headerStr, 'payroll') || str_contains($headerStr, 'net pay') || str_contains($headerStr, 'basic pay')) {
                 $category = 'payroll';
-            } elseif (str_contains($headerStr, 'email') && str_contains($headerStr, 'designation')) {
+            } elseif (str_contains($headerStr, 'email') && (str_contains($headerStr, 'designation') || str_contains($headerStr, 'department') || str_contains($headerStr, 'emp'))) {
                 $category = 'employees';
+            } elseif (str_contains($headerStr, 'phone') || str_contains($headerStr, 'lead') || str_contains($headerStr, 'calling') || str_contains($headerStr, 'client')) {
+                $category = 'crm_leads';
             }
 
             // Calculate auto-formula aggregates (SUM of numeric columns)
@@ -81,10 +67,10 @@ class SmartSheetController {
             ];
 
             $db = getDBConnection();
-            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (title, file_type, original_filename, category, columns_json, rows_json, summary_json, uploaded_by) VALUES (?, 'csv', ?, ?, ?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (title, file_type, original_filename, category, columns_json, rows_json, summary_json, uploaded_by) VALUES (?, 'spreadsheet', ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $title,
-                $_FILES['sheet_file']['name'] ?? 'Google Sheet Link',
+                !empty($sheetUrl) ? 'Google Sheet Link: ' . substr($sheetUrl, 0, 80) : $originalName,
                 $category,
                 json_encode($columns),
                 json_encode($rows),
@@ -92,7 +78,7 @@ class SmartSheetController {
                 $user['id']
             ]);
 
-            setFlash('success', "🎉 Smart Sheet '{$title}' parsed successfully! Auto-classified as: " . strtoupper($category));
+            setFlash('success', "🎉 Smart Sheet '{$title}' parsed successfully (" . count($rows) . " rows)! Auto-classified as: " . strtoupper($category));
             header('Location: ?page=admin-smart-sheets');
             exit;
         }

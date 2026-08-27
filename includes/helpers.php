@@ -684,3 +684,188 @@ function run3YearAutoArchival(bool $force = false): array {
         ];
     }
 }
+/**
+ * Universal Spreadsheet Parser
+ * Parses CSV, TSV, XLSX, XML 2003, and Google Sheets URLs into [$columns, $rows]
+ */
+function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $originalName = null): array {
+    $columns = [];
+    $rows = [];
+
+    // --- 1. HANDLE URL / GOOGLE SHEETS ---
+    if (!empty($url)) {
+        $url = trim($url);
+        $fetchUrl = $url;
+
+        // Check if it's a Google Sheets link
+        if (preg_match('/docs\.google\.com\/spreadsheets\/(?:d|u\/\d+\/d)\/([a-zA-Z0-9-_]+)/', $url, $matches)) {
+            $docId = $matches[1];
+            $gid = '';
+            if (preg_match('/[#&?]gid=([0-9]+)/', $url, $gidMatch)) {
+                $gid = "&gid=" . $gidMatch[1];
+            }
+            $fetchUrl = "https://docs.google.com/spreadsheets/d/{$docId}/export?format=csv{$gid}";
+        } elseif (preg_match('/docs\.google\.com\/spreadsheets\/d\/e\/([a-zA-Z0-9-_]+)\/pub/', $url, $matches)) {
+            $pubId = $matches[1];
+            $fetchUrl = "https://docs.google.com/spreadsheets/d/e/{$pubId}/pub?output=csv";
+        }
+
+        // Fetch URL content via cURL (Fast, follows redirects, handles SSL)
+        $csvContent = '';
+        if (function_exists('curl_init')) {
+            $ch = curl_init($fetchUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 5,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ]);
+            $csvContent = curl_exec($ch);
+            curl_close($ch);
+        }
+
+        if (empty($csvContent)) {
+            $ctx = stream_context_create([
+                'http' => ['timeout' => 10, 'user_agent' => 'Mozilla/5.0'],
+                'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
+            ]);
+            $csvContent = @file_get_contents($fetchUrl, false, $ctx);
+        }
+
+        if (!empty($csvContent)) {
+            // Strip BOM if present
+            if (substr($csvContent, 0, 3) === "\xEF\xBB\xBF") {
+                $csvContent = substr($csvContent, 3);
+            }
+            $lines = preg_split('/\r\n|\r|\n/', trim($csvContent));
+            if (!empty($lines)) {
+                $firstLine = array_shift($lines);
+                $columns = str_getcsv($firstLine);
+                foreach ($lines as $line) {
+                    if (trim($line) !== '') {
+                        $rows[] = str_getcsv($line);
+                    }
+                }
+            }
+        }
+        return ['columns' => $columns, 'rows' => $rows];
+    }
+
+    // --- 2. HANDLE UPLOADED FILE ---
+    if (!empty($filePath) && file_exists($filePath)) {
+        $ext = strtolower(pathinfo($originalName ?: $filePath, PATHINFO_EXTENSION));
+
+        // 2A. XLSX Parser (Pure PHP with ZipArchive & SimpleXML)
+        if ($ext === 'xlsx' && class_exists('ZipArchive')) {
+            $zip = new ZipArchive();
+            if ($zip->open($filePath) === TRUE) {
+                // 1. Read Shared Strings
+                $sharedStrings = [];
+                $stringsXml = $zip->getFromName('xl/sharedStrings.xml');
+                if ($stringsXml) {
+                    $xmlObj = @simplexml_load_string($stringsXml);
+                    if ($xmlObj && isset($xmlObj->si)) {
+                        foreach ($xmlObj->si as $si) {
+                            $sharedStrings[] = (string)($si->t ?? ($si->r->t ?? ''));
+                        }
+                    }
+                }
+
+                // 2. Read Sheet 1
+                $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+                if ($sheetXml) {
+                    $sheetObj = @simplexml_load_string($sheetXml);
+                    if ($sheetObj && isset($sheetObj->sheetData->row)) {
+                        $parsedSheetRows = [];
+                        foreach ($sheetObj->sheetData->row as $row) {
+                            $rowCells = [];
+                            foreach ($row->c as $c) {
+                                $val = (string)$c->v;
+                                $type = (string)$c['t'];
+                                if ($type === 's' && isset($sharedStrings[(int)$val])) {
+                                    $val = $sharedStrings[(int)$val];
+                                }
+                                $rowCells[] = $val;
+                            }
+                            if (!empty($rowCells)) {
+                                $parsedSheetRows[] = $rowCells;
+                            }
+                        }
+
+                        if (!empty($parsedSheetRows)) {
+                            $columns = array_shift($parsedSheetRows);
+                            $rows = $parsedSheetRows;
+                            $zip->close();
+                            return ['columns' => $columns, 'rows' => $rows];
+                        }
+                    }
+                }
+                $zip->close();
+            }
+        }
+
+        // 2B. XML Spreadsheet 2003 Parser (.xml / .xls)
+        $rawContent = file_get_contents($filePath);
+        if (str_contains($rawContent, '<Workbook') && str_contains($rawContent, '<Worksheet')) {
+            $cleanXml = preg_replace('/xmlns[^=]*="[^"]*"/i', '', $rawContent);
+            $cleanXml = preg_replace('/[a-zA-Z0-9]+:([a-zA-Z0-9]+)/', '$1', $cleanXml);
+            $xmlObj = @simplexml_load_string($cleanXml);
+            if ($xmlObj && isset($xmlObj->Worksheet->Table->Row)) {
+                $xmlRows = [];
+                foreach ($xmlObj->Worksheet->Table->Row as $r) {
+                    $cellVals = [];
+                    if (isset($r->Cell)) {
+                        foreach ($r->Cell as $cell) {
+                            $cellVals[] = (string)($cell->Data ?? '');
+                        }
+                    }
+                    if (!empty($cellVals)) {
+                        $xmlRows[] = $cellVals;
+                    }
+                }
+                if (!empty($xmlRows)) {
+                    $columns = array_shift($xmlRows);
+                    $rows = $xmlRows;
+                    return ['columns' => $columns, 'rows' => $rows];
+                }
+            }
+        }
+
+        // 2C. CSV / TSV / Delimited Text Parser
+        // Auto-detect delimiter from first 4KB
+        $sample = substr($rawContent, 0, 4096);
+        $delimiters = [',', ';', "\t", '|'];
+        $bestDelim = ',';
+        $maxCount = 0;
+        foreach ($delimiters as $d) {
+            $cnt = substr_count($sample, $d);
+            if ($cnt > $maxCount) {
+                $maxCount = $cnt;
+                $bestDelim = $d;
+            }
+        }
+
+        if (($handle = fopen($filePath, "r")) !== FALSE) {
+            // Strip BOM
+            $bom = fread($handle, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+            $first = fgetcsv($handle, 4000, $bestDelim);
+            if ($first) {
+                $columns = array_map('trim', $first);
+                while (($data = fgetcsv($handle, 4000, $bestDelim)) !== FALSE) {
+                    if (array_filter($data)) {
+                        $rows[] = array_map('trim', $data);
+                    }
+                }
+            }
+            fclose($handle);
+        }
+    }
+
+    return ['columns' => $columns, 'rows' => $rows];
+}
