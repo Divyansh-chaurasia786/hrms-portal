@@ -556,7 +556,17 @@ $pendingRepCount = count(array_filter($dailyTlReports, fn($r) => $r['status'] ==
                 <div class="p-4 bg-gradient-to-r <?= $isTempActive ? 'from-amber-50 to-orange-50/60 border-amber-200' : 'from-indigo-50/70 to-blue-50/40 border-indigo-100' ?> rounded-2xl border space-y-3.5" x-data="{ 
                     openLocationForm: false, 
                     assignmentType: '<?= $isTempActive ? 'temporary' : 'permanent' ?>',
-                    tempDays: <?= (int)($r['tl']['temp_location_days'] ?: 1) ?>
+                    tempStartDate: '<?= date('Y-m-d') ?>',
+                    tempEndDate: '<?= !empty($effLoc['expires_at']) ? $effLoc['expires_at'] : date('Y-m-d', strtotime('+3 days')) ?>',
+                    permLocationId: <?= (int)($currentPermLoc['id'] ?? 2) ?>,
+                    selectedLocationId: <?= (int)$effLoc['id'] ?>,
+                    calcDays() {
+                        if (!this.tempStartDate || !this.tempEndDate) return 1;
+                        const d1 = new Date(this.tempStartDate);
+                        const d2 = new Date(this.tempEndDate);
+                        const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+                        return Math.max(1, diff);
+                    }
                 }">
                     <!-- Current Status Display Header -->
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">

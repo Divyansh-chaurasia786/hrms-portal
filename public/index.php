@@ -272,12 +272,29 @@ if ($action) {
             $tlId = (int)($_POST['tl_id'] ?? 0);
             $locationId = (int)($_POST['location_id'] ?? 0);
             $assignmentType = $_POST['assignment_type'] ?? 'permanent';
-            $tempDays = min(5, max(1, (int)($_POST['temp_days'] ?? 1)));
             $loc = getOfficeLocationById($locationId);
 
-            if ($tlId > 0 && $loc) {
+            $tlUser = $db->query("SELECT * FROM users WHERE id = {$tlId}")->fetch(PDO::FETCH_ASSOC);
+
+            if ($tlId > 0 && $loc && $tlUser) {
+                $currentPermId = (int)($tlUser['assigned_office_location'] ?: 2);
+
                 if ($assignmentType === 'temporary') {
-                    $expiresAt = date('Y-m-d', strtotime("+" . ($tempDays - 1) . " days"));
+                    // Check if selected location is already the permanent location
+                    if ($locationId === $currentPermId) {
+                        setFlash('error', "❌ Invalid Temporary Location: '{$loc['name']}' is already {$tlUser['name']}'s Permanent Office. For a temporary override, please select a different office location.");
+                        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=admin-tl-reports&tab=progress'));
+                        exit;
+                    }
+
+                    $tempStartDate = !empty($_POST['temp_start_date']) ? $_POST['temp_start_date'] : date('Y-m-d');
+                    $tempEndDate = !empty($_POST['temp_end_date']) ? $_POST['temp_end_date'] : date('Y-m-d', strtotime('+3 days'));
+                    
+                    $d1 = strtotime($tempStartDate);
+                    $d2 = strtotime($tempEndDate);
+                    $tempDays = max(1, (int)round(($d2 - $d1) / 86400) + 1);
+                    $expiresAt = $tempEndDate;
+
                     $db->prepare("
                         UPDATE users SET 
                         temp_office_location = ?,
