@@ -114,6 +114,93 @@ function getEmploymentBadge(?string $type, float $salary = 0): string {
     }
 }
 
+/**
+ * Master Corporate Letterhead Email Template
+ */
+function getFormalEmailLetterhead(string $title, string $subtitle, string $bodyContent, string $noticeRef = ''): string {
+    $currentDate = date('d F, Y');
+    $refText = !empty($noticeRef) ? $noticeRef : 'EGPL/HR/' . date('Ymd') . '/' . strtoupper(substr(md5(uniqid()), 0, 6));
+
+    return '<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>' . htmlspecialchars($title) . '</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: Arial, \'Helvetica Neue\', Helvetica, sans-serif; color: #1e293b; line-height: 1.6;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 30px 15px;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 620px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <!-- Official Corporate Header -->
+                        <tr>
+                            <td style="padding: 24px 32px 18px 32px; border-bottom: 2px solid #0f172a;">
+                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td>
+                                            <h1 style="margin: 0; color: #0f172a; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;">ECOVISTA GLOBAL PRIVATE LIMITED</h1>
+                                            <p style="margin: 3px 0 0 0; color: #64748b; font-size: 11px;">Human Resources & Corporate Operations Division</p>
+                                        </td>
+                                        <td align="right" style="color: #64748b; font-size: 11px; font-family: monospace;">
+                                            ' . $currentDate . '
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Metadata Reference -->
+                        <tr>
+                            <td style="background-color: #f8fafc; padding: 8px 32px; border-bottom: 1px solid #edf2f7; font-size: 11px; color: #64748b;">
+                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td><strong>REF:</strong> <span style="font-family: monospace; color: #0f172a;">' . htmlspecialchars($refText) . '</span></td>
+                                        <td align="right" style="color: #475569; font-weight: bold;">OFFICIAL NOTICE</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Title Header -->
+                        <tr>
+                            <td style="padding: 24px 32px 12px 32px;">
+                                <h2 style="margin: 0; color: #0f172a; font-size: 15px; font-weight: bold;">' . htmlspecialchars($title) . '</h2>
+                                ' . (!empty($subtitle) ? '<p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px;">' . htmlspecialchars($subtitle) . '</p>' : '') . '
+                            </td>
+                        </tr>
+
+                        <!-- Body Content -->
+                        <tr>
+                            <td style="padding: 12px 32px 28px 32px; font-size: 13px; color: #334155; line-height: 1.65;">
+                                ' . $bodyContent . '
+                            </td>
+                        </tr>
+
+                        <!-- Formal Footer -->
+                        <tr>
+                            <td style="background-color: #f8fafc; padding: 18px 32px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b;">
+                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td>
+                                            <p style="margin: 0; font-weight: bold; color: #334155;">Human Resources & Administration</p>
+                                            <p style="margin: 2px 0 0 0; color: #64748b;">Ecovista Global Private Limited</p>
+                                        </td>
+                                        <td align="right" style="vertical-align: bottom;">
+                                            <p style="margin: 0; color: #94a3b8; font-size: 10px;">[Do Not Reply — Automated System Communication]</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>';
+}
+
 function sendBrevoEmail(array $to, array $cc = [], string $subject = '', string $plainText = '', string $customHtml = ''): array {
     $apiKey = getenv('BREVO_API_KEY') ?: ($_ENV['BREVO_API_KEY'] ?? ($_SERVER['BREVO_API_KEY'] ?? ''));
     if (empty($apiKey)) {
@@ -123,7 +210,7 @@ function sendBrevoEmail(array $to, array $cc = [], string $subject = '', string 
     }
     $url = "https://api.brevo.com/v3/smtp/email";
 
-    $htmlContent = !empty($customHtml) ? $customHtml : '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; max-width: 650px; padding: 20px; white-space: pre-wrap;">' . htmlspecialchars($plainText) . '</div>';
+    $htmlContent = !empty($customHtml) ? $customHtml : '<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1e293b; max-width: 600px; padding: 20px; white-space: pre-wrap;">' . htmlspecialchars($plainText) . '</div>';
 
     $payload = [
         "sender" => [
@@ -173,76 +260,32 @@ function sendBrevoEmail(array $to, array $cc = [], string $subject = '', string 
 }
 
 function sendEmailOTP(string $recipientEmail, string $recipientName, string $otpCode): array {
-    $subject = "[DO NOT REPLY] HRMS Login Verification Code: " . $otpCode;
+    $subject = "[OFFICIAL] HRMS Portal Authentication Code: " . $otpCode;
 
-    $text = "[DO NOT REPLY - AUTOMATED SYSTEM EMAIL]\n";
-    $text .= "============================================================\n";
-    $text .= "ECOVISTA GLOBAL PRIVATE LIMITED - HRMS LOGIN OTP\n";
-    $text .= "============================================================\n\n";
-    $text .= "Hello {$recipientName},\n\n";
-    $text .= "Your one-time verification code (OTP) for logging into the HRMS Portal is:\n\n";
-    $text .= "   >>>  {$otpCode}  <<<\n\n";
-    $text .= "This code is valid for 10 minutes. Please do not share this code with anyone.\n\n";
-    $text .= "If you did not initiate this request, please report it to the IT Security Team.\n\n";
-    $text .= "Regards,\nIT & HR Security Team\nEcovista Global Private Limited\n\n";
-    $text .= "*** [DO NOT REPLY] This is an automated email notification. ***";
+    $text = "ECOVISTA GLOBAL PRIVATE LIMITED\nHUMAN RESOURCES & IDENTITY MANAGEMENT\n\nTo: {$recipientName} <{$recipientEmail}>\nDate: " . date('d F, Y h:i A') . "\nSubject: One-Time Verification Code (OTP) for HRMS Portal Access\n\nDear {$recipientName},\n\nPlease use the following One-Time Password (OTP) to authenticate your sign-in to the Ecovista Global HRMS portal:\n\nAUTHENTICATION CODE: {$otpCode}\n\nSecurity Notice:\n1. This verification code is valid for 10 minutes.\n2. Do not share this authentication code with anyone.\n\nYours faithfully,\nIT & Identity Security Division\nEcovista Global Private Limited";
 
-    // Modern, beautiful graphical HTML email card for OTP verification
-    $html = '<!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>HRMS Login OTP</title>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif;">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="min-width: 100%; background-color: #0f172a; padding: 30px 15px;">
-            <tr>
-                <td align="center">
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background: #1e293b; border-radius: 24px; border: 1px solid #334155; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden;">
-                        <!-- Header Banner -->
-                        <tr>
-                            <td style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px 24px; text-align: center;">
-                                <div style="display: inline-block; width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 14px; line-height: 48px; font-size: 24px; color: #ffffff; margin-bottom: 12px;">🔐</div>
-                                <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Ecovista Global HRMS</h1>
-                                <p style="margin: 6px 0 0; color: #e0e7ff; font-size: 13px; font-weight: 500;">Secure Identity Verification</p>
-                            </td>
-                        </tr>
+    $bodyHtml = '
+        <p style="margin: 0 0 14px 0;">Dear <strong>' . htmlspecialchars($recipientName) . '</strong>,</p>
+        <p style="margin: 0 0 18px 0;">Please use the one-time verification code below to authenticate your sign-in to the official Ecovista Global HRMS portal:</p>
+        
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #0f172a; padding: 14px 20px; margin: 18px 0; text-align: center;">
+            <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">AUTHENTICATION CODE (OTP)</span>
+            <span style="font-family: \'Courier New\', Courier, monospace; font-size: 28px; font-weight: bold; color: #0f172a; letter-spacing: 6px; display: block;">' . htmlspecialchars($otpCode) . '</span>
+        </div>
 
-                        <!-- Body Content -->
-                        <tr>
-                            <td style="padding: 32px 28px; text-align: center;">
-                                <p style="margin: 0 0 8px; color: #94a3b8; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Hello ' . htmlspecialchars($recipientName) . ',</p>
-                                <p style="margin: 0 0 24px; color: #f8fafc; font-size: 15px; line-height: 1.5;">Use the one-time verification code below to complete your sign-in to the HRMS portal.</p>
+        <div style="background-color: #f1f5f9; border-radius: 4px; padding: 10px 14px; margin: 18px 0; font-size: 11px; color: #475569;">
+            <strong>Security Notice:</strong> This code is valid for <strong>10 minutes</strong>. Do not disclose this code to anyone.
+        </div>
 
-                                <!-- OTP Code Box -->
-                                <div style="background: #0f172a; border: 2px dashed #6366f1; border-radius: 16px; padding: 18px 24px; margin: 0 auto 24px; display: inline-block;">
-                                    <span style="font-family: \'JetBrains Mono\', monospace, Courier; font-size: 36px; font-weight: 800; color: #818cf8; letter-spacing: 10px; padding-left: 10px;">' . htmlspecialchars($otpCode) . '</span>
-                                </div>
+        <p style="margin: 16px 0 0 0; font-size: 11px; color: #64748b;">If you did not initiate this access request, please notify HR Administration immediately.</p>
+    ';
 
-                                <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; text-align: left;">
-                                    <p style="margin: 0; color: #c7d2fe; font-size: 12px; line-height: 1.5;">
-                                        ⏱️ <strong>Valid for 10 minutes.</strong> Never share your verification code with anyone. Our IT team will never ask for your code.
-                                    </p>
-                                </div>
-
-                                <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.4;">If you did not request this login, please change your password or notify your HR Administrator immediately.</p>
-                            </td>
-                        </tr>
-
-                        <!-- Footer -->
-                        <tr>
-                            <td style="background: #0f172a; padding: 20px 24px; text-align: center; border-top: 1px solid #334155;">
-                                <p style="margin: 0; color: #94a3b8; font-size: 11px; font-weight: bold;">[DO NOT REPLY - AUTOMATED SYSTEM EMAIL]</p>
-                                <p style="margin: 4px 0 0; color: #64748b; font-size: 11px;">Ecovista Global Private Limited • Enterprise Portal</p>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>';
+    $html = getFormalEmailLetterhead(
+        'Identity Verification & Access Code',
+        'Secure Authentication Request for HRMS Portal',
+        $bodyHtml,
+        'EGPL/AUTH/' . date('Ymd') . '/' . $otpCode
+    );
 
     $to = [["email" => $recipientEmail, "name" => $recipientName]];
     return sendBrevoEmail($to, [], $subject, $text, $html);
@@ -269,7 +312,6 @@ function elaborateFormalReason(string $rawReason, string $leaveType): string {
         return "Due to pressing personal matters and unavoidable exigencies (specifically: \"{$r}\"), I need to dedicate my time to resolve these responsibilities and will be away from office.";
     }
 
-    // Default polite elaboration
     return "Due to unavoidable personal circumstances (specifically: \"{$r}\"), I will be unable to attend to my regular professional duties during this specified timeframe.";
 }
 
@@ -300,31 +342,29 @@ function sendLeaveApplicationEmail(array $leaveData, array $employee, ?array $tl
 
     $elaboratedReason = elaborateFormalReason($rawReason, $leaveType);
 
-    $subject = "[DO NOT REPLY] Leave Application: {$empName} ({$designation}) - {$totalDays} Day(s) ({$startDate} to {$endDate})";
+    $subject = "[FORMAL APPLICATION] Leave of Absence: {$empName} ({$designation}) - {$totalDays} Day(s)";
 
-    $text = "[DO NOT REPLY - AUTOMATED SYSTEM EMAIL]\n";
-    $text .= "============================================================\n\n";
-    $text .= "To,\n";
-    $text .= "The HR Department,\n";
-    $text .= "Ecovista Global Private Limited\n\n";
-    $text .= "Subject: Formal Application for Leave of Absence - {$empName} ({$designation})\n\n";
-    $text .= "Respected Sir/Madam,\n\n";
-    $text .= "I am writing this formal application to respectfully request a leave of absence for {$totalDays} day(s), commencing from {$startDate} to {$endDate}, on account of {$leaveType}.\n\n";
-    $text .= "{$elaboratedReason}\n\n";
-    $text .= "I have duly briefed my Reporting Team Lead, {$tlName} (marked in CC), regarding the status of my ongoing responsibilities and have coordinated the necessary task handovers to ensure minimal disruption to the team's ongoing deliverables. I will also remain accessible over email for any urgent or critical assistance if required.\n\n";
-    $text .= "I kindly request you to please consider my application and grant approval for the requested leave duration.\n\n";
-    $text .= "Thanking you for your time, consideration, and support.\n\n";
-    $text .= "Yours faithfully,\n";
-    $text .= "{$empName}\n";
-    $text .= "{$designation}\n";
-    $text .= "Ecovista Global Private Limited\n\n";
-    $text .= "============================================================\n";
-    $text .= "HRMS Portal Link: https://hrms-portal-lake.vercel.app/?page=admin-leaves\n";
-    $text .= "============================================================\n";
-    $text .= "*** [DO NOT REPLY] This is an automated email notification generated by the Ecovista Global HRMS Portal. Please do not reply directly to this email address. ***\n";
-    $text .= "============================================================";
+    $bodyHtml = '
+        <p style="margin: 0 0 14px 0;">To,<br><strong>The Human Resources Department</strong>,<br>Ecovista Global Private Limited</p>
+        <p style="margin: 0 0 14px 0;"><strong>Subject: Formal Application for Leave of Absence — ' . htmlspecialchars($empName) . ' (' . htmlspecialchars($designation) . ')</strong></p>
+        <p style="margin: 0 0 14px 0;">Respected Sir/Madam,</p>
+        <p style="margin: 0 0 14px 0;">I am writing this formal application to respectfully request a leave of absence for <strong>' . $totalDays . ' day(s)</strong>, commencing from <strong>' . $startDate . '</strong> to <strong>' . $endDate . '</strong>, on account of <strong>' . htmlspecialchars($leaveType) . '</strong>.</p>
+        <p style="margin: 0 0 14px 0; background-color: #f8fafc; border-left: 3px solid #cbd5e1; padding: 10px 14px; font-style: italic; color: #475569;">' . htmlspecialchars($elaboratedReason) . '</p>
+        <p style="margin: 0 0 14px 0;">I have duly briefed my Reporting Team Lead, <strong>' . htmlspecialchars($tlName) . '</strong> (marked in CC), regarding the status of ongoing deliverables to ensure seamless business continuity. I will remain reachable over email for any urgent matters.</p>
+        <p style="margin: 0 0 20px 0;">I kindly request you to consider and sanction my leave application.</p>
+        <p style="margin: 0;">Yours faithfully,<br><strong>' . htmlspecialchars($empName) . '</strong><br>' . htmlspecialchars($designation) . '</p>
+    ';
 
-    return sendBrevoEmail($to, $cc, $subject, $text);
+    $html = getFormalEmailLetterhead(
+        'Formal Leave Application',
+        'Application for Leave of Absence by ' . $empName,
+        $bodyHtml,
+        'EGPL/LV/APP/' . date('Ymd') . '/' . strtoupper(substr(md5($empName), 0, 5))
+    );
+
+    $text = "ECOVISTA GLOBAL PRIVATE LIMITED\nFORMAL APPLICATION FOR LEAVE OF ABSENCE\n\nTo,\nThe HR Department\n\nSubject: Leave Application - {$empName} ({$designation})\nDuration: {$totalDays} Day(s) ({$startDate} to {$endDate})\nReason: {$leaveType}\n\n{$elaboratedReason}\n\nCC: {$tlName}\n\nYours faithfully,\n{$empName}\n{$designation}";
+
+    return sendBrevoEmail($to, $cc, $subject, $text, $html);
 }
 
 function sendLeaveDecisionEmail(array $leaveData, array $employee, ?array $tl, array $hrUser, string $decision, string $remarks): array {
@@ -343,50 +383,54 @@ function sendLeaveDecisionEmail(array $leaveData, array $employee, ?array $tl, a
     $startDate = formatDate($leaveData['start_date']);
     $endDate = formatDate($leaveData['end_date']);
     $totalDays = (float)($leaveData['total_days'] ?? 1);
-    $hrName = !empty($hrUser['name']) ? $hrUser['name'] : 'HR Director';
+    $hrName = !empty($hrUser['name']) ? $hrUser['name'] : 'HR Administration';
     $safeRemarks = !empty($remarks) ? trim($remarks) : '';
 
-    $subject = "[DO NOT REPLY] Official Leave Notice: {$empName} ({$designation}) - " . ($isApproved ? "APPROVED" : "REJECTED");
+    $subject = "[OFFICIAL DECISION] Leave Application Notice: {$empName} - " . ($isApproved ? "SANCTIONED / APPROVED" : "NOT APPROVED");
 
-    $text = "[DO NOT REPLY - AUTOMATED SYSTEM EMAIL]\n";
-    $text .= "============================================================\n\n";
-    $text .= "Dear {$empName},\n\n";
-    $text .= "Subject: Official Leave Decision - " . ($isApproved ? "Approved & Sanctioned" : "Application Not Approved") . "\n\n";
-    
+    $bodyHtml = '
+        <p style="margin: 0 0 14px 0;">Dear <strong>' . htmlspecialchars($empName) . '</strong> (' . htmlspecialchars($designation) . '),</p>
+        <p style="margin: 0 0 14px 0;">This is an official communication regarding your leave application for <strong>' . htmlspecialchars($leaveType) . '</strong> (' . $totalDays . ' day(s), from <strong>' . $startDate . '</strong> to <strong>' . $endDate . '</strong>).</p>
+    ';
+
     if ($isApproved) {
-        $text .= "This is an official communication from the HR Department regarding your leave application for {$leaveType} ({$totalDays} day(s), from {$startDate} to {$endDate}).\n\n";
-        $text .= "We are pleased to formally inform you that your leave of absence has been APPROVED by the management.\n\n";
-        if (!empty($safeRemarks)) {
-            $text .= "HR Remarks / Instructions:\n\"{$safeRemarks}\"\n\n";
-        }
-        $text .= "Please ensure that all ongoing tasks and necessary handovers have been properly shared with your Reporting Team Lead prior to proceeding on leave.\n\n";
+        $bodyHtml .= '
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; padding: 12px 16px; margin: 16px 0; color: #166534;">
+                <strong style="font-size: 13px;">Decision: APPROVED & SANCTIONED</strong>
+                <p style="margin: 3px 0 0 0; font-size: 12px;">Your requested leave of absence has been formally sanctioned by the management.</p>
+            </div>
+        ';
     } else {
-        $text .= "This is an official communication regarding your leave application for {$leaveType} ({$totalDays} day(s), from {$startDate} to {$endDate}).\n\n";
-        $text .= "We regret to inform you that your leave application could not be approved at this time due to operational requirements.\n\n";
-        if (!empty($safeRemarks)) {
-            $text .= "HR Remarks:\n\"{$safeRemarks}\"\n\n";
-        }
-        $text .= "For any clarifications or further discussion regarding this decision, please reach out to the HR Department.\n\n";
+        $bodyHtml .= '
+            <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #dc2626; padding: 12px 16px; margin: 16px 0; color: #991b1b;">
+                <strong style="font-size: 13px;">Decision: NOT APPROVED / REJECTED</strong>
+                <p style="margin: 3px 0 0 0; font-size: 12px;">Regrettably, your leave application could not be sanctioned due to operational exigencies.</p>
+            </div>
+        ';
     }
 
-    $text .= "Regards,\n";
-    $text .= "{$hrName}\n";
-    $text .= "HR Department\n";
-    $text .= "Ecovista Global Private Limited\n\n";
-    $text .= "============================================================\n";
-    $text .= "HRMS Portal Link: https://hrms-portal-lake.vercel.app/?page=employee-leaves\n";
-    $text .= "============================================================\n";
-    $text .= "*** [DO NOT REPLY] This is an automated email notification generated by the Ecovista Global HRMS Portal. Please do not reply directly to this email address. ***\n";
-    $text .= "============================================================";
+    if (!empty($safeRemarks)) {
+        $bodyHtml .= '
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; margin: 14px 0; font-size: 12px; color: #334155;">
+                <strong>HR Official Remarks:</strong><br>"' . htmlspecialchars($safeRemarks) . '"
+            </div>
+        ';
+    }
 
-    return sendBrevoEmail($to, $cc, $subject, $text);
+    $bodyHtml .= '<p style="margin: 16px 0 0 0; font-size: 11px; color: #64748b;">For any queries, please contact the HR Department.</p>';
+
+    $html = getFormalEmailLetterhead(
+        'Official Leave Sanction Notice',
+        'Official Administrative Decision on Leave Application',
+        $bodyHtml,
+        'EGPL/LV/DEC/' . date('Ymd') . '/' . strtoupper(substr(md5($empName), 0, 5))
+    );
+
+    $text = "ECOVISTA GLOBAL PRIVATE LIMITED\nOFFICIAL LEAVE DECISION NOTICE\n\nDear {$empName},\n\nYour application for {$leaveType} ({$totalDays} day(s), from {$startDate} to {$endDate}) has been: " . ($isApproved ? "APPROVED" : "REJECTED") . ".\n\nRemarks: {$safeRemarks}\n\nRegards,\n{$hrName}\nHR Department";
+
+    return sendBrevoEmail($to, $cc, $subject, $text, $html);
 }
 
-/**
- * Resolves all managed team user IDs for a Team Lead or TL Support.
- * If user is TL Support, returns the entire team of their assigned Team Lead (excluding themselves),
- * plus any direct assigns.
- */
 function getManagedTeamUserIds(int $userId): array {
     $db = getDBConnection();
     $uStmt = $db->prepare("SELECT id, role, designation, reporting_tl_id FROM users WHERE id = ?");
@@ -403,7 +447,6 @@ function getManagedTeamUserIds(int $userId): array {
 
     $tlIds = [$userId];
     if ($isTLSupport && !empty($user['reporting_tl_id'])) {
-        // Also include the parent TL's team!
         $tlIds[] = (int)$user['reporting_tl_id'];
     }
 
@@ -412,26 +455,22 @@ function getManagedTeamUserIds(int $userId): array {
     return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
 }
 
-
-
-
-
 function sendAutomatedTeamLocationNotifications(array $hrUser, string $tlName, array $teamMembers, string $officeName, string $assignmentType, int $tempDays, ?string $expiresAt): int {
     if (empty($teamMembers)) return 0;
 
     $hrName = $hrUser['name'] ?? 'HR Department';
     $hrDesig = !empty($hrUser['designation']) ? $hrUser['designation'] : 'Head HR';
-    $today = date('d M Y');
+    $today = date('d F, Y');
     $expiresFormatted = !empty($expiresAt) ? formatDate($expiresAt) : '';
 
     if ($assignmentType === 'temporary') {
-        $actionDesc = "temporarily changed your team's office reporting location for <strong>{$tempDays} day(s)</strong> (from <strong>{$today}</strong> till <strong>{$expiresFormatted}</strong>)";
-        $plainActionDesc = "temporarily changed your team's office reporting location for {$tempDays} day(s) (from {$today} till {$expiresFormatted})";
-        $scheduleText = "From {$today} till {$expiresFormatted} ({$tempDays} Days Temporary)";
+        $actionDesc = "temporarily revised your team's designated office reporting location for a duration of <strong>{$tempDays} day(s)</strong> (effective from <strong>{$today}</strong> until <strong>{$expiresFormatted}</strong>)";
+        $plainActionDesc = "temporarily revised your team's designated office reporting location for a duration of {$tempDays} day(s) (effective from {$today} until {$expiresFormatted})";
+        $scheduleText = "From {$today} until {$expiresFormatted} ({$tempDays} Days Temporary Duration)";
     } else {
-        $actionDesc = "permanently updated your team's office reporting location";
-        $plainActionDesc = "permanently updated your team's office reporting location";
-        $scheduleText = "Effective immediately from {$today} (Permanent)";
+        $actionDesc = "permanently updated your team's designated office reporting location";
+        $plainActionDesc = "permanently updated your team's designated office reporting location";
+        $scheduleText = "Effective immediately from {$today} (Permanent Assignment)";
     }
 
     $dispatchedCount = 0;
@@ -441,57 +480,49 @@ function sendAutomatedTeamLocationNotifications(array $hrUser, string $tlName, a
         $memberEmail = $member['email'] ?? '';
         $memberPhone = $member['whatsapp_number'] ?: ($member['phone'] ?? '');
 
-        // 1. Formal Email Template
-        $subject = "📍 [OFFICIAL NOTICE] Reporting Office Update - Ecovista Global Pvt. Ltd.";
-        
-        $html = '<!DOCTYPE html>
-        <html>
-        <body style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 25px; color: #f8fafc;">
-            <div style="max-width: 600px; margin: auto; background-color: #1e293b; border-radius: 16px; padding: 25px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                <div style="border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px;">
-                    <h2 style="color: #6366f1; margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">Ecovista Global Pvt. Ltd.</h2>
-                    <p style="color: #94a3b8; font-size: 11px; margin: 3px 0 0 0;">Official HR & Operations Directive</p>
-                </div>
-                
-                <p style="font-size: 14px; line-height: 1.6; color: #e2e8f0;">
-                    Dear <strong>' . htmlspecialchars($memberName) . '</strong>,
-                </p>
-                <p style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
-                    This is an official communication that <strong>' . htmlspecialchars($hrName) . ' (' . htmlspecialchars($hrDesig) . ')</strong> has ' . $actionDesc . ' for <strong>' . htmlspecialchars($tlName) . '\'s Team</strong>.
-                </p>
-                
-                <div style="background-color: #0f172a; padding: 16px; border-radius: 12px; border-left: 4px solid #6366f1; margin: 20px 0;">
-                    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #ffffff;">📍 New Reporting Office: <span style="color: #38bdf8;">' . htmlspecialchars($officeName) . '</span></p>
-                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">📅 Schedule: <strong>' . htmlspecialchars($scheduleText) . '</strong></p>
-                </div>
-                
-                <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-                    Kindly report to this designated office location and complete your daily attendance punch-in within the office premises.
-                </p>
-                
-                <div style="margin-top: 30px; border-top: 1px solid #334155; padding-top: 15px; font-size: 12px; color: #64748b;">
-                    <p style="margin: 0; color: #94a3b8; font-weight: bold;">Regards,</p>
-                    <p style="margin: 2px 0 0 0;">HR & Operations Department</p>
-                    <p style="margin: 2px 0 0 0; color: #6366f1; font-weight: bold;">Ecovista Global Private Limited</p>
-                </div>
-            </div>
-        </body>
-        </html>';
+        $subject = "[OFFICIAL DIRECTIVE] Reporting Office Location Assignment - " . htmlspecialchars($officeName);
 
-        $plainText = "ECOVISTA GLOBAL PVT. LTD. - OFFICIAL NOTICE\n\nDear {$memberName},\n\nThis is to notify you that {$hrName} ({$hrDesig}) has {$plainActionDesc} for {$tlName}'s Team.\n\nNew Reporting Office: {$officeName}\nSchedule: {$scheduleText}\n\nKindly report to this designated office location and complete your daily attendance punch-in accordingly.\n\nRegards,\nHR & Operations Department\nEcovista Global Pvt. Ltd.";
+        $bodyHtml = '
+            <p style="margin: 0 0 14px 0;">Dear <strong>' . htmlspecialchars($memberName) . '</strong>,</p>
+            <p style="margin: 0 0 14px 0;">This is an official administrative directive issued by <strong>' . htmlspecialchars($hrName) . ' (' . htmlspecialchars($hrDesig) . ')</strong> for <strong>' . htmlspecialchars($tlName) . '\'s Team</strong>.</p>
+            <p style="margin: 0 0 18px 0;">Management has ' . $actionDesc . ' as detailed below:</p>
+
+            <table width="100%" border="0" cellpadding="10" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #cbd5e1; margin: 18px 0; font-size: 12px;">
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td width="35%" style="font-weight: bold; color: #475569; padding: 8px 12px;">Assigned Office:</td>
+                    <td style="font-weight: bold; color: #0f172a; padding: 8px 12px;">' . htmlspecialchars($officeName) . '</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="font-weight: bold; color: #475569; padding: 8px 12px;">Assignment Type:</td>
+                    <td style="color: #0f172a; padding: 8px 12px;">' . ($assignmentType === 'temporary' ? '<span style="color: #b45309; font-weight: bold;">Temporary (' . $tempDays . ' Days)</span>' : '<span style="color: #15803d; font-weight: bold;">Permanent</span>') . '</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #475569; padding: 8px 12px;">Effective Schedule:</td>
+                    <td style="color: #0f172a; padding: 8px 12px;">' . htmlspecialchars($scheduleText) . '</td>
+                </tr>
+            </table>
+
+            <p style="margin: 18px 0 0 0; font-size: 12px; color: #334155; line-height: 1.6;">
+                You are instructed to report to this designated facility and complete your daily attendance punch-in within the office premises.
+            </p>
+        ';
+
+        $html = getFormalEmailLetterhead(
+            'Official Directive: Office Location Assignment',
+            'Reporting Office Assignment for ' . $tlName . '\'s Team',
+            $bodyHtml,
+            'EGPL/DIR/LOC/' . date('Ymd') . '/' . strtoupper(substr(md5($memberEmail), 0, 5))
+        );
+
+        $plainText = "ECOVISTA GLOBAL PRIVATE LIMITED\nOFFICIAL ADMINISTRATIVE DIRECTIVE\n\nDear {$memberName},\n\nThis is to formally notify you that {$hrName} ({$hrDesig}) has {$plainActionDesc} for {$tlName}'s Team.\n\nDesignated Office: {$officeName}\nEffective Schedule: {$scheduleText}\n\nYou are instructed to report to this facility and complete your daily attendance punch-in accordingly.\n\nRegards,\nHuman Resources & Corporate Administration\nEcovista Global Private Limited";
 
         if (!empty($memberEmail)) {
             sendBrevoEmail([['email' => $memberEmail, 'name' => $memberName]], [], $subject, $plainText, $html);
         }
 
-        // 2. Direct WhatsApp Notification Webhook / Dispatch
         if (!empty($memberPhone)) {
-            $waText = "🏢 *ECOVISTA GLOBAL PVT. LTD. - OFFICIAL NOTICE*\n\nDear *{$memberName}*,\n\nThis is to inform you that *{$hrName} ({$hrDesig})* has {$plainActionDesc} for *{$tlName}'s Team*.\n\n📍 *New Reporting Office:* {$officeName}\n📅 *Schedule:* {$scheduleText}\n\nKindly report to this assigned location and complete your attendance punch-in accordingly.\n\nRegards,\n*HR & Operations Department*\n*Ecovista Global Pvt. Ltd.*";
-            
-            // Log WhatsApp dispatch
+            $waText = "🏢 *ECOVISTA GLOBAL PVT. LTD. - OFFICIAL DIRECTIVE*\n\nDear *{$memberName}*,\n\nThis is an official administrative notice that *{$hrName} ({$hrDesig})* has {$plainActionDesc} for *{$tlName}'s Team*.\n\n📍 *New Reporting Office:* {$officeName}\n📅 *Schedule:* {$scheduleText}\n\nKindly report to this assigned location and complete your attendance punch-in accordingly.\n\nRegards,\n*HR & Operations Department*\n*Ecovista Global Pvt. Ltd.*";
             sendMetaWhatsAppMessage($memberPhone, $waText);
-            $logEntry = date('[Y-m-d H:i:s]') . " [WhatsApp Auto-Notification] Sent to {$memberPhone} ({$memberName}): {$plainText}\n";
-            @file_put_contents(__DIR__ . '/../database/whatsapp_notifications.log', $logEntry, FILE_APPEND);
         }
 
         $dispatchedCount++;
@@ -508,7 +539,6 @@ function sendMetaWhatsAppMessage(string $toPhone, string $messageText): array {
 
     $token = getenv('WHATSAPP_ACCESS_TOKEN') ?: ($_ENV['WHATSAPP_ACCESS_TOKEN'] ?? ($_SERVER['WHATSAPP_ACCESS_TOKEN'] ?? ''));
     if (empty($token)) {
-        // Assembled in chunks for security
         $t1 = 'EAAYggKkdwK4BSXXZBMpJUnXHXfZBVqznzaPf3MkI6NwpZBY35QUsSV2RbapWSLEtOJhFjOVUpBumlgtMye0MH7JxAlZBJo46';
         $t2 = 'QuvbWTA2ZC8ZAvFu7sxExdKhTiwuxd3iJHO21ZBKmwM4Jl1fdqFlOwwcGz9ZA0OZA80t4Xoat9mNOvKka9meiBG6IpOfiUj4';
         $t3 = 'CM3LrZBkBi9O1dRvdSTa15Ohc47qvzg8mKt8CZAAtHTtt0Vy26QDU7Ry11oZCFplopff64KbPUKeqRDlw7y2iTvI0MPE2AZDZD';
