@@ -83,9 +83,9 @@ $page = $_GET['page'] ?? 'dashboard';
             <a href="?page=employee-attendance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-attendance' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="clock" class="w-4 h-4"></i> Attendance History
             </a>
-                        <?php if (($user['department_name'] ?? '') === 'Calling / Sales'): ?>
+                        <?php if (($user['department_name'] ?? '') === 'Calling / BDA Team'): ?>
                 <a href="?page=calling-queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-queue' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My Calling Queue
+                    <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i> My BDA Queue
                 </a>
             <?php endif; ?>
             <a href="?page=employee-wfh" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'employee-wfh' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
@@ -123,7 +123,7 @@ $page = $_GET['page'] ?? 'dashboard';
                 <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i> Smart Sheet & AI Hub
             </a>
             <a href="?page=calling-manage" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'calling-manage' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
-                <i data-lucide="phone-forwarded" class="w-4 h-4 text-emerald-400"></i> Telecalling Lead CRM
+                <i data-lucide="phone-forwarded" class="w-4 h-4 text-emerald-400"></i> BDA Lead CRM
             </a>
             <?php
             $pendingEscCount = 0;

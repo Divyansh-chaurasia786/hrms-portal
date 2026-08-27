@@ -455,7 +455,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
                                 <select name="department_name" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                     <option value="Tech / Development">💻 Tech</option>
-                                    <option value="Calling / Sales">📞 Calling</option>
+                                    <option value="Calling / BDA Team">📞 BDA Team</option>
                                     <option value="Field Operations">🚗 Field</option>
                                     <option value="HR & Administration">👑 HR</option>
                                 </select>
@@ -476,20 +476,24 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                     <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
                                 </button>
 
-                                <!-- Custom Dropdown List with - on every role -->
-                                <div x-show="roleDropdownOpen" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-1.5 max-h-48 overflow-y-auto space-y-1" x-cloak>
+                                <!-- Custom Dropdown List with - on every role (Spacious & Clean) -->
+                                <div x-show="roleDropdownOpen" class="absolute left-0 top-full mt-1.5 min-w-[280px] sm:min-w-[320px] max-w-sm bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 p-2 max-h-64 overflow-y-auto space-y-1" x-cloak>
+                                    <div class="px-2 py-1 text-[10px] font-extrabold uppercase text-slate-400 border-b border-slate-100 flex items-center justify-between mb-1">
+                                        <span>Available Designations</span>
+                                        <span class="text-indigo-600">Click to Select</span>
+                                    </div>
                                     <template x-for="r in rolesList" :key="r.id">
-                                        <div @click="selectedDesig = r.name; roleDropdownOpen = false" class="px-2.5 py-1.5 rounded-xl hover:bg-indigo-50 flex items-center justify-between cursor-pointer group transition">
-                                            <div class="flex items-center gap-1.5 min-w-0 pr-2">
-                                                <span class="text-xs font-bold text-slate-800 truncate" x-text="r.name"></span>
-                                                <span x-show="Number(r.can_be_reporting_authority) === 1" class="text-[9px] px-1 py-0.2 bg-emerald-100 text-emerald-800 font-extrabold rounded">👑</span>
+                                        <div @click="selectedDesig = r.name; roleDropdownOpen = false" class="px-3 py-2 rounded-xl hover:bg-indigo-50/80 border border-transparent hover:border-indigo-100 flex items-center justify-between cursor-pointer group transition gap-2">
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <span class="text-xs font-bold text-slate-800 leading-snug" x-text="r.name"></span>
+                                                <span x-show="Number(r.can_be_reporting_authority) === 1" class="text-[9px] px-1.5 py-0.2 bg-purple-100 text-purple-800 font-extrabold rounded shrink-0" title="Authority Role">👑 Lead</span>
                                             </div>
-                                            <button type="button" @click.stop="deleteRole(r.id, $event)" class="w-5 h-5 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white flex items-center justify-center font-bold text-xs transition shrink-0 cursor-pointer shadow-2xs" title="Delete Role (-)">
+                                            <button type="button" @click.stop="deleteRole(r.id, $event)" class="w-6 h-6 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white flex items-center justify-center font-black text-sm transition shrink-0 cursor-pointer shadow-2xs" title="Delete Role (-)">
                                                 -
                                             </button>
                                         </div>
                                     </template>
-                                    <div x-show="!rolesList || !rolesList.length" class="p-3 text-center text-xs text-slate-400 italic">
+                                    <div x-show="!rolesList || !rolesList.length" class="p-4 text-center text-xs text-slate-400 italic">
                                         No roles found. Click + to add one.
                                     </div>
                                 </div>
@@ -673,7 +677,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
                                     <select name="department_name" x-model="selectedEmp.department_name" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                         <option value="Tech / Development">💻 Tech</option>
-                                        <option value="Calling / Sales">📞 Calling</option>
+                                        <option value="Calling / BDA Team">📞 BDA Team</option>
                                         <option value="Field Operations">🚗 Field</option>
                                         <option value="HR & Administration">👑 HR</option>
                                     </select>
