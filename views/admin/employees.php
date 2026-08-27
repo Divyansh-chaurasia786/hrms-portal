@@ -408,7 +408,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
 
                         <!-- Smart Onboarding Modal (Wide Horizontal Landscape Box) -->
     <div x-show="onboardModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
-        <div @click.away="onboardModalOpen = false" class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 text-left my-auto" x-data="{ empType: 'full_time', userRole: 'employee', workMode: 'office' }">
+        <div @click.away="onboardModalOpen = false" class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 text-left my-auto" x-data="{ empType: 'full_time', userRole: 'employee', workMode: 'office', deptName: 'Tech / Development' }">
             
             <!-- Modal Header (Horizontal Strip) -->
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -452,7 +452,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                         <div class="grid grid-cols-2 gap-2.5">
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
-                                <select name="department_name" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                <select name="department_name" x-model="deptName" @change="if (deptName && deptName.includes('Field')) { workMode = 'field'; } else if (workMode === 'field') { workMode = 'office'; }" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                     <option value="Tech / Development">💻 Tech</option>
                                     <option value="Calling / BDA Team">📞 BDA Team</option>
                                     <option value="Field Operations">🚗 Field</option>
@@ -736,7 +736,7 @@ $totalInterns = (int)($empStats['totalInterns'] ?? 0);
                             <div class="grid grid-cols-2 gap-2.5">
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Department <span class="text-rose-500">*</span></label>
-                                    <select name="department_name" x-model="selectedEmp.department_name" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
+                                    <select name="department_name" x-model="selectedEmp.department_name" @change="if (selectedEmp && selectedEmp.department_name && selectedEmp.department_name.includes('Field')) { selectedEmp.work_mode = 'field'; } else if (selectedEmp && selectedEmp.work_mode === 'field') { selectedEmp.work_mode = 'office'; }" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition shadow-2xs">
                                         <option value="Tech / Development">💻 Tech</option>
                                         <option value="Calling / BDA Team">📞 BDA Team</option>
                                         <option value="Field Operations">🚗 Field</option>
