@@ -1,7 +1,4 @@
 <!-- views/admin/dashboard.php -->
-<script>
-    window.todayAttendanceSessions = <?= json_encode($allTodaySessions ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-</script>
 <?php
 $user = authUser();
 $db = getDBConnection();
@@ -43,6 +40,11 @@ if (!empty($recentAtt)) {
         }
     }
 }
+?>
+<script>
+    window.todayAttendanceSessions = <?= json_encode($allTodaySessions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+</script>
+<?php
 
 // Pending Leaves Preview
 $pendingLeavesList = $db->query("
@@ -285,7 +287,9 @@ $recentAudits = $db->query("
                                             date: '<?= date('d M Y') ?>',
                                             total_hours: '<?= $r['total_hours'] ?? '' ?>',
                                             clock_in: '<?= $r['clock_in'] ? date('h:i A', strtotime($r['clock_in'])) : '-' ?>',
+                                            clock_in_raw: '<?= $r['clock_in'] ?? '' ?>',
                                             clock_out: '<?= !empty($r['clock_out']) ? date('h:i A', strtotime($r['clock_out'])) : '' ?>',
+                                            clock_out_raw: '<?= $r['clock_out'] ?? '' ?>',
                                             in_lat: '<?= $r['punch_in_lat'] ?? $r['latitude'] ?? '' ?>',
                                             in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
                                             out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
@@ -397,16 +401,29 @@ $recentAudits = $db->query("
     locModalOpen: false, 
     locData: null, 
     activeSessionIdx: 0,
-    getSessions(attId) {
-        if (!attId) return [];
+    getSessions(detail) {
+        if (!detail) return [];
         const map = window.todayAttendanceSessions || window.auditAttendanceSessions || {};
-        return map[attId] || [];
+        let sess = (detail.attId && map[detail.attId]) ? map[detail.attId] : [];
+        if (!sess || !sess.length) {
+            // Fallback to primary punch record
+            sess = [{
+                session_number: 1,
+                clock_in: detail.clock_in_raw || detail.clock_in,
+                clock_out: detail.clock_out_raw || detail.clock_out,
+                punch_in_lat: detail.in_lat,
+                punch_in_lng: detail.in_lng,
+                punch_out_lat: detail.out_lat,
+                punch_out_lng: detail.out_lng,
+                hours: detail.total_hours
+            }];
+        }
+        return sess;
     }
 }" @open-loc-modal.window="
     locData = $event.detail;
-    const sess = getSessions($event.detail.attId);
-    locData.sessions = sess;
-    activeSessionIdx = (sess && sess.length) ? (sess.length - 1) : 0;
+    locData.sessions = getSessions($event.detail);
+    activeSessionIdx = (locData.sessions && locData.sessions.length) ? (locData.sessions.length - 1) : 0;
     locModalOpen = true;
 ">
     <div x-show="locModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
