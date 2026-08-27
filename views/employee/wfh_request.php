@@ -1,95 +1,148 @@
 <?php
 // views/employee/wfh_request.php
-$title = "Work From Home (WFH) - Ecofone HRMS";
-require __DIR__ . '/../layouts/header.php';
-require __DIR__ . '/../layouts/sidebar.php';
+$user = authUser();
+$db = getDBConnection();
+
+if (!isset($requests)) {
+    $requests = $db->query("SELECT * FROM wfh_requests WHERE user_id = {$user['id']} ORDER BY wfh_date DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
 $minAllowed = date('Y-m-d', strtotime('+2 days'));
 ?>
-<main class="flex-1 min-w-0 overflow-y-auto bg-slate-900 text-slate-100 p-4 sm:p-8">
-    <div class="max-w-4xl mx-auto space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-white flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                        <i data-lucide="home" class="w-5 h-5"></i>
-                    </div>
-                    Work From Home (WFH) Requests
-                </h1>
-                <p class="text-xs text-slate-400 mt-1">Apply for planned WFH at least 2 days in advance. Same-day WFH is strictly prohibited.</p>
+
+<div class="space-y-6" x-data="{ applyModalOpen: false }">
+    <!-- Top Header Banner -->
+    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-extrabold shadow-sm border border-indigo-100">
+                <i data-lucide="home" class="w-6 h-6"></i>
             </div>
-            <button onclick="document.getElementById('applyWfhModal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30">
-                <i data-lucide="plus" class="w-4 h-4"></i> Apply for WFH
-            </button>
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Work From Home (WFH) Requests</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Plan and submit work from home requests at least 2 days in advance for HR & TL approval.</p>
+            </div>
         </div>
 
-        <?php $flash = getFlash(); if ($flash): ?>
-            <div class="p-4 rounded-2xl text-xs font-medium <?= $flash['type'] === 'error' ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' ?>">
-                <?= $flash['message'] ?>
+        <button type="button" @click="applyModalOpen = true" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-auto">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Apply for WFH
+        </button>
+    </div>
+
+    <!-- Policy Guideline Alert -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200/80 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5">
+        <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0 mt-0.5">
+            <i data-lucide="info" class="w-4 h-4"></i>
+        </div>
+        <div class="text-xs text-slate-700 leading-relaxed space-y-1">
+            <p class="font-bold text-slate-900">Official Company WFH Policy Guidelines:</p>
+            <ul class="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
+                <li>WFH must be requested at least <strong>2 days in advance</strong> (Earliest selectable date: <strong><?= formatDate($minAllowed) ?></strong>).</li>
+                <li>Same-day emergency WFH is strictly restricted; please apply for <strong>Leave</strong> instead.</li>
+                <li>Ensure all your daily tasks, targets, and communication handovers are coordinated with your Team Lead.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Requests History Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
+                My WFH Request History (<?= count($requests) ?>)
+            </h2>
+        </div>
+
+        <?php if (empty($requests)): ?>
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                    <i data-lucide="home" class="w-7 h-7"></i>
+                </div>
+                <h3 class="text-sm font-bold text-slate-800">No WFH Requests Submitted</h3>
+                <p class="text-xs text-slate-500 mt-1">You haven't requested any Work From Home days yet.</p>
+                <button type="button" @click="applyModalOpen = true" class="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-bold rounded-xl transition inline-flex items-center gap-1.5">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Apply for WFH Now
+                </button>
+            </div>
+        <?php else: ?>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-600 uppercase font-extrabold text-[10px] tracking-wider">
+                            <th class="py-3 px-4">Requested WFH Date</th>
+                            <th class="py-3 px-4">Reason & Deliverables</th>
+                            <th class="py-3 px-4">Applied On</th>
+                            <th class="py-3 px-4 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                        <?php foreach ($requests as $r): ?>
+                            <tr class="hover:bg-slate-50/50 transition">
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <div class="font-bold text-slate-900"><?= formatDate($r['wfh_date']) ?></div>
+                                    <div class="text-[10px] text-slate-400 font-mono"><?= date('l', strtotime($r['wfh_date'])) ?></div>
+                                </td>
+                                <td class="py-3.5 px-4 max-w-md">
+                                    <div class="text-xs text-slate-800 line-clamp-2"><?= htmlspecialchars($r['reason']) ?></div>
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-slate-500 text-[11px]">
+                                    <?= date('d M Y, h:i A', strtotime($r['applied_at'])) ?>
+                                </td>
+                                <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <?php if ($r['status'] === 'approved'): ?>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <i data-lucide="check-circle" class="w-3 h-3 text-emerald-600"></i> Approved
+                                        </span>
+                                    <?php elseif ($r['status'] === 'rejected'): ?>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <i data-lucide="x-circle" class="w-3 h-3 text-rose-600"></i> Rejected
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <i data-lucide="clock" class="w-3 h-3 text-amber-600"></i> Pending Review
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         <?php endif; ?>
-
-        <!-- Policy Card -->
-        <div class="bg-indigo-950/40 border border-indigo-500/20 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5">
-            <i data-lucide="info" class="w-5 h-5 text-indigo-400 shrink-0 mt-0.5"></i>
-            <div class="text-xs text-indigo-200 leading-relaxed space-y-1">
-                <p class="font-bold text-white">Ecofone Strict WFH Policy Guidelines:</p>
-                <p>1. WFH must be requested at least <strong>2 days in advance</strong> (Earliest date available: <?= formatDate($minAllowed) ?>).</p>
-                <p>2. Requests must be approved by TL/HR at least <strong>1 day before</strong>.</p>
-                <p>3. If unable to come on the same day, you must apply for <strong>Leave</strong> instead.</p>
-            </div>
-        </div>
-
-        <!-- Requests List -->
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider text-slate-400">My WFH Request History</h2>
-            <?php if (empty($requests)): ?>
-                <div class="text-center py-10 text-slate-500 text-xs">No WFH requests submitted yet.</div>
-            <?php else: ?>
-                <div class="divide-y divide-slate-800/80">
-                    <?php foreach ($requests as $r): ?>
-                        <div class="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div>
-                                <div class="flex items-center gap-2.5">
-                                    <span class="text-sm font-bold text-white"><?= formatDate($r['wfh_date']) ?></span>
-                                    <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full <?= $r['status'] === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : ($r['status'] === 'rejected' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20') ?>">
-                                        <?= strtoupper($r['status']) ?>
-                                    </span>
-                                </div>
-                                <p class="text-xs text-slate-400 mt-1"><?= htmlspecialchars($r['reason']) ?></p>
-                            </div>
-                            <div class="text-[11px] text-slate-500">
-                                Applied: <?= date('d M Y, h:i A', strtotime($r['applied_at'])) ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
     </div>
-</main>
 
-<div id="applyWfhModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5">
-        <div class="flex items-center justify-between">
-            <h3 class="text-lg font-bold text-white">Apply for Work From Home</h3>
-            <button onclick="document.getElementById('applyWfhModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
+    <!-- Apply WFH Modal -->
+    <div x-show="applyModalOpen" x-transition.opacity class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+        <div @click.outside="applyModalOpen = false" class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <i data-lucide="home" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Apply for Work From Home</h3>
+                </div>
+                <button type="button" @click="applyModalOpen = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form action="?action=apply-wfh" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Select WFH Date (Min 2 Days in Advance) *</label>
+                    <input type="date" name="wfh_date" min="<?= $minAllowed ?>" value="<?= $minAllowed ?>" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[10px] text-slate-400 mt-1">Earliest selectable date: <?= formatDate($minAllowed) ?></p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Reason & Planned Deliverables *</label>
+                    <textarea name="reason" rows="3" required placeholder="Describe your planned tasks and deliverables for this WFH day..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="applyModalOpen = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition">
+                        Submit WFH Request
+                    </button>
+                </div>
+            </form>
         </div>
-        <form action="?action=apply-wfh" method="POST" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Select WFH Date (Min 2 days ahead)</label>
-                <input type="date" name="wfh_date" min="<?= $minAllowed ?>" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Reason for WFH</label>
-                <textarea name="reason" rows="3" required placeholder="Describe your planned deliverables and reason..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"></textarea>
-            </div>
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onclick="document.getElementById('applyWfhModal').classList.add('hidden')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30">Submit WFH Request</button>
-            </div>
-        </form>
     </div>
 </div>
-<?php require __DIR__ . '/../layouts/footer.php'; ?>
