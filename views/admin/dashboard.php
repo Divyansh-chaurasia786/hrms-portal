@@ -218,21 +218,22 @@ $recentAudits = $db->query("
                 </a>
             </div>
 
-            <!-- Table content -->
-            <div class="overflow-x-auto no-scrollbar flex-1 p-2">
-                <table class="w-full text-left text-xs text-slate-600 min-w-[500px]">
+                        <!-- Table content (Clean, Perfectly Arranged Inside Box) -->
+            <div class="overflow-x-auto no-scrollbar flex-1 px-4 py-2">
+                <table class="w-full text-left text-xs text-slate-600">
                     <thead class="text-slate-400 text-[10px] uppercase tracking-wider font-bold border-b border-slate-100">
                         <tr>
-                            <th class="min-w-[160px] px-4 py-3">Employee</th>
-                            <th class="min-w-[140px] px-4 py-3 whitespace-nowrap">Reporting Line</th>
-                            <th class="min-w-[110px] px-4 py-3 whitespace-nowrap">Punch In</th>
-                            <th class="min-w-[80px] px-4 py-3 whitespace-nowrap">Status</th><th class="min-w-[60px] px-4 py-3 text-right whitespace-nowrap">Location</th>
+                            <th class="py-3 px-2">Employee</th>
+                            <th class="py-3 px-2 whitespace-nowrap">Line / Role</th>
+                            <th class="py-3 px-2 whitespace-nowrap">Punch In</th>
+                            <th class="py-3 px-2 text-center whitespace-nowrap">Status</th>
+                            <th class="py-3 px-2 text-center whitespace-nowrap">Location</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         <?php if (empty($recentAtt)): ?>
                             <tr>
-                                <td colspan="4" class="text-center py-12 text-slate-400">
+                                <td colspan="5" class="text-center py-12 text-slate-400">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 mx-auto flex items-center justify-center mb-2 border border-slate-100">
                                         <i data-lucide="clock" class="w-6 h-6"></i>
                                     </div>
@@ -243,25 +244,25 @@ $recentAudits = $db->query("
                         <?php endif; ?>
                         <?php foreach ($recentAtt as $r): ?>
                             <tr class="hover:bg-slate-50/80 transition rounded-xl">
-                                <td class="px-4 py-3.5 align-middle">
-                                    <div class="flex items-center gap-3">
+                                <td class="py-3 px-2 align-middle">
+                                    <div class="flex items-center gap-2.5">
                                         <img src="<?= $r['avatar'] ?: 'https://ui-avatars.com/api/?name=' . urlencode($r['name']) ?>" class="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 shrink-0 shadow-2xs" alt="Avatar">
                                         <div class="min-w-0">
-                                            <div class="font-bold text-slate-900 truncate"><?= htmlspecialchars($r['name']) ?></div>
+                                            <div class="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-[150px]"><?= htmlspecialchars($r['name']) ?></div>
                                             <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($r['emp_id']) ?></div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3.5 align-middle text-[11px] font-medium text-slate-700 truncate">
-                                    <?= htmlspecialchars($r['tl_name'] ?: ($r['role'] === 'team_lead' ? 'Direct to HR' : 'HR')) ?>
+                                <td class="py-3 px-2 align-middle text-[11px] font-medium text-slate-700 truncate max-w-[100px]">
+                                    <?= htmlspecialchars($r['tl_name'] ?: ($r['role'] === 'team_lead' ? 'Direct HR' : ($r['role'] === 'admin' ? 'Head HR' : 'HR'))) ?>
                                 </td>
-                                <td class="px-4 py-3.5 align-middle font-mono text-[11px] text-slate-700">
+                                <td class="py-3 px-2 align-middle font-mono text-[11px] font-semibold text-slate-800 whitespace-nowrap">
                                     <?= formatTime($r['clock_in']) ?>
                                 </td>
-                                                                <td class="px-4 py-3.5 align-middle whitespace-nowrap">
+                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
                                     <?= getStatusBadge($r['status']) ?>
                                 </td>
-                                <td class="px-4 py-3.5 align-middle text-right whitespace-nowrap">
+                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
                                     <button type="button" @click="$dispatch('open-loc-modal', {
                                         name: '<?= addslashes($r['name'] ?? 'Staff') ?>',
                                         date: '<?= date('d M Y') ?>',
@@ -271,7 +272,7 @@ $recentAudits = $db->query("
                                         in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
                                         out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
                                         out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
-                                    })" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer" title="View Login / Logout Location">
+                                    })" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center justify-center" title="View Login / Logout Location">
                                         <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
                                     </button>
                                 </td>
