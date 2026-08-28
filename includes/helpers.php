@@ -688,6 +688,11 @@ function run3YearAutoArchival(bool $force = false): array {
  * Universal Spreadsheet Parser
  * Parses CSV, TSV, XLSX, XML 2003, and Google Sheets URLs into [$columns, $rows]
  */
+
+/**
+ * Universal Spreadsheet Parser
+ * Parses CSV, TSV, XLSX, XML 2003, and Google Sheets URLs into [$columns, $rows]
+ */
 function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $originalName = null): array {
     $columns = [];
     $rows = [];
@@ -695,7 +700,7 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
     // --- 1. HANDLE URL / GOOGLE SHEETS ---
     if (!empty($url)) {
         $url = trim($url);
-        $fetchUrl = $url;
+        $fetchUrls = [];
 
         // Check if it's a Google Sheets link
         if (preg_match('/docs\.google\.com\/spreadsheets\/(?:d|u\/\d+\/d)\/([a-zA-Z0-9-_]+)/', $url, $matches)) {
@@ -704,35 +709,54 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
             if (preg_match('/[#&?]gid=([0-9]+)/', $url, $gidMatch)) {
                 $gid = "&gid=" . $gidMatch[1];
             }
-            $fetchUrl = "https://docs.google.com/spreadsheets/d/{$docId}/export?format=csv{$gid}";
+            // Try GViz CSV export first (Most reliable, bypasses Google auth redirects)
+            $fetchUrls[] = "https://docs.google.com/spreadsheets/d/{$docId}/gviz/tq?tqx=out:csv{$gid}";
+            $fetchUrls[] = "https://docs.google.com/spreadsheets/d/{$docId}/export?format=csv{$gid}";
         } elseif (preg_match('/docs\.google\.com\/spreadsheets\/d\/e\/([a-zA-Z0-9-_]+)\/pub/', $url, $matches)) {
             $pubId = $matches[1];
-            $fetchUrl = "https://docs.google.com/spreadsheets/d/e/{$pubId}/pub?output=csv";
+            $fetchUrls[] = "https://docs.google.com/spreadsheets/d/e/{$pubId}/pub?output=csv";
+        } else {
+            $fetchUrls[] = $url;
         }
 
-        // Fetch URL content via cURL (Fast, follows redirects, handles SSL)
         $csvContent = '';
-        if (function_exists('curl_init')) {
-            $ch = curl_init($fetchUrl);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS => 5,
-                CURLOPT_TIMEOUT => 15,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            ]);
-            $csvContent = curl_exec($ch);
-            curl_close($ch);
+        foreach ($fetchUrls as $fUrl) {
+            if (function_exists('curl_init')) {
+                $ch = curl_init($fUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 5,
+                    CURLOPT_TIMEOUT => 15,
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                    CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    CURLOPT_HTTPHEADER => ['Accept: text/csv,text/plain,*/*']
+                ]);
+                $res = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                // If response is valid CSV and not HTML login page
+                if ($res && $httpCode >= 200 && $httpCode < 400 && !str_contains($res, '<!DOCTYPE') && !str_contains($res, '<html')) {
+                    $csvContent = $res;
+                    break;
+                }
+            }
         }
 
         if (empty($csvContent)) {
-            $ctx = stream_context_create([
-                'http' => ['timeout' => 10, 'user_agent' => 'Mozilla/5.0'],
-                'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
-            ]);
-            $csvContent = @file_get_contents($fetchUrl, false, $ctx);
+            foreach ($fetchUrls as $fUrl) {
+                $ctx = stream_context_create([
+                    'http' => ['timeout' => 10, 'user_agent' => 'Mozilla/5.0'],
+                    'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
+                ]);
+                $res = @file_get_contents($fUrl, false, $ctx);
+                if ($res && !str_contains($res, '<!DOCTYPE') && !str_contains($res, '<html')) {
+                    $csvContent = $res;
+                    break;
+                }
+            }
         }
 
         if (!empty($csvContent)) {
@@ -835,7 +859,6 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
         }
 
         // 2C. CSV / TSV / Delimited Text Parser
-        // Auto-detect delimiter from first 4KB
         $sample = substr($rawContent, 0, 4096);
         $delimiters = [',', ';', "\t", '|'];
         $bestDelim = ',';
@@ -849,7 +872,6 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
         }
 
         if (($handle = fopen($filePath, "r")) !== FALSE) {
-            // Strip BOM
             $bom = fread($handle, 3);
             if ($bom !== "\xEF\xBB\xBF") {
                 rewind($handle);
