@@ -40,7 +40,7 @@ class SmartSheetController {
             // Auto-Classification Intent Matcher
             $headerStr = strtolower(implode(' ', array_map('strval', $columns)));
             $category = 'custom';
-            if (str_contains($headerStr, 'punch') || str_contains($headerStr, 'attendance') || str_contains($headerStr, 'clock') || str_contains($headerStr, 'in time') || str_contains($headerStr, 'out time')) {
+            if (str_contains($headerStr, 'punch') || str_contains($headerStr, 'attendance') || str_contains($headerStr, 'clock') || str_contains($headerStr, 'present') || str_contains($headerStr, 'absent') || str_contains($headerStr, 'status') || str_contains($headerStr, 'in time')) {
                 $category = 'attendance';
             } elseif (str_contains($headerStr, 'salary') || str_contains($headerStr, 'payroll') || str_contains($headerStr, 'net pay') || str_contains($headerStr, 'basic pay')) {
                 $category = 'payroll';
@@ -50,117 +50,171 @@ class SmartSheetController {
                 $category = 'crm_leads';
             }
 
-            // --- ⚡ AUTOMATIC ATTENDANCE AUTO-SYNC INTO SYSTEM AUDIT ---
+            // --- ⚡ AUTOMATIC ATTENDANCE AUTO-SYNC (HANDLES PUNCH TIMES & PURE PRESENT/ABSENT) ---
             $syncedAttendanceCount = 0;
             if ($category === 'attendance' && !empty($rows)) {
-                // 1. Identify Column Indexes
-                $colMap = ['emp' => -1, 'date' => -1, 'in' => -1, 'out' => -1, 'status' => -1, 'hours' => -1];
-                foreach ($columns as $idx => $colName) {
-                    $c = strtolower(trim((string)$colName));
-                    if ($colMap['emp'] === -1 && (str_contains($c, 'emp') || str_contains($c, 'name') || str_contains($c, 'staff') || str_contains($c, 'employee') || str_contains($c, 'user'))) {
-                        $colMap['emp'] = $idx;
+                // Load all existing users for fast matching
+                $allUsers = $db->query("SELECT id, emp_id, name, email FROM users")->fetchAll(PDO::FETCH_ASSOC);
+
+                // Helper to match user
+                $matchUser = function(string $empVal) use ($allUsers, $user): int {
+                    $val = trim($empVal);
+                    if (empty($val)) return $user['id'];
+                    foreach ($allUsers as $u) {
+                        if (!empty($u['emp_id']) && strcasecmp($u['emp_id'], $val) === 0) return $u['id'];
+                        if (stripos($u['name'], $val) !== false || stripos($val, $u['name']) !== false) return $u['id'];
+                        if (!empty($u['email']) && strcasecmp($u['email'], $val) === 0) return $u['id'];
                     }
-                    if ($colMap['date'] === -1 && (str_contains($c, 'date') || str_contains($c, 'day') || str_contains($c, 'punch date'))) {
-                        $colMap['date'] = $idx;
+                    return $user['id'];
+                };
+
+                // Helper to normalize status & assign default hours/times when punch times are missing
+                $mapStatusAndTimes = function(string $rawStatus, ?string $rawIn, ?string $rawOut, ?float $rawHours): array {
+                    $s = strtolower(trim($rawStatus));
+                    $status = 'present';
+                    $clockIn = '10:00:00';
+                    $clockOut = '19:00:00';
+                    $totalHours = 9.0;
+
+                    if (in_array($s, ['a', 'absent', 'abs', '0', 'no', 'false'])) {
+                        $status = 'absent';
+                        $clockIn = null;
+                        $clockOut = null;
+                        $totalHours = 0.0;
+                    } elseif (in_array($s, ['hd', 'half day', 'half_day', 'half', '0.5', 'h'])) {
+                        $status = 'half_day';
+                        $clockIn = '10:00:00';
+                        $clockOut = '14:30:00';
+                        $totalHours = 4.5;
+                    } elseif (in_array($s, ['l', 'leave', 'pl', 'cl', 'sl', 'on_leave'])) {
+                        $status = 'on_leave';
+                        $clockIn = null;
+                        $clockOut = null;
+                        $totalHours = 0.0;
+                    } else {
+                        // Present / P / 1
+                        $status = 'present';
+                        if (!empty($rawIn) && strtotime($rawIn)) {
+                            $clockIn = date('H:i:s', strtotime($rawIn));
+                        }
+                        if (!empty($rawOut) && strtotime($rawOut)) {
+                            $clockOut = date('H:i:s', strtotime($rawOut));
+                        }
+                        if ($rawHours !== null && $rawHours > 0) {
+                            $totalHours = $rawHours;
+                        } elseif ($clockIn && $clockOut) {
+                            $totalHours = round((strtotime($clockOut) - strtotime($clockIn)) / 3600, 2);
+                        } else {
+                            $totalHours = 9.0;
+                        }
                     }
-                    if ($colMap['in'] === -1 && (str_contains($c, 'in') || str_contains($c, 'punch_in') || str_contains($c, 'clock_in') || str_contains($c, 'entry'))) {
-                        $colMap['in'] = $idx;
-                    }
-                    if ($colMap['out'] === -1 && (str_contains($c, 'out') || str_contains($c, 'punch_out') || str_contains($c, 'clock_out') || str_contains($c, 'exit'))) {
-                        $colMap['out'] = $idx;
-                    }
-                    if ($colMap['status'] === -1 && (str_contains($c, 'status') || str_contains($c, 'state') || str_contains($c, 'present') || str_contains($c, 'attendance'))) {
-                        $colMap['status'] = $idx;
-                    }
-                    if ($colMap['hours'] === -1 && (str_contains($c, 'hour') || str_contains($c, 'duration') || str_contains($c, 'time spent'))) {
-                        $colMap['hours'] = $idx;
+
+                    return [
+                        'status' => $status,
+                        'clock_in' => $clockIn,
+                        'clock_out' => $clockOut,
+                        'total_hours' => $totalHours
+                    ];
+                };
+
+                // Check if this is a Monthly Matrix / Calendar Grid format (Columns are Day numbers 1..31)
+                $dayColumns = [];
+                foreach ($columns as $idx => $cName) {
+                    $trimmed = trim((string)$cName);
+                    if (is_numeric($trimmed) && (int)$trimmed >= 1 && (int)$trimmed <= 31) {
+                        $dayColumns[(int)$trimmed] = $idx;
                     }
                 }
 
-                // Fallback default indexes if not matched
-                if ($colMap['emp'] === -1) $colMap['emp'] = 0;
-                if ($colMap['date'] === -1) $colMap['date'] = 1;
+                if (count($dayColumns) >= 5) {
+                    // --- FORMAT A: MONTHLY MATRIX (Rows = Employees, Columns = Days 1..31) ---
+                    $currentYearMonth = date('Y-m'); // Default current month
+                    // Extract month from title if mentioned (e.g., 'July 2025' or '2026-08')
+                    if (preg_match('/(202\d[-_\/]\d{1,2})/', $title . ' ' . $originalName, $ymMatch)) {
+                        $currentYearMonth = date('Y-m', strtotime($ymMatch[1] . '-01'));
+                    }
 
-                // Load all existing users for fast lookup
-                $allUsers = $db->query("SELECT id, emp_id, name, email FROM users")->fetchAll(PDO::FETCH_ASSOC);
+                    foreach ($rows as $row) {
+                        $empName = trim((string)($row[0] ?? ($row[1] ?? '')));
+                        if (empty($empName)) continue;
+                        $matchedUserId = $matchUser($empName);
 
-                foreach ($rows as $row) {
-                    $empVal = trim((string)($row[$colMap['emp']] ?? ''));
-                    if (empty($empVal)) continue;
+                        foreach ($dayColumns as $dayNum => $colIdx) {
+                            $dayVal = trim((string)($row[$colIdx] ?? ''));
+                            if (empty($dayVal)) continue;
 
-                    // Match User by Emp ID, Name, or Email
-                    $matchedUserId = null;
-                    foreach ($allUsers as $u) {
-                        if (!empty($u['emp_id']) && strcasecmp($u['emp_id'], $empVal) === 0) {
-                            $matchedUserId = $u['id'];
-                            break;
+                            $dateStr = sprintf('%s-%02d', $currentYearMonth, $dayNum);
+                            $eval = $mapStatusAndTimes($dayVal, null, null, null);
+
+                            $existing = $db->query("SELECT id FROM attendance WHERE user_id = {$matchedUserId} AND date = '{$dateStr}'")->fetch(PDO::FETCH_ASSOC);
+                            if ($existing) {
+                                $stmt = $db->prepare("UPDATE attendance SET clock_in = ?, clock_out = ?, total_hours = ?, status = ?, notes = 'Imported Historical Matrix Sheet', tl_approved = 1, hr_corrected = 1 WHERE id = ?");
+                                $stmt->execute([$eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status'], $existing['id']]);
+                            } else {
+                                $stmt = $db->prepare("INSERT INTO attendance (user_id, date, clock_in, clock_out, total_hours, status, notes, tl_approved, hr_corrected, is_geofence_verified) VALUES (?, ?, ?, ?, ?, ?, 'Imported Historical Matrix Sheet', 1, 1, 1)");
+                                $stmt->execute([$matchedUserId, $dateStr, $eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status']]);
+                            }
+                            $syncedAttendanceCount++;
                         }
-                        if (stripos($u['name'], $empVal) !== false || stripos($empVal, $u['name']) !== false) {
-                            $matchedUserId = $u['id'];
-                            break;
+                    }
+                } else {
+                    // --- FORMAT B: STANDARD LIST FORMAT (Rows = Records) ---
+                    $colMap = ['emp' => -1, 'date' => -1, 'in' => -1, 'out' => -1, 'status' => -1, 'hours' => -1];
+                    foreach ($columns as $idx => $colName) {
+                        $c = strtolower(trim((string)$colName));
+                        if ($colMap['emp'] === -1 && (str_contains($c, 'emp') || str_contains($c, 'name') || str_contains($c, 'staff') || str_contains($c, 'employee') || str_contains($c, 'user'))) {
+                            $colMap['emp'] = $idx;
                         }
-                        if (!empty($u['email']) && strcasecmp($u['email'], $empVal) === 0) {
-                            $matchedUserId = $u['id'];
-                            break;
+                        if ($colMap['date'] === -1 && (str_contains($c, 'date') || str_contains($c, 'day') || str_contains($c, 'punch date'))) {
+                            $colMap['date'] = $idx;
+                        }
+                        if ($colMap['in'] === -1 && (str_contains($c, 'in') || str_contains($c, 'punch_in') || str_contains($c, 'clock_in') || str_contains($c, 'entry'))) {
+                            $colMap['in'] = $idx;
+                        }
+                        if ($colMap['out'] === -1 && (str_contains($c, 'out') || str_contains($c, 'punch_out') || str_contains($c, 'clock_out') || str_contains($c, 'exit'))) {
+                            $colMap['out'] = $idx;
+                        }
+                        if ($colMap['status'] === -1 && (str_contains($c, 'status') || str_contains($c, 'state') || str_contains($c, 'present') || str_contains($c, 'attendance') || str_contains($c, 'remark') || str_contains($c, 'p/a'))) {
+                            $colMap['status'] = $idx;
+                        }
+                        if ($colMap['hours'] === -1 && (str_contains($c, 'hour') || str_contains($c, 'duration') || str_contains($c, 'time spent'))) {
+                            $colMap['hours'] = $idx;
                         }
                     }
 
-                    // If still not matched, fallback to current admin user
-                    if (!$matchedUserId) {
-                        $matchedUserId = $user['id'];
+                    if ($colMap['emp'] === -1) $colMap['emp'] = 0;
+                    if ($colMap['date'] === -1) $colMap['date'] = 1;
+                    if ($colMap['status'] === -1 && count($columns) > 2) $colMap['status'] = 2;
+
+                    foreach ($rows as $row) {
+                        $empVal = trim((string)($row[$colMap['emp']] ?? ''));
+                        if (empty($empVal)) continue;
+                        $matchedUserId = $matchUser($empVal);
+
+                        // Parse Date
+                        $rawDate = trim((string)($row[$colMap['date']] ?? date('Y-m-d')));
+                        $parsedDate = date('Y-m-d', strtotime($rawDate));
+                        if (!$parsedDate || $parsedDate === '1970-01-01') {
+                            $parsedDate = date('Y-m-d');
+                        }
+
+                        $rawIn = $colMap['in'] !== -1 ? trim((string)($row[$colMap['in']] ?? '')) : null;
+                        $rawOut = $colMap['out'] !== -1 ? trim((string)($row[$colMap['out']] ?? '')) : null;
+                        $rawHours = $colMap['hours'] !== -1 ? (float)preg_replace('/[^\d.]/', '', (string)($row[$colMap['hours']] ?? '0')) : null;
+                        $rawStatus = $colMap['status'] !== -1 ? trim((string)($row[$colMap['status']] ?? 'present')) : 'present';
+
+                        $eval = $mapStatusAndTimes($rawStatus, $rawIn, $rawOut, $rawHours);
+
+                        $existing = $db->query("SELECT id FROM attendance WHERE user_id = {$matchedUserId} AND date = '{$parsedDate}'")->fetch(PDO::FETCH_ASSOC);
+                        if ($existing) {
+                            $stmt = $db->prepare("UPDATE attendance SET clock_in = ?, clock_out = ?, total_hours = ?, status = ?, notes = 'Imported Historical Sheet', tl_approved = 1, hr_corrected = 1 WHERE id = ?");
+                            $stmt->execute([$eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status'], $existing['id']]);
+                        } else {
+                            $stmt = $db->prepare("INSERT INTO attendance (user_id, date, clock_in, clock_out, total_hours, status, notes, tl_approved, hr_corrected, is_geofence_verified) VALUES (?, ?, ?, ?, ?, ?, 'Imported Historical Sheet', 1, 1, 1)");
+                            $stmt->execute([$matchedUserId, $parsedDate, $eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status']]);
+                        }
+                        $syncedAttendanceCount++;
                     }
-
-                    // Parse Date
-                    $rawDate = trim((string)($row[$colMap['date']] ?? date('Y-m-d')));
-                    $parsedDate = date('Y-m-d', strtotime($rawDate));
-                    if (!$parsedDate || $parsedDate === '1970-01-01') {
-                        $parsedDate = date('Y-m-d');
-                    }
-
-                    // Parse Clock-In & Out Times
-                    $rawIn = $colMap['in'] !== -1 ? trim((string)($row[$colMap['in']] ?? '')) : '';
-                    $rawOut = $colMap['out'] !== -1 ? trim((string)($row[$colMap['out']] ?? '')) : '';
-                    $clockIn = !empty($rawIn) && strtotime($rawIn) ? date('H:i:s', strtotime($rawIn)) : '09:30:00';
-                    $clockOut = !empty($rawOut) && strtotime($rawOut) ? date('H:i:s', strtotime($rawOut)) : null;
-
-                    // Calculate Total Hours
-                    $rawHours = $colMap['hours'] !== -1 ? (float)preg_replace('/[^\d.]/', '', (string)($row[$colMap['hours']] ?? '0')) : 0;
-                    if ($rawHours > 0) {
-                        $totalHours = $rawHours;
-                    } elseif ($clockIn && $clockOut) {
-                        $totalHours = round((strtotime($clockOut) - strtotime($clockIn)) / 3600, 2);
-                        if ($totalHours < 0) $totalHours = 0;
-                    } else {
-                        $totalHours = 8.5;
-                    }
-
-                    // Determine Status
-                    $rawStatus = $colMap['status'] !== -1 ? strtolower(trim((string)($row[$colMap['status']] ?? ''))) : 'present';
-                    $status = 'present';
-                    if (in_array($rawStatus, ['a', 'absent', 'abs', 'leave', 'l', '0'])) {
-                        $status = 'absent';
-                    } elseif (in_array($rawStatus, ['hd', 'half day', 'half_day', 'half'])) {
-                        $status = 'half_day';
-                    }
-
-                    // Check if Attendance record already exists for this user and date
-                    $existingAtt = $db->query("SELECT id FROM attendance WHERE user_id = {$matchedUserId} AND date = '{$parsedDate}'")->fetch(PDO::FETCH_ASSOC);
-
-                    if ($existingAtt) {
-                        $upStmt = $db->prepare("
-                            UPDATE attendance 
-                            SET clock_in = ?, clock_out = ?, total_hours = ?, status = ?, notes = 'Imported & Arranged via Smart Sheet', tl_approved = 1, hr_corrected = 1 
-                            WHERE id = ?
-                        ");
-                        $upStmt->execute([$clockIn, $clockOut, $totalHours, $status, $existingAtt['id']]);
-                    } else {
-                        $inStmt = $db->prepare("
-                            INSERT INTO attendance (user_id, date, clock_in, clock_out, total_hours, status, notes, tl_approved, hr_corrected, is_geofence_verified)
-                            VALUES (?, ?, ?, ?, ?, ?, 'Imported & Arranged via Smart Sheet', 1, 1, 1)
-                        ");
-                        $inStmt->execute([$matchedUserId, $parsedDate, $clockIn, $clockOut, $totalHours, $status]);
-                    }
-                    $syncedAttendanceCount++;
                 }
             }
 
