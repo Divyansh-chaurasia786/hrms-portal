@@ -390,4 +390,59 @@ class SmartSheetController {
 
         return $report;
     }
+    public static function fetchLivePortalData(): void {
+        requireAuth('admin');
+        $db = getDBConnection();
+        $type = $_GET['type'] ?? 'employees';
+
+        header('Content-Type: application/json');
+
+        if ($type === 'attendance') {
+            $today = date('Y-m-d');
+            $records = $db->query("
+                SELECT u.emp_id, u.name, u.designation, u.department_name, u.work_mode,
+                       COALESCE(a.status, 'absent') as status,
+                       COALESCE(TIME(a.clock_in), '-') as clock_in,
+                       COALESCE(TIME(a.clock_out), '-') as clock_out,
+                       COALESCE(a.total_hours, 0) as total_hours,
+                       COALESCE(a.notes, '-') as notes
+                FROM users u
+                LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$today}'
+                WHERE u.status = 'active'
+                ORDER BY u.name ASC
+            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $columns = ['Emp ID', 'Employee Name', 'Designation', 'Department', 'Work Mode', 'Today Status', 'Clock In', 'Clock Out', 'Total Hours', 'Notes'];
+            $rows = [];
+            foreach ($records as $r) {
+                $rows[] = [
+                    $r['emp_id'], $r['name'], $r['designation'], $r['department_name'] ?: 'General', $r['work_mode'] ?: 'office',
+                    ucfirst($r['status']), $r['clock_in'], $r['clock_out'], (string)$r['total_hours'], $r['notes']
+                ];
+            }
+
+            echo json_encode(['success' => true, 'title' => "Today's Live Attendance ({$today})", 'columns' => $columns, 'rows' => $rows]);
+            exit;
+        }
+
+        // Default: All Active Employees Directory
+        $employees = $db->query("
+            SELECT u.emp_id, u.name, u.email, u.phone, u.designation, u.department_name, u.role, u.work_mode, u.joining_date, u.date_of_birth, u.salary_basic
+            FROM users u
+            WHERE u.status = 'active'
+            ORDER BY u.emp_id ASC
+        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $columns = ['Emp ID', 'Full Name', 'Work Email', 'Phone Number', 'Designation', 'Department', 'Portal Role', 'Work Mode', 'Joining Date', 'Date of Birth', 'Basic Salary (₹)'];
+        $rows = [];
+        foreach ($employees as $e) {
+            $rows[] = [
+                $e['emp_id'], $e['name'], $e['email'], $e['phone'] ?: '-', $e['designation'], $e['department_name'] ?: 'Operations',
+                $e['role'], $e['work_mode'] ?: 'office', $e['joining_date'] ?: '-', $e['date_of_birth'] ?: '-', (string)($e['salary_basic'] ?: '0')
+            ];
+        }
+
+        echo json_encode(['success' => true, 'title' => 'Master Workforce Directory (Live)', 'columns' => $columns, 'rows' => $rows]);
+        exit;
+    }
 }

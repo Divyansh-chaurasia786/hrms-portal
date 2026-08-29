@@ -164,6 +164,25 @@ $initialPayload = [
                 <span x-text="sidebarCollapsed ? 'Show Sidebar' : 'Fullscreen'"></span>
             </button>
 
+            <!-- 🔄 Live Data Pull Dropdown -->
+            <div class="relative" x-data="{ liveMenuOpen: false }">
+                <button type="button" @click="liveMenuOpen = !liveMenuOpen" class="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg font-bold text-xs border border-emerald-600 transition flex items-center gap-1 cursor-pointer shadow-2xs">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    <span>Pull Live HRMS Data</span>
+                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                </button>
+                <div x-show="liveMenuOpen" @click.away="liveMenuOpen = false" class="absolute right-0 mt-1 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 py-1.5 z-50 text-slate-800 text-xs font-semibold" style="display: none;">
+                    <button type="button" @click="pullLivePortalData('employees'); liveMenuOpen = false;" class="w-full px-3.5 py-2 text-left hover:bg-emerald-50 flex items-center gap-2 text-slate-700">
+                        <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i>
+                        <span>👥 Pull All Live Employees</span>
+                    </button>
+                    <button type="button" @click="pullLivePortalData('attendance'); liveMenuOpen = false;" class="w-full px-3.5 py-2 text-left hover:bg-emerald-50 flex items-center gap-2 text-slate-700">
+                        <i data-lucide="clock" class="w-4 h-4 text-indigo-600"></i>
+                        <span>🕒 Pull Today's Live Attendance</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- 💾 Save & Sync Website-Wide -->
             <button type="button" @click="saveAndSyncExcel()" :disabled="isSaving" class="px-3.5 py-1 bg-white hover:bg-emerald-50 text-[#107c41] rounded-lg font-black text-xs shadow-md transition flex items-center gap-1 cursor-pointer disabled:opacity-50">
                 <i data-lucide="save" class="w-3.5 h-3.5"></i>
@@ -348,6 +367,25 @@ document.addEventListener('alpine:init', () => {
                 row: [target.r, target.r],
                 column: [target.c, target.c]
             });
+        },
+
+        async pullLivePortalData(type) {
+            this.isFetchingSheet = true;
+            try {
+                const res = await fetch('?action=fetch-live-sheet-data&type=' + type);
+                const data = await res.json();
+                if (data.success) {
+                    this.currentSheetTitle = data.title;
+                    this.renderLuckysheetFromData(data.title, data.columns, data.rows);
+                    if (window.HRMSCache) {
+                        window.HRMSCache.set('excel_last_active_sheet', data);
+                    }
+                }
+            } catch(e) {
+                console.error(e);
+            } finally {
+                this.isFetchingSheet = false;
+            }
         },
 
         async loadAndRenderSheet(sheetId) {

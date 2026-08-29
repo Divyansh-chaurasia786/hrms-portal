@@ -327,6 +327,7 @@ if ($action) {
     case 'upload-calling-leads': requireActiveShift(); CallingController::uploadLeads(); break;
     case 'update-calling-disposition': requireActiveShift(); CallingController::updateDisposition(); break;
     case 'get-smart-sheet-data': SmartSheetController::getSheetData(); break;
+    case 'fetch-live-sheet-data': SmartSheetController::fetchLivePortalData(); break;
     case 'create-blank-smart-sheet': requireActiveShift(); SmartSheetController::createBlankSheet(); break;
     case 'rename-smart-sheet': requireActiveShift(); SmartSheetController::renameSheet(); break;
     case 'save-smart-sheet-data': requireActiveShift(); SmartSheetController::saveSheetData(); break;
