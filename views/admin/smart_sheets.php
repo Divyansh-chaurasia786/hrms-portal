@@ -348,15 +348,96 @@ body[data-page="admin-smart-sheets"] main {
             </div>
         </div>
 
-        <!-- 📑 Microsoft Excel 2021 Ribbon Tabs (Home, Insert, Page Layout, Formulas, Data, Review, View) -->
+        <!-- 📑 Microsoft Excel 2021 Ribbon Tabs (Home, Insert, Formulas, Data, Review, View) -->
         <div class="excel-ribbon-tabs pt-1">
-            <div class="excel-tab-btn active">Home</div>
-            <div class="excel-tab-btn" @click="executeTabAction('insert')">Insert</div>
-            <div class="excel-tab-btn" @click="executeTabAction('formulas')">Formulas</div>
-            <div class="excel-tab-btn" @click="executeTabAction('data')">Data</div>
-            <div class="excel-tab-btn" @click="executeTabAction('review')">Review</div>
-            <div class="excel-tab-btn" @click="executeTabAction('view')">View</div>
+            <div class="excel-tab-btn" :class="activeTab === 'home' ? 'active' : ''" @click="switchRibbonTab('home')">Home</div>
+            <div class="excel-tab-btn" :class="activeTab === 'insert' ? 'active' : ''" @click="switchRibbonTab('insert')">Insert</div>
+            <div class="excel-tab-btn" :class="activeTab === 'formulas' ? 'active' : ''" @click="switchRibbonTab('formulas')">Formulas</div>
+            <div class="excel-tab-btn" :class="activeTab === 'data' ? 'active' : ''" @click="switchRibbonTab('data')">Data</div>
+            <div class="excel-tab-btn" :class="activeTab === 'review' ? 'active' : ''" @click="switchRibbonTab('review')">Review</div>
+            <div class="excel-tab-btn" :class="activeTab === 'view' ? 'active' : ''" @click="switchRibbonTab('view')">View</div>
         </div>
+    </div>
+
+    <!-- 🎛️ CONTEXTUAL EXCEL 2021 SUB-RIBBON BAR -->
+    <div x-show="activeTab !== 'home'" class="bg-[#edebe9] border-b border-[#d2d0ce] px-3 py-1.5 flex items-center gap-2 flex-wrap text-xs text-slate-800 font-medium select-none shadow-xs" style="display: none;">
+        
+        <!-- INSERT TAB TOOLS -->
+        <template x-if="activeTab === 'insert'">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" @click="triggerExcelAction('chart')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-emerald-600"></i> Insert 2D/3D Chart
+                </button>
+                <button type="button" @click="triggerExcelAction('image')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="image" class="w-3.5 h-3.5 text-blue-600"></i> Insert Picture
+                </button>
+                <button type="button" @click="triggerExcelAction('pivotTable')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="table-2" class="w-3.5 h-3.5 text-indigo-600"></i> PivotTable
+                </button>
+                <button type="button" @click="triggerExcelAction('link')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="link" class="w-3.5 h-3.5 text-slate-600"></i> Insert Link
+                </button>
+            </div>
+        </template>
+
+        <!-- FORMULAS TAB TOOLS -->
+        <template x-if="activeTab === 'formulas'">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" @click="triggerExcelAction('function')" class="px-3 py-1 bg-[#107c41] text-white hover:bg-[#0f6c38] rounded font-bold flex items-center gap-1 cursor-pointer">
+                    <span>fx</span> Insert Function Wizard
+                </button>
+                <button type="button" @click="triggerExcelAction('autoSum')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <span class="font-bold">Σ</span> AutoSum
+                </button>
+                <button type="button" @click="insertQuickFormula('AVERAGE')" class="px-2 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 text-xs font-semibold cursor-pointer">AVERAGE</button>
+                <button type="button" @click="insertQuickFormula('VLOOKUP')" class="px-2 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 text-xs font-semibold cursor-pointer">VLOOKUP</button>
+                <button type="button" @click="insertQuickFormula('COUNTIF')" class="px-2 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 text-xs font-semibold cursor-pointer">COUNTIF</button>
+                <button type="button" @click="insertQuickFormula('IF')" class="px-2 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 text-xs font-semibold cursor-pointer">IF Logic</button>
+            </div>
+        </template>
+
+        <!-- DATA TAB TOOLS -->
+        <template x-if="activeTab === 'data'">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" @click="triggerExcelAction('sortAndFilter')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="filter" class="w-3.5 h-3.5 text-emerald-600"></i> AutoFilter Funnel
+                </button>
+                <button type="button" @click="triggerExcelAction('dataVerification')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="check-square" class="w-3.5 h-3.5 text-blue-600"></i> Data Validation Dropdowns
+                </button>
+                <button type="button" @click="triggerExcelAction('splitColumn')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="split" class="w-3.5 h-3.5 text-indigo-600"></i> Text to Columns
+                </button>
+            </div>
+        </template>
+
+        <!-- REVIEW TAB TOOLS -->
+        <template x-if="activeTab === 'review'">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" @click="triggerExcelAction('postil')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="message-square" class="w-3.5 h-3.5 text-amber-600"></i> New Comment / Note
+                </button>
+                <button type="button" @click="triggerExcelAction('protection')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i> Protect Sheet & Cells
+                </button>
+            </div>
+        </template>
+
+        <!-- VIEW TAB TOOLS -->
+        <template x-if="activeTab === 'view'">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" @click="triggerExcelAction('frozenMode')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="snowflake" class="w-3.5 h-3.5 text-blue-600"></i> Freeze Panes (Top Row / First Column)
+                </button>
+                <button type="button" @click="triggerExcelAction('findAndReplace')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-600"></i> Find & Replace
+                </button>
+                <button type="button" @click="triggerExcelAction('screenshot')" class="px-2.5 py-1 bg-white hover:bg-slate-100 rounded border border-slate-300 flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+                    <i data-lucide="camera" class="w-3.5 h-3.5 text-purple-600"></i> Sheet Screenshot
+                </button>
+            </div>
+        </template>
+
     </div>
 
     <!-- 📊 MICROSOFT EXCEL 2021 CANVAS CONTAINER -->
@@ -428,7 +509,8 @@ document.addEventListener('alpine:init', () => {
         isSaving: false,
         isFetchingSheet: false,
         isEngineLoading: true,
-        syncStatus: 'saved', // 'saved' | 'saving' | 'syncing'
+        syncStatus: 'saved',
+        activeTab: 'home', // 'saved' | 'saving' | 'syncing'
         autoSaveTimeout: null,
 
         get syncStatusClass() {
@@ -490,25 +572,54 @@ document.addEventListener('alpine:init', () => {
             }, 320);
         },
 
-        executeTabAction(tab) {
+        switchRibbonTab(tabName) {
+            this.activeTab = tabName;
+            this.$nextTick(() => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                this.resizeLuckysheet();
+            });
+        },
+
+        triggerExcelAction(action) {
             if (typeof luckysheet === 'undefined') return;
-            if (tab === 'insert') {
-                // Focus chart or image
-                const btn = document.querySelector('.luckysheet-icon-chart');
-                if (btn) btn.click();
-            } else if (tab === 'formulas') {
-                const btn = document.querySelector('.luckysheet-icon-function');
-                if (btn) btn.click();
-            } else if (tab === 'data') {
-                const btn = document.querySelector('.luckysheet-icon-sort-filter');
-                if (btn) btn.click();
-            } else if (tab === 'review') {
-                const btn = document.querySelector('.luckysheet-icon-protection');
-                if (btn) btn.click();
-            } else if (tab === 'view') {
-                const btn = document.querySelector('.luckysheet-icon-frozen');
-                if (btn) btn.click();
+
+            const iconMap = {
+                'chart': '.luckysheet-icon-chart, #luckysheet-icon-chart',
+                'image': '.luckysheet-icon-img, .luckysheet-icon-image',
+                'pivotTable': '.luckysheet-icon-pivotTable',
+                'link': '.luckysheet-icon-link',
+                'function': '.luckysheet-icon-function, #luckysheet-icon-function',
+                'autoSum': '.luckysheet-icon-function',
+                'sortAndFilter': '.luckysheet-icon-sort-filter, .luckysheet-icon-sort',
+                'dataVerification': '.luckysheet-icon-dataVerification, .luckysheet-icon-data-verification',
+                'splitColumn': '.luckysheet-icon-splitColumn',
+                'postil': '.luckysheet-icon-postil',
+                'protection': '.luckysheet-icon-protection',
+                'frozenMode': '.luckysheet-icon-frozen, #luckysheet-icon-frozen',
+                'findAndReplace': '.luckysheet-icon-findAndReplace',
+                'screenshot': '.luckysheet-icon-screenshot'
+            };
+
+            const selector = iconMap[action];
+            if (selector) {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.click();
+                    return;
+                }
             }
+
+            // Direct Luckysheet API fallbacks
+            if (action === 'frozenMode') {
+                luckysheet.setFrozen({ type: 'row' });
+            } else if (action === 'autoSum') {
+                luckysheet.insertFunction('SUM');
+            }
+        },
+
+        insertQuickFormula(formulaName) {
+            if (typeof luckysheet === 'undefined') return;
+            luckysheet.insertFunction(formulaName);
         },
 
         triggerRealtimeAutoSync() {
