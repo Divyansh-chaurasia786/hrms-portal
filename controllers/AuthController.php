@@ -160,20 +160,20 @@ class AuthController {
                         // Single-Device Lock & Auto Punch-Out of Previous Device Shift
             $sessionToken = bin2hex(random_bytes(32));
             $today = date('Y-m-d');
-            $nowTime = date('H:i:s');
+            $nowDateTime = date('Y-m-d H:i:s');
 
             // Auto clock-out previous active shift upon switching devices
             $db->prepare("
                 UPDATE attendance 
                 SET clock_out = ?, notes = CONCAT(COALESCE(notes, ''), ' [Auto Punch-Out: Logged in on another device]') 
                 WHERE user_id = ? AND date = ? AND clock_out IS NULL
-            ")->execute([$nowTime, $userId, $today]);
+            ")->execute([$nowDateTime, $userId, $today]);
 
             $db->prepare("
                 UPDATE attendance_sessions 
                 SET clock_out = ?, ended_by = 'device_switch', ended_by_user_id = ? 
-                WHERE user_id = ? AND date = ? AND clock_out IS NULL
-            ")->execute([$nowTime, $userId, $userId, $today]);
+                WHERE user_id = ? AND clock_out IS NULL
+            ")->execute([$nowDateTime, $userId, $userId]);
 
             // Save new exclusive device session token
             $db->prepare("

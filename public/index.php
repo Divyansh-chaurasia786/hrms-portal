@@ -672,11 +672,11 @@ if ($action) {
                         
                         // Terminate today's shift if active
                         $today = date('Y-m-d');
-                        $nowTime = date('H:i:s');
+                        $nowDateTime = date('Y-m-d H:i:s');
                         $db->prepare("UPDATE attendance SET clock_out = ?, notes = 'Dismissed by HR' WHERE user_id = ? AND date = ? AND clock_out IS NULL")
-                           ->execute([$nowTime, $targetEmpId, $today]);
-                        $db->prepare("UPDATE attendance_sessions SET clock_out = ?, ended_by = 'force_logout', ended_by_user_id = ? WHERE user_id = ? AND date = ? AND clock_out IS NULL")
-                           ->execute([$nowTime, $hrId, $targetEmpId, $today]);
+                           ->execute([$nowDateTime, $targetEmpId, $today]);
+                        $db->prepare("UPDATE attendance_sessions SET clock_out = ?, ended_by = 'force_logout', ended_by_user_id = ? WHERE user_id = ? AND clock_out IS NULL")
+                           ->execute([$nowDateTime, $hrId, $targetEmpId]);
 
                         setFlash('success', '🚫 Decision Recorded: Employee has been DISMISSED and login access is terminated.');
                     } elseif ($status === 'action_taken') {
