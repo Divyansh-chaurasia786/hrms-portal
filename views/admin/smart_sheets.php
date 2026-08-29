@@ -205,6 +205,62 @@ body[data-page="admin-smart-sheets"] main {
     box-shadow: 0 0 0 1px #107c41 !important;
 }
 
+/* 🟢 Authentic Microsoft Excel 2021 Right-Click Context Menus */
+.luckysheet-cols-menu,
+.luckysheet-rows-menu,
+.luckysheet-context-menu,
+.luckysheet-menulist {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+    background: #ffffff !important;
+    border: 1px solid #d2d0ce !important;
+    border-radius: 6px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+    padding: 4px 0 !important;
+    font-size: 12px !important;
+    color: #201f1e !important;
+    z-index: 1000 !important;
+}
+
+.luckysheet-cols-menu-item,
+.luckysheet-rows-menu-item,
+.luckysheet-menulist-item {
+    padding: 6px 16px !important;
+    cursor: pointer !important;
+    transition: background-color 0.1s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    font-weight: 500 !important;
+}
+
+.luckysheet-cols-menu-item:hover,
+.luckysheet-rows-menu-item:hover,
+.luckysheet-menulist-item:hover {
+    background-color: #f3f2f1 !important;
+    color: #107c41 !important;
+}
+
+.luckysheet-cols-menu-item-split,
+.luckysheet-rows-menu-item-split,
+.luckysheet-menulist-item-split {
+    height: 1px !important;
+    background-color: #edebe9 !important;
+    margin: 4px 0 !important;
+}
+
+/* 🟢 Excel 2021 Green Selection Border & Autofill Handle */
+.luckysheet-cell-selected-focus {
+    border-color: #107c41 !important;
+}
+
+.luckysheet-cs-draghandle {
+    background-color: #107c41 !important;
+    border: 1px solid #ffffff !important;
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 1px !important;
+}
+
 /* 🟢 Bottom Sheet Bar with Excel Green Active Underline */
 .luckysheet-sheet-area {
     background: #edebe9 !important;
