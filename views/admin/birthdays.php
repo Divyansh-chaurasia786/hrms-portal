@@ -1,6 +1,62 @@
 <!-- views/admin/birthdays.php -->
 <?php
 $user = authUser();
+$db = getDBConnection();
+
+// 1. Fetch All Active Staff with Birthdays
+$allStaff = $db->query("
+    SELECT id, name, emp_id, email, phone, whatsapp_number, designation, department_name, avatar, date_of_birth,
+           DATE_FORMAT(date_of_birth, '%d %M') as dob_formatted,
+           DATE_FORMAT(date_of_birth, '%m-%d') as dob_month_day,
+           TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) as current_age
+    FROM users 
+    WHERE status = 'active'
+    ORDER BY 
+        CASE WHEN date_of_birth IS NOT NULL THEN 0 ELSE 1 END,
+        DATE_FORMAT(date_of_birth, '%m-%d') ASC,
+        name ASC
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+$todayMonthDay = date('m-d');
+$currentMonth = date('m');
+
+$todayBirthdays = [];
+$upcomingThisMonth = [];
+$allUpcoming = [];
+$missingDob = [];
+
+foreach ($allStaff as $st) {
+    if (empty($st['date_of_birth'])) {
+        $missingDob[] = $st;
+        continue;
+    }
+
+    $mDay = $st['dob_month_day'];
+    if ($mDay === $todayMonthDay) {
+        $todayBirthdays[] = $st;
+    } else {
+        // Calculate days remaining until next birthday
+        $thisYearDob = date('Y') . '-' . $mDay;
+        if ($thisYearDob < date('Y-m-d')) {
+            $nextBday = (date('Y') + 1) . '-' . $mDay;
+        } else {
+            $nextBday = $thisYearDob;
+        }
+
+        $diffDays = (int)round((strtotime($nextBday) - strtotime(date('Y-m-d'))) / 86400);
+        $st['days_remaining'] = $diffDays;
+        $st['turning_age'] = (int)($st['current_age'] ?? 0) + 1;
+
+        if (substr($mDay, 0, 2) === $currentMonth && $diffDays > 0) {
+            $upcomingThisMonth[] = $st;
+        }
+        $allUpcoming[] = $st;
+    }
+}
+
+// Sort upcoming by days remaining
+usort($allUpcoming, fn($a, $b) => ($a['days_remaining'] ?? 0) <=> ($b['days_remaining'] ?? 0));
+usort($upcomingThisMonth, fn($a, $b) => ($a['days_remaining'] ?? 0) <=> ($b['days_remaining'] ?? 0));
 ?>
 
 <div class="space-y-6" x-data="{

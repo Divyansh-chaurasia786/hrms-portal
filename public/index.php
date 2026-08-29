@@ -852,6 +852,7 @@ $viewMap = [
 
     // Admin Pages
     'admin-dashboard' => ['file' => 'admin/dashboard.php', 'roles' => ['admin']],
+    'admin-birthdays' => ['file' => 'admin/birthdays.php', 'roles' => ['admin', 'team_lead']],
     'admin-employees' => ['file' => 'admin/employees.php', 'roles' => ['admin']],
     'admin-roles' => ['file' => 'admin/roles.php', 'roles' => ['admin']],
     'admin-attendance' => ['file' => 'admin/attendance.php', 'roles' => ['admin']],
