@@ -374,11 +374,35 @@ document.addEventListener('alpine:init', () => {
             try {
                 const res = await fetch('?action=fetch-live-sheet-data&type=' + type);
                 const data = await res.json();
-                if (data.success) {
-                    this.currentSheetTitle = data.title;
-                    this.renderLuckysheetFromData(data.title, data.columns, data.rows);
-                    if (window.HRMSCache) {
-                        window.HRMSCache.set('excel_last_active_sheet', data);
+                if (data.success && typeof luckysheet !== 'undefined') {
+                    const tabTitle = (type === 'attendance') ? 'Live Attendance' : 'Live Employees';
+                    const newSheetObj = this.buildSheetConfigObject(tabTitle, data.columns, data.rows);
+
+                    // Get all existing sheets from active Luckysheet workbook
+                    let currentSheets = [];
+                    try {
+                        currentSheets = luckysheet.getAllSheets() || [];
+                    } catch(e) {}
+
+                    if (currentSheets.length > 0) {
+                        // Mark all existing sheets as inactive
+                        currentSheets.forEach(s => s.status = 0);
+
+                        // Check if tab with this name already exists
+                        const existingIdx = currentSheets.findIndex(s => s.name === tabTitle);
+                        if (existingIdx !== -1) {
+                            newSheetObj.order = existingIdx;
+                            newSheetObj.index = currentSheets[existingIdx].index;
+                            currentSheets[existingIdx] = newSheetObj;
+                        } else {
+                            newSheetObj.order = currentSheets.length;
+                            newSheetObj.index = currentSheets.length;
+                            currentSheets.push(newSheetObj);
+                        }
+
+                        this.createLuckysheetInstance(currentSheets);
+                    } else {
+                        this.renderLuckysheetFromData(tabTitle, data.columns, data.rows);
                     }
                 }
             } catch(e) {
@@ -388,44 +412,7 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        async loadAndRenderSheet(sheetId) {
-            this.currentSheetId = sheetId;
-            const cacheKey = 'excel_sheet_' + sheetId;
-
-            // 1. Instant Cache Hit (0ms)
-            if (window.HRMSCache) {
-                const cached = window.HRMSCache.get(cacheKey);
-                if (cached && cached.columns) {
-                    this.currentSheetTitle = cached.title || 'Workbook';
-                    this.renderLuckysheetFromData(cached.title || 'Sheet1', cached.columns || [], cached.rows || []);
-                    window.HRMSCache.set('excel_last_active_sheet', cached);
-                } else {
-                    this.isFetchingSheet = true;
-                }
-            } else {
-                this.isFetchingSheet = true;
-            }
-
-            // 2. Background Revalidation (1-2s)
-            try {
-                const res = await fetch('?action=get-smart-sheet-data&sheet_id=' + sheetId);
-                const data = await res.json();
-                if (data && data.columns) {
-                    if (window.HRMSCache) {
-                        window.HRMSCache.set(cacheKey, data);
-                        window.HRMSCache.set('excel_last_active_sheet', data);
-                    }
-                    this.currentSheetTitle = data.title || 'Workbook';
-                    this.renderLuckysheetFromData(data.title || 'Sheet1', data.columns || [], data.rows || []);
-                }
-            } catch(e) {
-                console.error(e);
-            } finally {
-                this.isFetchingSheet = false;
-            }
-        },
-
-        renderLuckysheetFromData(sheetName, columns, rows) {
+        buildSheetConfigObject(sheetName, columns, rows) {
             const celldata = [];
             const customColLen = {};
             const rowCount = Math.max(rows.length + 50, 100);
@@ -492,7 +479,7 @@ document.addEventListener('alpine:init', () => {
                 }
             });
 
-            const sheetConfig = [{
+            return {
                 name: sheetName,
                 color: '#107c41',
                 status: 1,
@@ -506,8 +493,48 @@ document.addEventListener('alpine:init', () => {
                 celldata: celldata,
                 row: rowCount,
                 column: colCount
-            }];
+            };
+        },
 
+        async loadAndRenderSheet(sheetId) {
+            this.currentSheetId = sheetId;
+            const cacheKey = 'excel_sheet_' + sheetId;
+
+            // 1. Instant Cache Hit (0ms)
+            if (window.HRMSCache) {
+                const cached = window.HRMSCache.get(cacheKey);
+                if (cached && cached.columns) {
+                    this.currentSheetTitle = cached.title || 'Workbook';
+                    this.renderLuckysheetFromData(cached.title || 'Sheet1', cached.columns || [], cached.rows || []);
+                    window.HRMSCache.set('excel_last_active_sheet', cached);
+                } else {
+                    this.isFetchingSheet = true;
+                }
+            } else {
+                this.isFetchingSheet = true;
+            }
+
+            // 2. Background Revalidation (1-2s)
+            try {
+                const res = await fetch('?action=get-smart-sheet-data&sheet_id=' + sheetId);
+                const data = await res.json();
+                if (data && data.columns) {
+                    if (window.HRMSCache) {
+                        window.HRMSCache.set(cacheKey, data);
+                        window.HRMSCache.set('excel_last_active_sheet', data);
+                    }
+                    this.currentSheetTitle = data.title || 'Workbook';
+                    this.renderLuckysheetFromData(data.title || 'Sheet1', data.columns || [], data.rows || []);
+                }
+            } catch(e) {
+                console.error(e);
+            } finally {
+                this.isFetchingSheet = false;
+            }
+        },
+
+        renderLuckysheetFromData(sheetName, columns, rows) {
+            const sheetConfig = [this.buildSheetConfigObject(sheetName, columns, rows)];
             this.createLuckysheetInstance(sheetConfig);
         },
 
