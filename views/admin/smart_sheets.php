@@ -15,7 +15,7 @@ $sheets = $db->query("
 $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 ?>
 
-<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins -->
+<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins (Scoped strictly to this view) -->
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' />
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' />
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' />
@@ -58,7 +58,15 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
     max-width: 100% !important;
 }
 
-/* Fix & Beautify Top Toolbar */
+/* Prevent unstyled context menu text spilling onto the screen */
+.luckysheet-context-menu:not([style*="display: block"]),
+.luckysheet-filter-menu:not([style*="display: block"]),
+.luckysheet-sheet-magicMenu:not([style*="display: block"]),
+.luckysheet-toolbar-more-panel {
+    display: none !important;
+}
+
+/* Clean Toolbar styling */
 .luckysheet-toolbar {
     width: 100% !important;
     background: #f8fafc !important;
@@ -76,12 +84,6 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 .luckysheet-toolbar::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
-}
-
-/* Hide / suppress the floating overflow toolbar that blocked the cells */
-.luckysheet-toolbar-more-panel,
-.luckysheet-cols-menu-item.more-panel {
-    display: none !important;
 }
 
 /* Crisp Formula Bar */
