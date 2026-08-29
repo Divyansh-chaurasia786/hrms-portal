@@ -13,125 +13,7 @@ $sheets = $db->query("
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 ?>
 
-<div class="space-y-6" x-data="{
-    uploadModalOpen: false,
-    viewModalOpen: false,
-    selectedSheet: null,
-    columns: [],
-    rows: [],
-    activeCell: { r: 0, c: 0, coord: 'A1', val: '' },
-    formulaInput: '',
-    sheetSearch: '',
-    isLoadingSheet: false,
-    isSavingSheet: false,
-    activeTab: 'all',
-    cellBold: false,
-    cellItalic: false,
-    cellAlign: 'left',
-    syncSuccessBanner: false,
-
-    // Convert col index (0, 1, 2...) to Excel letters (A, B, C... AA)
-    getColLetter(idx) {
-        let letter = '';
-        while (idx >= 0) {
-            letter = String.fromCharCode((idx % 26) + 65) + letter;
-            idx = Math.floor(idx / 26) - 1;
-        }
-        return letter;
-    },
-
-    async openSheetViewer(s) {
-        this.selectedSheet = s;
-        this.sheetSearch = '';
-        this.columns = [];
-        this.rows = [];
-        this.viewModalOpen = true;
-        this.isLoadingSheet = true;
-        this.syncSuccessBanner = false;
-
-        try {
-            const res = await fetch('?action=get-smart-sheet-data&sheet_id=' + s.id);
-            const data = await res.json();
-            this.columns = data.columns || [];
-            this.rows = data.rows || [];
-            this.selectCell(0, 0);
-        } catch(e) {
-            console.error(e);
-        } finally {
-            this.isLoadingSheet = false;
-        }
-    },
-
-    selectCell(r, c) {
-        this.activeCell.r = r;
-        this.activeCell.c = c;
-        this.activeCell.coord = this.getColLetter(c) + (r + 1);
-        this.activeCell.val = (this.rows[r] && this.rows[r][c] !== undefined) ? this.rows[r][c] : '';
-        this.formulaInput = this.activeCell.val;
-    },
-
-    updateActiveCellValue() {
-        if (this.rows[this.activeCell.r]) {
-            this.rows[this.activeCell.r][this.activeCell.c] = this.formulaInput;
-            this.activeCell.val = this.formulaInput;
-        }
-    },
-
-    addRow() {
-        const newRow = new Array(this.columns.length).fill('');
-        this.rows.push(newRow);
-    },
-
-    addColumn() {
-        const newColName = 'Column ' + (this.columns.length + 1);
-        this.columns.push(newColName);
-        this.rows.forEach(r => r.push(''));
-    },
-
-    async saveAndSyncWorkbook() {
-        this.isSavingSheet = true;
-        const formData = new FormData();
-        formData.append('sheet_id', this.selectedSheet.id);
-        formData.append('columns_json', JSON.stringify(this.columns));
-        formData.append('rows_json', JSON.stringify(this.rows));
-
-        try {
-            const res = await fetch('?action=save-smart-sheet-data', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await res.json();
-            if (result.success) {
-                this.syncSuccessBanner = true;
-                setTimeout(() => this.syncSuccessBanner = false, 4000);
-            }
-        } catch(e) {
-            alert('Failed to save workbook changes');
-        } finally {
-            this.isSavingSheet = false;
-        }
-    },
-
-    exportAsCsv() {
-        let csv = this.columns.map(c => '\"' + String(c).replace(/\"/g, '\"\"') + '\"').join(',') + '\n';
-        this.rows.forEach(r => {
-            csv += r.map(c => '\"' + String(c).replace(/\"/g, '\"\"') + '\"').join(',') + '\n';
-        });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = (this.selectedSheet ? this.selectedSheet.title : 'Workbook') + '.csv';
-        link.click();
-    },
-
-    get filteredRows() {
-        if (!this.sheetSearch.trim()) return this.rows;
-        const q = this.sheetSearch.toLowerCase();
-        return this.rows.filter(r => {
-            return r.some(cell => String(cell).toLowerCase().includes(q));
-        });
-    }
-}">
+<div class="space-y-6" x-data="excelStudio">
     <!-- Header Banner -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div class="flex items-center gap-3.5">
@@ -275,7 +157,7 @@ $sheets = $db->query("
             <!-- 🛠️ EXCEL INSTRUMENTS TOOLBAR RIBBON -->
             <div class="bg-slate-50 p-2 rounded-2xl border border-slate-200 flex items-center justify-between gap-2 shrink-0 flex-wrap text-xs">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                    <!-- Bold / Italic / Alignment -->
+                    <!-- Bold / Italic -->
                     <button type="button" @click="cellBold = !cellBold" :class="cellBold ? 'bg-slate-200 text-slate-900 font-black' : 'text-slate-600 hover:bg-slate-200'" class="p-1.5 rounded-lg text-xs font-bold transition w-7 h-7 flex items-center justify-center">B</button>
                     <button type="button" @click="cellItalic = !cellItalic" :class="cellItalic ? 'bg-slate-200 text-slate-900' : 'text-slate-600 hover:bg-slate-200'" class="p-1.5 rounded-lg text-xs italic transition w-7 h-7 flex items-center justify-center">I</button>
                     <div class="h-4 w-px bg-slate-300 mx-1"></div>
@@ -440,3 +322,125 @@ $sheets = $db->query("
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('excelStudio', () => ({
+        uploadModalOpen: false,
+        viewModalOpen: false,
+        selectedSheet: null,
+        columns: [],
+        rows: [],
+        activeCell: { r: 0, c: 0, coord: 'A1', val: '' },
+        formulaInput: '',
+        sheetSearch: '',
+        isLoadingSheet: false,
+        isSavingSheet: false,
+        activeTab: 'all',
+        cellBold: false,
+        cellItalic: false,
+        syncSuccessBanner: false,
+
+        getColLetter(idx) {
+            let letter = '';
+            while (idx >= 0) {
+                letter = String.fromCharCode((idx % 26) + 65) + letter;
+                idx = Math.floor(idx / 26) - 1;
+            }
+            return letter;
+        },
+
+        async openSheetViewer(s) {
+            this.selectedSheet = s;
+            this.sheetSearch = '';
+            this.columns = [];
+            this.rows = [];
+            this.viewModalOpen = true;
+            this.isLoadingSheet = true;
+            this.syncSuccessBanner = false;
+
+            try {
+                const res = await fetch('?action=get-smart-sheet-data&sheet_id=' + s.id);
+                const data = await res.json();
+                this.columns = data.columns || [];
+                this.rows = data.rows || [];
+                this.selectCell(0, 0);
+            } catch(e) {
+                console.error(e);
+            } finally {
+                this.isLoadingSheet = false;
+            }
+        },
+
+        selectCell(r, c) {
+            this.activeCell.r = r;
+            this.activeCell.c = c;
+            this.activeCell.coord = this.getColLetter(c) + (r + 1);
+            this.activeCell.val = (this.rows[r] && this.rows[r][c] !== undefined) ? this.rows[r][c] : '';
+            this.formulaInput = this.activeCell.val;
+        },
+
+        updateActiveCellValue() {
+            if (this.rows[this.activeCell.r]) {
+                this.rows[this.activeCell.r][this.activeCell.c] = this.formulaInput;
+                this.activeCell.val = this.formulaInput;
+            }
+        },
+
+        addRow() {
+            const newRow = new Array(this.columns.length).fill('');
+            this.rows.push(newRow);
+        },
+
+        addColumn() {
+            const newColName = 'Column ' + (this.columns.length + 1);
+            this.columns.push(newColName);
+            this.rows.forEach(r => r.push(''));
+        },
+
+        async saveAndSyncWorkbook() {
+            this.isSavingSheet = true;
+            const formData = new FormData();
+            formData.append('sheet_id', this.selectedSheet.id);
+            formData.append('columns_json', JSON.stringify(this.columns));
+            formData.append('rows_json', JSON.stringify(this.rows));
+
+            try {
+                const res = await fetch('?action=save-smart-sheet-data', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    this.syncSuccessBanner = true;
+                    setTimeout(() => this.syncSuccessBanner = false, 4000);
+                }
+            } catch(e) {
+                alert('Failed to save workbook changes');
+            } finally {
+                this.isSavingSheet = false;
+            }
+        },
+
+        exportAsCsv() {
+            let csv = this.columns.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',') + '\n';
+            this.rows.forEach(r => {
+                csv += r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = (this.selectedSheet ? this.selectedSheet.title : 'Workbook') + '.csv';
+            link.click();
+        },
+
+        get filteredRows() {
+            if (!this.sheetSearch.trim()) return this.rows;
+            const q = this.sheetSearch.toLowerCase();
+            return this.rows.filter(r => {
+                return r.some(cell => String(cell).toLowerCase().includes(q));
+            });
+        }
+    }));
+});
+</script>
