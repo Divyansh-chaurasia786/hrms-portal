@@ -312,18 +312,18 @@ if ($action) {
             echo json_encode(['success' => false, 'message' => 'No active shift or empty pings']);
             exit;
 
-        case 'create-role': RoleController::create(); break;
-    case 'delete-role': RoleController::delete(); break;
-    case 'grant-direct-wfh': WfhController::grantDirectWfh(); break;
+        case 'create-role': requireActiveShift(); RoleController::create(); break;
+    case 'delete-role': requireActiveShift(); RoleController::delete(); break;
+    case 'grant-direct-wfh': requireActiveShift(); WfhController::grantDirectWfh(); break;
     case 'apply-wfh': WfhController::apply(); break;
-    case 'review-wfh': WfhController::review(); break;
-    case 'set-hr-wfh': WfhController::setHrWfhRange(); break;
+    case 'review-wfh': requireActiveShift(); WfhController::review(); break;
+    case 'set-hr-wfh': requireActiveShift(); WfhController::setHrWfhRange(); break;
     case 'export-calling-history':
         CallingController::exportHistory();
         break;
-    case 'upload-calling-leads': CallingController::uploadLeads(); break;
-    case 'update-calling-disposition': CallingController::updateDisposition(); break;
-    case 'upload-smart-sheet': SmartSheetController::upload(); break;
+    case 'upload-calling-leads': requireActiveShift(); CallingController::uploadLeads(); break;
+    case 'update-calling-disposition': requireActiveShift(); CallingController::updateDisposition(); break;
+    case 'upload-smart-sheet': requireActiveShift(); SmartSheetController::upload(); break;
     case 'log-travel-coordinate': AttendanceController::logTravelCoordinate(); break;
     case 'get-travel-logs': AttendanceController::getTravelLogs(); break;
     case 'login':
@@ -469,9 +469,11 @@ if ($action) {
             LeaveController::apply();
             exit;
         case 'tl-review-leave':
+            requireActiveShift();
             LeaveController::tlReview();
             exit;
         case 'hr-action-leave':
+            requireActiveShift();
             LeaveController::hrAction();
             exit;
         case 'create-employee':
