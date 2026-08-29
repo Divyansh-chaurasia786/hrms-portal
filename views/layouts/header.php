@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ecofone HRMS | Enterprise Team & Operations Portal</title>
+    <title>Ecofone HRMS | Workforce & Operations Portal</title>
     <meta name="description" content="Ecofone HRMS - Enterprise Human Resource & Team Operations Management System.">
     <meta name="keywords" content="Ecofone HRMS, Ecofone, HRMS Ecofone, ecofone portal, HRMS portal">
     <meta name="robots" content="noindex, nofollow">

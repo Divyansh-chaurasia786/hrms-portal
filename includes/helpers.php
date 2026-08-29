@@ -139,7 +139,7 @@ function getFormalEmailLetterhead(string $title, string $subtitle, string $bodyC
                                 <table width="100%" border="0" cellpadding="0" cellspacing="0">
                                     <tr>
                                         <td>
-                                            <h1 style="margin: 0; color: #0f172a; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;">ECOVISTA GLOBAL PRIVATE LIMITED</h1>
+                                            <h1 style="margin: 0; color: #0f172a; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;">ECOFONE HRMS</h1>
                                             <p style="margin: 3px 0 0 0; color: #64748b; font-size: 11px;">Human Resources & Corporate Operations Division</p>
                                         </td>
                                         <td align="right" style="color: #64748b; font-size: 11px; font-family: monospace;">
@@ -184,7 +184,7 @@ function getFormalEmailLetterhead(string $title, string $subtitle, string $bodyC
                                     <tr>
                                         <td>
                                             <p style="margin: 0; font-weight: bold; color: #334155;">Human Resources & Administration</p>
-                                            <p style="margin: 2px 0 0 0; color: #64748b;">Ecovista Global Private Limited</p>
+                                            <p style="margin: 2px 0 0 0; color: #64748b;">Ecofone HRMS</p>
                                         </td>
                                         <td align="right" style="vertical-align: bottom;">
                                             <p style="margin: 0; color: #94a3b8; font-size: 10px;">[Do Not Reply — Automated System Communication]</p>
@@ -262,11 +262,11 @@ function sendBrevoEmail(array $to, array $cc = [], string $subject = '', string 
 function sendEmailOTP(string $recipientEmail, string $recipientName, string $otpCode): array {
     $subject = "[OFFICIAL] HRMS Portal Authentication Code: " . $otpCode;
 
-    $text = "ECOVISTA GLOBAL PRIVATE LIMITED\nHUMAN RESOURCES & IDENTITY MANAGEMENT\n\nTo: {$recipientName} <{$recipientEmail}>\nDate: " . date('d F, Y h:i A') . "\nSubject: One-Time Verification Code (OTP) for HRMS Portal Access\n\nDear {$recipientName},\n\nPlease use the following One-Time Password (OTP) to authenticate your sign-in to the Ecovista Global HRMS portal:\n\nAUTHENTICATION CODE: {$otpCode}\n\nSecurity Notice:\n1. This verification code is valid for 10 minutes.\n2. Do not share this authentication code with anyone.\n\nYours faithfully,\nIT & Identity Security Division\nEcovista Global Private Limited";
+    $text = "ECOFONE HRMS\nHUMAN RESOURCES & IDENTITY MANAGEMENT\n\nTo: {$recipientName} <{$recipientEmail}>\nDate: " . date('d F, Y h:i A') . "\nSubject: One-Time Verification Code (OTP) for HRMS Portal Access\n\nDear {$recipientName},\n\nPlease use the following One-Time Password (OTP) to authenticate your sign-in to the Ecofone HRMS HRMS portal:\n\nAUTHENTICATION CODE: {$otpCode}\n\nSecurity Notice:\n1. This verification code is valid for 10 minutes.\n2. Do not share this authentication code with anyone.\n\nYours faithfully,\nIT & Identity Security Division\nEcofone HRMS";
 
     $bodyHtml = '
         <p style="margin: 0 0 14px 0;">Dear <strong>' . htmlspecialchars($recipientName) . '</strong>,</p>
-        <p style="margin: 0 0 18px 0;">Please use the one-time verification code below to authenticate your sign-in to the official Ecovista Global HRMS portal:</p>
+        <p style="margin: 0 0 18px 0;">Please use the one-time verification code below to authenticate your sign-in to the official Ecofone HRMS HRMS portal:</p>
         
         <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #0f172a; padding: 14px 20px; margin: 18px 0; text-align: center;">
             <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">AUTHENTICATION CODE (OTP)</span>
@@ -345,7 +345,7 @@ function sendLeaveApplicationEmail(array $leaveData, array $employee, ?array $tl
     $subject = "[FORMAL APPLICATION] Leave of Absence: {$empName} ({$designation}) - {$totalDays} Day(s)";
 
     $bodyHtml = '
-        <p style="margin: 0 0 14px 0;">To,<br><strong>The Human Resources Department</strong>,<br>Ecovista Global Private Limited</p>
+        <p style="margin: 0 0 14px 0;">To,<br><strong>The Human Resources Department</strong>,<br>Ecofone HRMS</p>
         <p style="margin: 0 0 14px 0;"><strong>Subject: Formal Application for Leave of Absence — ' . htmlspecialchars($empName) . ' (' . htmlspecialchars($designation) . ')</strong></p>
         <p style="margin: 0 0 14px 0;">Respected Sir/Madam,</p>
         <p style="margin: 0 0 14px 0;">I am writing this formal application to respectfully request a leave of absence for <strong>' . $totalDays . ' day(s)</strong>, commencing from <strong>' . $startDate . '</strong> to <strong>' . $endDate . '</strong>, on account of <strong>' . htmlspecialchars($leaveType) . '</strong>.</p>
@@ -362,7 +362,7 @@ function sendLeaveApplicationEmail(array $leaveData, array $employee, ?array $tl
         'EGPL/LV/APP/' . date('Ymd') . '/' . strtoupper(substr(md5($empName), 0, 5))
     );
 
-    $text = "ECOVISTA GLOBAL PRIVATE LIMITED\nFORMAL APPLICATION FOR LEAVE OF ABSENCE\n\nTo,\nThe HR Department\n\nSubject: Leave Application - {$empName} ({$designation})\nDuration: {$totalDays} Day(s) ({$startDate} to {$endDate})\nReason: {$leaveType}\n\n{$elaboratedReason}\n\nCC: {$tlName}\n\nYours faithfully,\n{$empName}\n{$designation}";
+    $text = "ECOFONE HRMS\nFORMAL APPLICATION FOR LEAVE OF ABSENCE\n\nTo,\nThe HR Department\n\nSubject: Leave Application - {$empName} ({$designation})\nDuration: {$totalDays} Day(s) ({$startDate} to {$endDate})\nReason: {$leaveType}\n\n{$elaboratedReason}\n\nCC: {$tlName}\n\nYours faithfully,\n{$empName}\n{$designation}";
 
     return sendBrevoEmail($to, $cc, $subject, $text, $html);
 }
@@ -426,7 +426,7 @@ function sendLeaveDecisionEmail(array $leaveData, array $employee, ?array $tl, a
         'EGPL/LV/DEC/' . date('Ymd') . '/' . strtoupper(substr(md5($empName), 0, 5))
     );
 
-    $text = "ECOVISTA GLOBAL PRIVATE LIMITED\nOFFICIAL LEAVE DECISION NOTICE\n\nDear {$empName},\n\nYour application for {$leaveType} ({$totalDays} day(s), from {$startDate} to {$endDate}) has been: " . ($isApproved ? "APPROVED" : "REJECTED") . ".\n\nRemarks: {$safeRemarks}\n\nRegards,\n{$hrName}\nHR Department";
+    $text = "ECOFONE HRMS\nOFFICIAL LEAVE DECISION NOTICE\n\nDear {$empName},\n\nYour application for {$leaveType} ({$totalDays} day(s), from {$startDate} to {$endDate}) has been: " . ($isApproved ? "APPROVED" : "REJECTED") . ".\n\nRemarks: {$safeRemarks}\n\nRegards,\n{$hrName}\nHR Department";
 
     return sendBrevoEmail($to, $cc, $subject, $text, $html);
 }
@@ -514,14 +514,14 @@ function sendAutomatedTeamLocationNotifications(array $hrUser, string $tlName, a
             'EGPL/DIR/LOC/' . date('Ymd') . '/' . strtoupper(substr(md5($memberEmail), 0, 5))
         );
 
-        $plainText = "ECOVISTA GLOBAL PRIVATE LIMITED\nOFFICIAL ADMINISTRATIVE DIRECTIVE\n\nDear {$memberName},\n\nThis is to formally notify you that {$hrName} ({$hrDesig}) has {$plainActionDesc} for {$tlName}'s Team.\n\nDesignated Office: {$officeName}\nEffective Schedule: {$scheduleText}\n\nYou are instructed to report to this facility and complete your daily attendance punch-in accordingly.\n\nRegards,\nHuman Resources & Corporate Administration\nEcovista Global Private Limited";
+        $plainText = "ECOFONE HRMS\nOFFICIAL ADMINISTRATIVE DIRECTIVE\n\nDear {$memberName},\n\nThis is to formally notify you that {$hrName} ({$hrDesig}) has {$plainActionDesc} for {$tlName}'s Team.\n\nDesignated Office: {$officeName}\nEffective Schedule: {$scheduleText}\n\nYou are instructed to report to this facility and complete your daily attendance punch-in accordingly.\n\nRegards,\nHuman Resources & Corporate Administration\nEcofone HRMS";
 
         if (!empty($memberEmail)) {
             sendBrevoEmail([['email' => $memberEmail, 'name' => $memberName]], [], $subject, $plainText, $html);
         }
 
         if (!empty($memberPhone)) {
-            $waText = "🏢 *ECOVISTA GLOBAL PVT. LTD. - OFFICIAL DIRECTIVE*\n\nDear *{$memberName}*,\n\nThis is an official administrative notice that *{$hrName} ({$hrDesig})* has {$plainActionDesc} for *{$tlName}'s Team*.\n\n📍 *New Reporting Office:* {$officeName}\n📅 *Schedule:* {$scheduleText}\n\nKindly report to this assigned location and complete your attendance punch-in accordingly.\n\nRegards,\n*HR & Operations Department*\n*Ecovista Global Pvt. Ltd.*";
+            $waText = "🏢 *ECOVISTA GLOBAL PVT. LTD. - OFFICIAL DIRECTIVE*\n\nDear *{$memberName}*,\n\nThis is an official administrative notice that *{$hrName} ({$hrDesig})* has {$plainActionDesc} for *{$tlName}'s Team*.\n\n📍 *New Reporting Office:* {$officeName}\n📅 *Schedule:* {$scheduleText}\n\nKindly report to this assigned location and complete your attendance punch-in accordingly.\n\nRegards,\n*HR & Operations Department*\n*Ecofone HRMS Pvt. Ltd.*";
             sendMetaWhatsAppMessage($memberPhone, $waText);
         }
 

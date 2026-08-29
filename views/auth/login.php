@@ -66,7 +66,7 @@
             <div class="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 items-center justify-center text-white shadow-xl shadow-indigo-600/30 ring-1 ring-white/20 mb-3">
                 <i data-lucide="shield-check" class="w-6 h-6"></i>
             </div>
-            <h1 class="text-2xl font-extrabold text-white tracking-tight">Enterprise HRMS</h1>
+            <h1 class="text-2xl font-extrabold text-white tracking-tight">Ecofone HRMS</h1>
             <p class="text-xs font-medium text-slate-400 mt-1">Sign in to access your organization portal & operations</p>
         </div>
 
@@ -123,7 +123,7 @@
         </div>
 
         <div class="text-center mt-6 text-xs text-slate-500">
-            &copy; <?= date('Y') ?> Enterprise HRMS & Operations Platform. All rights reserved.
+            &copy; <?= date('Y') ?> Ecofone HRMS & Operations Platform. All rights reserved.
         </div>
     </div>
 

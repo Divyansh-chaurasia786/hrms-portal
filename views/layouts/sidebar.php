@@ -26,7 +26,7 @@ $page = $_GET['page'] ?? 'dashboard';
                 H
             </div>
             <div>
-                <h1 class="text-sm font-bold text-white tracking-wide">ENTERPRISE HRMS</h1>
+                <h1 class="text-sm font-bold text-white tracking-wide">Ecofone HRMS</h1>
                 <p class="text-[11px] text-indigo-400 font-medium tracking-wider uppercase"><?= strtoupper(str_replace('_', ' ', $role)) ?> PORTAL</p>
             </div>
         </div>
