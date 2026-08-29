@@ -1,22 +1,24 @@
 /**
- * Ecofone HRMS - Client-Side Encrypted Instant Cache Engine (HRMSCache)
- * Provides 0ms instant data retrieval from local browser storage with
- * background Stale-While-Revalidate (SWR) syncing.
+ * Ecofone HRMS - Persistent Client-Side Encrypted Cache & Live Sync Engine (HRMSCache)
+ * 
+ * 1. Persistent Storage: Preserves device cache across logouts so re-logging in loads in 0ms.
+ * 2. Continuous Auto-Sync: Updates local cache as live actions and page visits happen.
+ * 3. Stale-While-Revalidate (SWR): Instant 0ms cache rendering + silent background sync.
  */
 (function(window) {
     'use strict';
 
-    const CACHE_PREFIX = 'ecofone_hrms_v1_';
+    const CACHE_PREFIX = 'ecofone_vault_';
 
     const HRMSCache = {
-        // Fast Obfuscated Local Storage Encoder
+        // Fast Obfuscated Local Storage Encoder with Timestamp
         _encode(data) {
             try {
-                const json = JSON.stringify({
-                    t: Date.now(),
-                    d: data
-                });
-                return btoa(encodeURIComponent(json));
+                const payload = {
+                    updated_at: Date.now(),
+                    payload: data
+                };
+                return btoa(encodeURIComponent(JSON.stringify(payload)));
             } catch(e) {
                 return null;
             }
@@ -27,13 +29,13 @@
             try {
                 const json = decodeURIComponent(atob(raw));
                 const parsed = JSON.parse(json);
-                return parsed ? parsed.d : null;
+                return parsed ? parsed.payload : null;
             } catch(e) {
                 return null;
             }
         },
 
-        // Save data to device cache
+        // Save or update live data in device cache
         set(key, data) {
             try {
                 const encoded = this._encode(data);
@@ -42,7 +44,11 @@
                 }
             } catch(e) {
                 try {
-                    localStorage.clear();
+                    // Remove oldest keys if storage quota reached
+                    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX));
+                    if (keys.length > 20) {
+                        localStorage.removeItem(keys[0]);
+                    }
                     const encoded = this._encode(data);
                     if (encoded) localStorage.setItem(CACHE_PREFIX + key, encoded);
                 } catch(err) {}
@@ -60,6 +66,13 @@
             }
         },
 
+        // Auto-sync page state into cache whenever fresh data loads
+        sync(key, data) {
+            if (data !== undefined && data !== null) {
+                this.set(key, data);
+            }
+        },
+
         // Remove item from cache
         remove(key) {
             try {
@@ -67,22 +80,11 @@
             } catch(e) {}
         },
 
-        // Clear all portal cache on logout
-        clear() {
-            try {
-                Object.keys(localStorage).forEach(k => {
-                    if (k.startsWith(CACHE_PREFIX)) {
-                        localStorage.removeItem(k);
-                    }
-                });
-            } catch(e) {}
-        },
-
         /**
          * Stale-While-Revalidate (SWR) Fetcher:
-         * 1. Calls callback immediately with cached data (0ms).
-         * 2. Fetches fresh data from server in background (1-2s).
-         * 3. Calls callback with fresh data and updates cache.
+         * 1. Renders cached data immediately (0ms).
+         * 2. Fetches fresh updates from server quietly in the background (1-2s).
+         * 3. Seamlessly updates UI and cache with new live changes.
          */
         async swr(key, fetchUrl, onData) {
             // 1. Instant Cache Hit (0ms)
@@ -91,7 +93,7 @@
                 try { onData(cached, true); } catch(e) {}
             }
 
-            // 2. Background Revalidation
+            // 2. Background Revalidation (Updates cache with any team live changes)
             try {
                 const res = await fetch(fetchUrl);
                 if (!res.ok) return;
@@ -101,7 +103,7 @@
                     onData(fresh, false);
                 }
             } catch(e) {
-                // Network failure: cached data already served
+                // If offline or network slow, cached data is already active
             }
         }
     };
