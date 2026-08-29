@@ -314,6 +314,7 @@ if ($action) {
 
         case 'create-role': RoleController::create(); break;
     case 'delete-role': RoleController::delete(); break;
+    case 'grant-direct-wfh': WfhController::grantDirectWfh(); break;
     case 'apply-wfh': WfhController::apply(); break;
     case 'review-wfh': WfhController::review(); break;
     case 'set-hr-wfh': WfhController::setHrWfhRange(); break;

@@ -72,9 +72,9 @@ class WfhController {
             $req = $db->query("SELECT * FROM wfh_requests WHERE id = {$id}")->fetch(PDO::FETCH_ASSOC);
 
             if ($req) {
-                // STRICT CORPORATE RULE: Must be approved AT LEAST 1 DAY IN ADVANCE!
+                // STRICT CORPORATE RULE: Must be approved AT LEAST 1 DAY IN ADVANCE (unless Admin)!
                 $today = date('Y-m-d');
-                if ($action === 'approved' && $req['wfh_date'] <= $today) {
+                if ($action === 'approved' && $req['wfh_date'] <= $today && !isAdmin()) {
                     setFlash('error', "🚫 Approval Expired: WFH requests cannot be approved on or after the WFH date itself. The employee must take a Leave.");
                     header('Location: ?page=admin-wfh');
                     exit;
@@ -90,24 +90,70 @@ class WfhController {
         exit;
     }
 
-    public static function setHrWfhRange(): void {
+    public static function grantDirectWfh(): void {
         requireAuth('admin');
-        $user = authUser();
-
-        $startDate = trim($_POST['start_date'] ?? '');
-        $endDate = trim($_POST['end_date'] ?? '');
-
+        $hrUser = authUser();
         $db = getDBConnection();
-        if (!empty($startDate) && !empty($endDate) && $endDate >= $startDate) {
-            $stmt = $db->prepare("UPDATE users SET hr_wfh_start_date = ?, hr_wfh_end_date = ?, work_mode = 'wfh' WHERE id = ?");
-            $stmt->execute([$startDate, $endDate, $user['id']]);
-            setFlash('success', "HR WFH schedule set from " . formatDate($startDate) . " to " . formatDate($endDate) . ". System will auto-revert to Office Mode afterwards.");
-        } else {
-            // Clear HR WFH
-            $db->prepare("UPDATE users SET hr_wfh_start_date = NULL, hr_wfh_end_date = NULL, work_mode = 'office' WHERE id = ?")->execute([$user['id']]);
-            setFlash('success', "HR WFH cleared. Switched back to In-Office Mode.");
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $targetUserId = (int)($_POST['target_user_id'] ?? 0);
+            $fromDate = trim($_POST['from_date'] ?? '');
+            $toDate = trim($_POST['to_date'] ?? '');
+            $reason = trim($_POST['reason'] ?? 'Direct WFH granted by HR Administration');
+
+            if ($targetUserId <= 0 || empty($fromDate) || empty($toDate)) {
+                setFlash('error', 'Please select an employee and valid date range.');
+                header('Location: ?page=admin-wfh');
+                exit;
+            }
+
+            if ($toDate < $fromDate) {
+                setFlash('error', 'To Date cannot be before From Date.');
+                header('Location: ?page=admin-wfh');
+                exit;
+            }
+
+            $targetEmp = $db->query("SELECT id, name, emp_id, email FROM users WHERE id = {$targetUserId}")->fetch(PDO::FETCH_ASSOC);
+            if (!$targetEmp) {
+                setFlash('error', 'Selected employee not found.');
+                header('Location: ?page=admin-wfh');
+                exit;
+            }
+
+            // Loop through all dates in range and insert approved WFH
+            $current = strtotime($fromDate);
+            $end = strtotime($toDate);
+            $insertedCount = 0;
+
+            $stmtCheck = $db->prepare("SELECT id FROM wfh_requests WHERE user_id = ? AND wfh_date = ?");
+            $stmtInsert = $db->prepare("
+                INSERT INTO wfh_requests (user_id, wfh_date, reason, status, reviewed_by, reviewed_at) 
+                VALUES (?, ?, ?, 'approved', ?, NOW())
+            ");
+            $stmtUpdate = $db->prepare("
+                UPDATE wfh_requests 
+                SET status = 'approved', reason = ?, reviewed_by = ?, reviewed_at = NOW() 
+                WHERE id = ?
+            ");
+
+            while ($current <= $end) {
+                $curDate = date('Y-m-d', $current);
+                $stmtCheck->execute([$targetUserId, $curDate]);
+                $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+                if ($existing) {
+                    $stmtUpdate->execute([$reason, $hrUser['id'], $existing['id']]);
+                } else {
+                    $stmtInsert->execute([$targetUserId, $curDate, $reason, $hrUser['id']]);
+                }
+                $insertedCount++;
+                $current = strtotime('+1 day', $current);
+            }
+
+            $dateRangeStr = ($fromDate === $toDate) ? formatDate($fromDate) : (formatDate($fromDate) . " to " . formatDate($toDate));
+            setFlash('success', "🎉 WFH Successfully Granted to <strong>{$targetEmp['name']}</strong> for <strong>{$dateRangeStr}</strong> ({$insertedCount} Days). Remote attendance enabled!");
+            header('Location: ?page=admin-wfh');
+            exit;
         }
-        header('Location: ?page=admin-wfh');
-        exit;
     }
 }
