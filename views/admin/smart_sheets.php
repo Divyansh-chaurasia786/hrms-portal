@@ -17,7 +17,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 
 <div class="space-y-3 font-sans text-slate-800" x-data="realMsExcelApp" x-init="initApp(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= $initialSheetId ?>)">
     
-    <!-- 🟢 MICROSOFT EXCEL WINDOW WRAPPER -->
+    <!-- 🟢 MICROSOFT EXCEL WINDOW CONTAINER -->
     <div class="bg-[#107c41] text-white rounded-2xl shadow-2xl overflow-hidden border border-[#0d6535] flex flex-col">
         
         <!-- 1. TOP TITLE BAR (Excel Quick Access & File Title) -->
@@ -28,7 +28,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                     X
                 </div>
                 <div class="flex items-center gap-2 text-emerald-100">
-                    <button type="button" @click="saveAndSyncWorkbook()" title="AutoSave & Sync (Ctrl+S)" class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-800/80 hover:bg-emerald-900 border border-emerald-600 text-white font-bold transition cursor-pointer">
+                    <button type="button" @click="saveAndSyncWorkbook()" title="AutoSave & Sync (Ctrl+S)" class="flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-800/80 hover:bg-emerald-900 border border-emerald-600 text-white font-bold transition cursor-pointer">
                         <i data-lucide="save" class="w-3.5 h-3.5"></i>
                         <span class="text-[11px]" x-text="isSaving ? 'Syncing...' : 'Save & Sync'"></span>
                     </button>
@@ -36,23 +36,23 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                     <button type="button" @click="redo()" title="Redo (Ctrl+Y)" class="p-1 hover:bg-emerald-700/80 rounded transition cursor-pointer">↷</button>
                 </div>
 
-                <!-- Workbook Name -->
+                <!-- Editable Workbook Name -->
                 <div class="font-bold text-white tracking-wide flex items-center gap-1.5 pl-2 border-l border-emerald-600/60">
-                    <span x-text="currentSheetTitle + '.xlsx'"></span>
-                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-800 text-emerald-200">Cloud Synced</span>
+                    <input type="text" x-model="currentSheetTitle" @blur="renameCurrentSheet()" @keydown.enter="$event.target.blur()" class="bg-transparent text-white font-bold border-b border-transparent hover:border-emerald-400 focus:border-white focus:outline-none px-1 rounded transition max-w-[220px]">
+                    <span class="text-[10px] text-emerald-200">.xlsx</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-800 text-emerald-200">Saved to Cloud</span>
                 </div>
             </div>
 
-            <!-- Right: Search & Actions -->
+            <!-- Right: Fullscreen & File Import / Export -->
             <div class="flex items-center gap-2 flex-wrap">
-                <!-- Fullscreen Toggle Button -->
-                <button type="button" @click="sidebarCollapsed = !sidebarCollapsed" class="px-2.5 py-1 bg-emerald-800/90 hover:bg-emerald-900 text-white rounded-lg font-bold text-[11px] border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer" :title="sidebarCollapsed ? 'Show Sidebar' : 'View Fullscreen Excel'">
+                <button type="button" @click="sidebarCollapsed = !sidebarCollapsed" class="px-2.5 py-1 bg-emerald-800/90 hover:bg-emerald-900 text-white rounded-lg font-bold text-[11px] border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer" :title="sidebarCollapsed ? 'Show Sidebar' : 'Fullscreen Excel'">
                     <i data-lucide="maximize-2" class="w-3.5 h-3.5" x-show="!sidebarCollapsed"></i>
                     <i data-lucide="minimize-2" class="w-3.5 h-3.5" x-show="sidebarCollapsed" style="display: none;"></i>
                     <span x-text="sidebarCollapsed ? 'Exit Fullscreen' : 'Fullscreen Excel'"></span>
                 </button>
-                <button type="button" @click="uploadModalOpen = true" class="px-3 py-1 bg-white hover:bg-emerald-50 text-[#107c41] rounded-lg font-black text-[11px] shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-                    <i data-lucide="upload" class="w-3.5 h-3.5"></i> Ingest New Sheet
+                <button type="button" @click="importModalOpen = true" class="px-3 py-1 bg-white hover:bg-emerald-50 text-[#107c41] rounded-lg font-black text-[11px] shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="file-up" class="w-3.5 h-3.5"></i> File &rarr; Import
                 </button>
                 <button type="button" @click="exportAsCsv()" class="px-3 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg font-bold text-[11px] border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer">
                     <i data-lucide="download" class="w-3.5 h-3.5"></i> Export
@@ -60,7 +60,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
             </div>
         </div>
 
-        <!-- 2. EXCEL RIBBON TABS (File, Home, Insert, Data, View) -->
+        <!-- 2. EXCEL RIBBON MENU TABS -->
         <div class="bg-[#107c41] px-4 pt-1.5 flex items-center gap-1 text-xs select-none border-b border-emerald-800">
             <button type="button" @click="ribbonTab = 'home'" :class="ribbonTab === 'home' ? 'bg-[#f3f4f6] text-slate-900 font-bold shadow-xs' : 'text-white hover:bg-emerald-700/80 font-medium'" class="px-3.5 py-1.5 rounded-t-lg transition">Home</button>
             <button type="button" @click="ribbonTab = 'insert'" :class="ribbonTab === 'insert' ? 'bg-[#f3f4f6] text-slate-900 font-bold shadow-xs' : 'text-white hover:bg-emerald-700/80 font-medium'" class="px-3.5 py-1.5 rounded-t-lg transition">Insert</button>
@@ -146,8 +146,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
             <input type="text" 
                    x-model="formulaInput" 
                    @input="updateActiveCellValue()" 
-                   @keydown.enter="evaluateActiveCellFormula()"
-                   placeholder="Enter text, number, or formula (e.g. =SUM(E2:E10))..." 
+                   placeholder="Enter text, number, or formula..." 
                    class="flex-1 text-xs font-semibold text-slate-900 bg-transparent focus:outline-none">
         </div>
 
@@ -227,7 +226,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
         <!-- 8. REAL EXCEL BOTTOM SHEET TABS & STATUS BAR -->
         <div class="bg-[#f3f4f6] px-3 py-1.5 border-t border-slate-300 flex items-center justify-between text-xs text-slate-600 font-mono select-none flex-wrap gap-2">
             
-            <!-- Bottom Sheet Tabs (Click tab to switch, ✕ to delete) -->
+            <!-- Bottom Sheet Tabs (Click tab to switch, '+' adds instant blank worksheet, '✕' deletes) -->
             <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
                 <template x-for="(sh, idx) in allSheets" :key="sh.id">
                     <div class="flex items-center rounded-t-lg transition border-t-2 border-r border-l"
@@ -250,8 +249,12 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                     </div>
                 </template>
 
-                <button type="button" @click="uploadModalOpen = true" class="px-2.5 py-1 rounded-t-lg text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 transition flex items-center gap-1 cursor-pointer" title="Add New Sheet">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <!-- ➕ REAL EXCEL '+' BUTTON: ADDS BLANK WORKSHEET DIRECTLY WITH ZERO POPUPS! -->
+                <button type="button" 
+                        @click="addNewBlankSheet()" 
+                        class="px-2.5 py-1 rounded-t-lg text-xs font-black bg-slate-200 hover:bg-slate-300 hover:text-[#107c41] text-slate-700 transition flex items-center gap-1 cursor-pointer" 
+                        title="New Worksheet (+)">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
                 </button>
             </div>
 
@@ -268,65 +271,37 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
         </div>
     </div>
 
-    <!-- 📤 UPLOAD / INGEST MODAL -->
-    <div x-show="uploadModalOpen" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4" style="display:none;">
-        <div @click.away="uploadModalOpen = false" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+    <!-- 📤 FILE -> IMPORT MODAL (Opened ONLY from Ribbon File -> Import) -->
+    <div x-show="importModalOpen" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4" style="display:none;">
+        <div @click.away="importModalOpen = false" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
                         <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
                     </div>
-                    <h3 class="font-extrabold text-sm text-slate-900">Upload & Ingest Spreadsheet</h3>
+                    <h3 class="font-extrabold text-sm text-slate-900">File &rarr; Ingest Spreadsheet</h3>
                 </div>
-                <button type="button" @click="uploadModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <button type="button" @click="importModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
 
-            <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2" x-data="{ isSubmitting: false, selectedCat: 'auto' }" @submit="isSubmitting = true">
+            <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Sheet Title *</label>
                     <input type="text" name="sheet_title" required placeholder="e.g. BDA Lucknow Team, Monthly Sales Targets, Attendance" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Dataset Section / Category</label>
-                    <select name="category" x-model="selectedCat" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                        <option value="auto">⚡ Auto-Create Section & Sync Website-Wide</option>
-                        <option value="BDA & Sales Team">👥 BDA & Sales Team</option>
-                        <option value="Workforce Directory">👤 Employee & Staff Directory</option>
-                        <option value="Attendance Logs">⏱️ Attendance & Shift Records</option>
-                        <option value="Lead CRM & Calling">📞 BDA Calling & Leads</option>
-                        <option value="Payroll & Salary">💰 Payroll & Compensation</option>
-                        <option value="Targets & KPIs">🎯 Performance & Targets</option>
-                        <option value="Assets & Hardware">💻 Assets & Inventory</option>
-                        <option value="custom">+ Create New Custom Section...</option>
-                    </select>
-
-                    <div x-show="selectedCat === 'custom'" class="mt-2" style="display: none;">
-                        <input type="text" name="custom_category" placeholder="Enter New Section Name (e.g. Field Logistics, Vendor Roster)" class="w-full bg-emerald-50/60 border border-emerald-300 rounded-xl px-3 py-2 text-xs font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Link (Must be public link)</label>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Link (Public link)</label>
                     <input type="url" name="google_sheet_url" placeholder="https://docs.google.com/spreadsheets/d/1.../edit" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Or Upload File (Recommended .xlsx / .csv)</label>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Or Upload Excel / CSV File (.xlsx, .csv)</label>
                     <input type="file" name="sheet_file" accept=".csv, .xlsx, .xls, .tsv" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                 </div>
 
-                <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-900 text-[11px] space-y-1">
-                    <div class="font-bold flex items-center gap-1.5">
-                        <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-600"></i> Automatic 360° Website Sync:
-                    </div>
-                    <p class="text-[10px] text-emerald-800 leading-relaxed">
-                        Data upload hote hi <strong>Employee Directory, Attendance, aur Birthday Hub</strong> mein automatically sync ho kar naya top tab ban jayega!
-                    </p>
-                </div>
-
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="uploadModalOpen = false" :disabled="isSubmitting" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
+                    <button type="button" @click="importModalOpen = false" :disabled="isSubmitting" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
                     <button type="submit" :disabled="isSubmitting" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition flex items-center gap-2 cursor-pointer disabled:opacity-50">
                         <span x-show="!isSubmitting">Process & Ingest</span>
                         <span x-show="isSubmitting" class="flex items-center gap-1.5" style="display: none;">
@@ -342,7 +317,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('realMsExcelApp', () => ({
-        uploadModalOpen: false,
+        importModalOpen: false,
         allSheets: [],
         currentSheetId: 0,
         currentSheetTitle: '',
@@ -396,6 +371,43 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // ➕ NATIVE REAL EXCEL '+' CLICK: ADDS BLANK WORKSHEET TAB DIRECTLY (NO POPUP!)
+        async addNewBlankSheet() {
+            try {
+                const res = await fetch('?action=create-blank-smart-sheet', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success && data.sheet) {
+                    this.allSheets.push(data.sheet);
+                    this.currentSheetId = data.sheet.id;
+                    this.currentSheetTitle = data.sheet.title;
+                    this.columns = data.sheet.columns;
+                    this.rows = data.sheet.rows;
+                    this.selectCell(0, 0);
+                }
+            } catch(e) {
+                alert('Failed to add blank sheet');
+            }
+        },
+
+        async renameCurrentSheet() {
+            if (this.currentSheetId <= 0 || !this.currentSheetTitle.trim()) return;
+            const formData = new FormData();
+            formData.append('sheet_id', this.currentSheetId);
+            formData.append('title', this.currentSheetTitle.trim());
+
+            try {
+                await fetch('?action=rename-smart-sheet', {
+                    method: 'POST',
+                    body: formData
+                });
+                const target = this.allSheets.find(s => s.id === this.currentSheetId);
+                if (target) target.title = this.currentSheetTitle.trim();
+            } catch(e) {}
+        },
+
         selectCell(r, c) {
             this.activeCell.r = r;
             this.activeCell.c = c;
@@ -411,26 +423,13 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        evaluateActiveCellFormula() {
-            if (this.formulaInput.startsWith('=')) {
-                try {
-                    // Simple arithmetic / formula evaluation support
-                    let expr = this.formulaInput.substring(1).toUpperCase();
-                    if (expr.startsWith('SUM(')) {
-                        // e.g. =SUM(A1:A5)
-                        alert('Formula calculated');
-                    }
-                } catch(e) {}
-            }
-        },
-
         addRow() {
             const newRow = new Array(this.columns.length).fill('');
             this.rows.push(newRow);
         },
 
         addColumn() {
-            const newColName = 'Column ' + (this.columns.length + 1);
+            const newColName = this.getColLetter(this.columns.length);
             this.columns.push(newColName);
             this.rows.forEach(r => r.push(''));
         },
@@ -466,7 +465,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         applyCellBg(colorClass) {
-            // Apply background color to active cell
+            // Apply styling
         },
 
         undo() {},

@@ -19,6 +19,67 @@ class SmartSheetController {
         require __DIR__ . '/../views/admin/smart_sheets.php';
     }
 
+        public static function createBlankSheet(): void {
+        requireAuth('admin');
+        requireActiveShift();
+        $user = authUser();
+        $db = getDBConnection();
+
+        header('Content-Type: application/json');
+
+        // Determine next sheet number
+        $count = $db->query("SELECT COUNT(*) FROM smart_sheet_uploads")->fetchColumn() ?: 0;
+        $sheetTitle = 'Sheet ' . ($count + 1);
+
+        $defaultCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        $defaultRows = [];
+        for ($i = 0; $i < 15; $i++) {
+            $defaultRows[] = array_fill(0, count($defaultCols), '');
+        }
+
+        $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (uploaded_by, title, category, columns_json, rows_json, created_at) VALUES (?, ?, 'General Datasets', ?, ?, NOW())");
+        $stmt->execute([
+            $user['id'], 
+            $sheetTitle, 
+            json_encode($defaultCols, JSON_UNESCAPED_UNICODE), 
+            json_encode($defaultRows, JSON_UNESCAPED_UNICODE)
+        ]);
+
+        $newId = (int)$db->lastInsertId();
+
+        echo json_encode([
+            'success' => true,
+            'sheet' => [
+                'id' => $newId,
+                'title' => $sheetTitle,
+                'category' => 'General Datasets',
+                'record_count' => count($defaultRows),
+                'columns' => $defaultCols,
+                'rows' => $defaultRows
+            ]
+        ]);
+        exit;
+    }
+
+    public static function renameSheet(): void {
+        requireAuth('admin');
+        requireActiveShift();
+        $db = getDBConnection();
+
+        $sheetId = (int)($_POST['sheet_id'] ?? 0);
+        $newTitle = trim($_POST['title'] ?? '');
+
+        header('Content-Type: application/json');
+        if ($sheetId > 0 && !empty($newTitle)) {
+            $db->prepare("UPDATE smart_sheet_uploads SET title = ? WHERE id = ?")->execute([$newTitle, $sheetId]);
+            echo json_encode(['success' => true, 'title' => $newTitle]);
+            exit;
+        }
+
+        echo json_encode(['success' => false]);
+        exit;
+    }
+
     public static function getSheetData(): void {
         requireAuth();
         $db = getDBConnection();
