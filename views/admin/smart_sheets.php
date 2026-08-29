@@ -1038,6 +1038,7 @@ document.addEventListener('alpine:init', () => {
                 defaultFontSize: 11,
                 defaultFont: 'Segoe UI',
                 defaultColWidth: 120,
+                userInfo: false,
                 enableAddRow: true,
                 enableAddBackTop: true,
                 data: sheetsData,
