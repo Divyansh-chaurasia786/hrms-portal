@@ -27,11 +27,12 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 <script src="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js"></script>
 
 <style>
-/* 100% Full-Width Responsive Container without Blank Spaces */
+/* 100% Full-Width Clean Excel Studio Wrapper */
 #luckysheet-wrapper {
     width: 100% !important;
     max-width: 100% !important;
     position: relative;
+    box-sizing: border-box;
 }
 
 #luckysheet {
@@ -41,21 +42,23 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: 800px !important;
+    height: calc(100vh - 190px) !important;
+    min-height: 680px !important;
     border-radius: 0 0 16px 16px;
     overflow: hidden;
 }
 
-/* Force all Luckysheet internal containers to stretch to full width */
+/* Force all Luckysheet internal containers to stretch to 100% width */
 .luckysheet,
 .luckysheet-workarea,
 .luckysheet-wa-calculate,
 .luckysheet-grid-window,
 .luckysheet-sheet-area {
     width: 100% !important;
+    max-width: 100% !important;
 }
 
-/* Clean Toolbar styling */
+/* Fix & Beautify Top Toolbar */
 .luckysheet-toolbar {
     width: 100% !important;
     background: #f8fafc !important;
@@ -64,14 +67,21 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
     align-items: center !important;
     overflow-x: auto !important;
     border-bottom: 1px solid #cbd5e1 !important;
+    height: 42px !important;
 }
 
 .luckysheet-toolbar::-webkit-scrollbar {
-    height: 4px;
+    height: 3px;
 }
 .luckysheet-toolbar::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
+}
+
+/* Hide / suppress the floating overflow toolbar that blocked the cells */
+.luckysheet-toolbar-more-panel,
+.luckysheet-cols-menu-item.more-panel {
+    display: none !important;
 }
 
 /* Crisp Formula Bar */
@@ -83,6 +93,12 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 
 .luckysheet-wa-editor {
     font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
+}
+
+/* Bottom Sheet Bar */
+.luckysheet-sheet-area {
+    background: #f1f5f9 !important;
+    border-top: 1px solid #cbd5e1 !important;
 }
 </style>
 
@@ -109,7 +125,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
         </div>
 
         <!-- Center: 🔍 GLOBAL EXCEL TOP SEARCH BAR -->
-        <div class="relative flex-1 max-w-xs min-w-[220px]">
+        <div class="relative flex-1 max-w-sm min-w-[240px]">
             <i data-lucide="search" class="w-3.5 h-3.5 text-emerald-300 absolute left-3 top-2.5"></i>
             <input type="text" 
                    x-model="searchQuery" 
@@ -221,9 +237,7 @@ document.addEventListener('alpine:init', () => {
             this.currentSheetId = defaultId;
 
             window.addEventListener('resize', () => {
-                if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
-                    luckysheet.resize();
-                }
+                this.resizeLuckysheet();
             });
 
             if (defaultId > 0) {
@@ -233,17 +247,20 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        resizeLuckysheet() {
+            if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
+                luckysheet.resize();
+            }
+        },
+
         toggleFullscreen() {
             this.sidebarCollapsed = !this.sidebarCollapsed;
             setTimeout(() => {
-                if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
-                    luckysheet.resize();
-                }
+                this.resizeLuckysheet();
                 window.dispatchEvent(new Event('resize'));
             }, 320);
         },
 
-        // 🔍 GLOBAL TOP SEARCH IN EXCEL ENGINE
         searchInExcel() {
             this.searchMatches = [];
             this.currentMatchIdx = 0;
@@ -284,14 +301,9 @@ document.addEventListener('alpine:init', () => {
             if (!this.searchMatches[idx] || typeof luckysheet === 'undefined') return;
             const target = this.searchMatches[idx];
             
-            // Set active selection on the matched cell and scroll to it
             luckysheet.setRangeShow({
                 row: [target.r, target.r],
                 column: [target.c, target.c]
-            }, {
-                success: () => {
-                    // Luckysheet auto scrolls to active selection
-                }
             });
         },
 
@@ -321,7 +333,7 @@ document.addEventListener('alpine:init', () => {
                         maxLen = Math.max(maxLen, String(r[cIdx]).length);
                     }
                 });
-                customColLen[cIdx] = Math.min(Math.max(maxLen * 10 + 30, 110), 280);
+                customColLen[cIdx] = Math.min(Math.max(maxLen * 10 + 35, 120), 280);
 
                 celldata.push({
                     r: 0,
@@ -478,9 +490,7 @@ document.addEventListener('alpine:init', () => {
             });
 
             setTimeout(() => {
-                if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
-                    luckysheet.resize();
-                }
+                this.resizeLuckysheet();
             }, 100);
         },
 
