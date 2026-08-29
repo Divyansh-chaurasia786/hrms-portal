@@ -288,7 +288,18 @@ document.addEventListener('alpine:init', () => {
                 this.resizeLuckysheet();
             });
 
-            // ⚡ Check Local Device Cache First (0ms instant render)
+            // ⚡ 1. Check if Multi-Sheet Workbook is preserved in Device Vault
+            let savedMultiSheets = null;
+            if (window.HRMSCache) {
+                savedMultiSheets = window.HRMSCache.get('excel_multi_sheets_vault');
+            }
+
+            if (savedMultiSheets && Array.isArray(savedMultiSheets) && savedMultiSheets.length > 0) {
+                this.createLuckysheetInstance(savedMultiSheets);
+                return;
+            }
+
+            // ⚡ 2. Fallback to initial server preloaded data
             let activeData = null;
             if (initialData && initialData.id > 0) {
                 activeData = initialData;
@@ -629,6 +640,11 @@ document.addEventListener('alpine:init', () => {
 
             this.isEngineLoading = false;
             this.isFetchingSheet = false;
+
+            // Auto-persist active sheets in device vault
+            if (window.HRMSCache && Array.isArray(sheetsData) && sheetsData.length > 0) {
+                window.HRMSCache.set('excel_multi_sheets_vault', sheetsData);
+            }
 
             setTimeout(() => {
                 this.resizeLuckysheet();
