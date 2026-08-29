@@ -320,13 +320,21 @@ class AttendanceController {
         exit;
     }
 
-    public static function getTodayAttendanceForUser(int $userId): ?array {
+        public static function getTodayAttendanceForUser(int $userId): ?array {
+        static $cachedAtt = [];
+        if (isset($cachedAtt[$userId])) {
+            return $cachedAtt[$userId];
+        }
+
         $db = getDBConnection();
         $today = date('Y-m-d');
         $stmt = $db->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
         $stmt->execute([$userId, $today]);
         $att = $stmt->fetch();
-        if (!$att) return null;
+        if (!$att) {
+            $cachedAtt[$userId] = null;
+            return null;
+        }
 
         // Fetch latest session to ensure accurate current active session clock_in time
         $latestSess = $db->query("SELECT * FROM attendance_sessions WHERE attendance_id = {$att['id']} ORDER BY session_number DESC, id DESC LIMIT 1")->fetch();
@@ -338,6 +346,7 @@ class AttendanceController {
                 $att['clock_out'] = $latestSess['clock_out'];
             }
         }
+        $cachedAtt[$userId] = $att;
         return $att;
     }
 

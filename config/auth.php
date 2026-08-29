@@ -69,11 +69,17 @@ function clearAuthCookie(): void {
 }
 
 function authUser(): ?array {
+    static $requestCachedUser = null;
+    static $alreadyVerifiedInRequest = false;
+
+    if ($alreadyVerifiedInRequest) {
+        return $requestCachedUser;
+    }
+
     $sessionUser = $_SESSION['user'] ?? null;
     $sessionToken = $_SESSION['user_session_token'] ?? null;
 
     if (!empty($sessionUser) && is_array($sessionUser) && !empty($sessionUser['id'])) {
-        // Enforce Single-Device & Active Status check on every single request
         try {
             $db = getDBConnection();
             $stmt = $db->prepare("SELECT id, name, role, email, status, is_dismissed, dismissal_reason, force_logout_at, current_session_token FROM users WHERE id = ?");
@@ -85,16 +91,19 @@ function authUser(): ?array {
                 if (!empty($dbUser['is_dismissed']) || $dbUser['status'] === 'inactive') {
                     unset($_SESSION['user'], $_SESSION['user_session_token']);
                     clearAuthCookie();
+                    $alreadyVerifiedInRequest = true;
+                    $requestCachedUser = null;
                     return null;
                 }
 
                 // 2. Check Single-Device Conflict: If another device logged in and generated a new session token
                 $dbToken = $dbUser['current_session_token'] ?? '';
                 if (!empty($dbToken) && !empty($sessionToken) && !hash_equals($dbToken, $sessionToken)) {
-                    // Previous device session terminated
                     unset($_SESSION['user'], $_SESSION['user_session_token']);
                     clearAuthCookie();
-                    setFlash('error', '🚨 Logged Out from Previous Device: Your account was just logged in on another device or browser. Only one active device is allowed at a time.');
+                    setFlash('error', '🚨 Logged Out from Previous Device: Your account was just logged in on another device or browser.');
+                    $alreadyVerifiedInRequest = true;
+                    $requestCachedUser = null;
                     return null;
                 }
 
@@ -106,14 +115,20 @@ function authUser(): ?array {
                         unset($_SESSION['user'], $_SESSION['user_session_token']);
                         clearAuthCookie();
                         setFlash('error', '⚠️ Session Terminated: Your session has been revoked by HR Administration.');
+                        $alreadyVerifiedInRequest = true;
+                        $requestCachedUser = null;
                         return null;
                     }
                 }
 
-                return $sessionUser;
+                $alreadyVerifiedInRequest = true;
+                $requestCachedUser = $sessionUser;
+                return $requestCachedUser;
             }
         } catch (\Throwable $e) {
-            return $sessionUser;
+            $alreadyVerifiedInRequest = true;
+            $requestCachedUser = $sessionUser;
+            return $requestCachedUser;
         }
     }
 
@@ -135,7 +150,9 @@ function authUser(): ?array {
                         $user['logged_in_at'] = time();
                         $_SESSION['user'] = $user;
                         $_SESSION['user_session_token'] = $dbToken;
-                        return $user;
+                        $alreadyVerifiedInRequest = true;
+                        $requestCachedUser = $user;
+                        return $requestCachedUser;
                     }
                 }
                 clearAuthCookie();
@@ -143,6 +160,8 @@ function authUser(): ?array {
         }
     }
 
+    $alreadyVerifiedInRequest = true;
+    $requestCachedUser = null;
     return null;
 }
 
