@@ -55,7 +55,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
     width: 100% !important;
 }
 
-/* Full Width Toolbar showing all instruments */
+/* Clean Toolbar styling */
 .luckysheet-toolbar {
     width: 100% !important;
     background: #f8fafc !important;
@@ -105,6 +105,23 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                     <span class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-800 text-emerald-200 font-bold">Auto-Synced</span>
                 </div>
                 <p class="text-[11px] text-emerald-100/80">All 400+ Formulas • Charts • Conditional Formatting • Filter & Sort • Data Validation • Live Two-Way Sync</p>
+            </div>
+        </div>
+
+        <!-- Center: 🔍 GLOBAL EXCEL TOP SEARCH BAR -->
+        <div class="relative flex-1 max-w-xs min-w-[220px]">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-emerald-300 absolute left-3 top-2.5"></i>
+            <input type="text" 
+                   x-model="searchQuery" 
+                   @input.debounce.250ms="searchInExcel()" 
+                   @keydown.enter="searchNextInExcel()"
+                   placeholder="Search in sheet (e.g. name, date, value)..." 
+                   class="w-full bg-emerald-900/80 hover:bg-emerald-900 focus:bg-emerald-950 text-white placeholder-emerald-200/60 border border-emerald-600 focus:border-white rounded-xl pl-8 pr-16 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-white transition shadow-inner">
+            
+            <!-- Search Match Counter & Next Button -->
+            <div class="absolute right-2 top-1.5 flex items-center gap-1" x-show="searchQuery.trim()">
+                <span class="text-[10px] font-mono text-emerald-200" x-text="searchMatches.length > 0 ? (currentMatchIdx + 1) + '/' + searchMatches.length : '0'"></span>
+                <button type="button" @click="searchNextInExcel()" class="p-0.5 hover:bg-emerald-700 rounded text-white" title="Next Match">▼</button>
             </div>
         </div>
 
@@ -193,6 +210,9 @@ document.addEventListener('alpine:init', () => {
         allSheets: [],
         currentSheetId: 0,
         currentSheetTitle: 'Excel Workbook',
+        searchQuery: '',
+        searchMatches: [],
+        currentMatchIdx: 0,
         isSaving: false,
         syncSuccessBanner: false,
 
@@ -200,7 +220,6 @@ document.addEventListener('alpine:init', () => {
             this.allSheets = sheetList || [];
             this.currentSheetId = defaultId;
 
-            // Handle window resize dynamically
             window.addEventListener('resize', () => {
                 if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
                     luckysheet.resize();
@@ -224,6 +243,58 @@ document.addEventListener('alpine:init', () => {
             }, 320);
         },
 
+        // 🔍 GLOBAL TOP SEARCH IN EXCEL ENGINE
+        searchInExcel() {
+            this.searchMatches = [];
+            this.currentMatchIdx = 0;
+            const q = this.searchQuery.trim().toLowerCase();
+            if (!q || typeof luckysheet === 'undefined') return;
+
+            const fullSheet = luckysheet.getSheetData();
+            if (!fullSheet) return;
+
+            for (let r = 0; r < fullSheet.length; r++) {
+                if (!fullSheet[r]) continue;
+                for (let c = 0; c < fullSheet[r].length; c++) {
+                    const cell = fullSheet[r][c];
+                    if (cell && (cell.m !== undefined || cell.v !== undefined)) {
+                        const strVal = String(cell.m !== undefined ? cell.m : cell.v).toLowerCase();
+                        if (strVal.includes(q)) {
+                            this.searchMatches.push({ r, c });
+                        }
+                    }
+                }
+            }
+
+            if (this.searchMatches.length > 0) {
+                this.jumpToMatch(0);
+            }
+        },
+
+        searchNextInExcel() {
+            if (this.searchMatches.length === 0) {
+                this.searchInExcel();
+                return;
+            }
+            this.currentMatchIdx = (this.currentMatchIdx + 1) % this.searchMatches.length;
+            this.jumpToMatch(this.currentMatchIdx);
+        },
+
+        jumpToMatch(idx) {
+            if (!this.searchMatches[idx] || typeof luckysheet === 'undefined') return;
+            const target = this.searchMatches[idx];
+            
+            // Set active selection on the matched cell and scroll to it
+            luckysheet.setRangeShow({
+                row: [target.r, target.r],
+                column: [target.c, target.c]
+            }, {
+                success: () => {
+                    // Luckysheet auto scrolls to active selection
+                }
+            });
+        },
+
         async loadAndRenderSheet(sheetId) {
             this.currentSheetId = sheetId;
             try {
@@ -243,7 +314,6 @@ document.addEventListener('alpine:init', () => {
             const rowCount = Math.max(rows.length + 30, 80);
             const colCount = Math.max(columns.length + 12, 28);
 
-            // Calculate Optimal Column Widths
             columns.forEach((colName, cIdx) => {
                 let maxLen = String(colName).length;
                 rows.forEach(r => {
@@ -253,7 +323,6 @@ document.addEventListener('alpine:init', () => {
                 });
                 customColLen[cIdx] = Math.min(Math.max(maxLen * 10 + 30, 110), 280);
 
-                // Header Row (Row 0)
                 celldata.push({
                     r: 0,
                     c: cIdx,
@@ -270,7 +339,6 @@ document.addEventListener('alpine:init', () => {
                 });
             });
 
-            // Data Rows (Row 1+)
             rows.forEach((row, rIdx) => {
                 if (Array.isArray(row)) {
                     row.forEach((cellVal, cIdx) => {
@@ -409,7 +477,6 @@ document.addEventListener('alpine:init', () => {
                 data: sheetsData
             });
 
-            // Ensure instant resize to fill full width
             setTimeout(() => {
                 if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
                     luckysheet.resize();
