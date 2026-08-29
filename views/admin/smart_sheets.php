@@ -42,12 +42,23 @@ $initialPayload = [
 
 <style>
 /* 📗 MICROSOFT EXCEL 2021 AUTHENTIC FLUENT DESIGN SYSTEM */
+body[data-page="admin-smart-sheets"] {
+    overflow: hidden !important;
+}
+
+body[data-page="admin-smart-sheets"] main {
+    padding-bottom: 4px !important;
+    overflow: hidden !important;
+}
+
 #luckysheet-wrapper {
     width: 100% !important;
     max-width: 100% !important;
     position: relative;
     box-sizing: border-box;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+    height: calc(100vh - 145px) !important;
+    overflow: hidden !important;
 }
 
 #luckysheet {
@@ -57,10 +68,9 @@ $initialPayload = [
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: calc(100vh - 175px) !important;
-    min-height: 720px !important;
-    border-radius: 0 0 12px 12px;
-    overflow: hidden;
+    height: 100% !important;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden !important;
 }
 
 /* Force all Luckysheet internal containers and canvas to stretch to 100% width */
