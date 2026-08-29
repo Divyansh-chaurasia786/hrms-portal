@@ -7,35 +7,57 @@ $db = getDBConnection();
 $tls = $db->query("SELECT id, name, emp_id, designation, avatar, assigned_office_location, temp_office_location, temp_location_expires_at, temp_location_days FROM users WHERE role = 'team_lead' AND status = 'active'")->fetchAll();
 $officeLocations = getOfficeLocations();
 
-// For each TL, fetch team performance summary and feedback history
+// High-Speed Bulk Fetch: 0 N+1 database queries
+$allActiveEmployees = $db->query("SELECT id, name, designation, reporting_tl_id FROM users WHERE status = 'active'")->fetchAll();
+$tlMembersMap = [];
+foreach ($allActiveEmployees as $emp) {
+    if (!empty($emp['reporting_tl_id'])) {
+        $tlMembersMap[$emp['reporting_tl_id']][] = $emp;
+    }
+}
+
+$allFeedbacks = $db->query("
+    SELECT f.*, hr.name as hr_name
+    FROM tl_feedbacks f
+    JOIN users hr ON f.hr_id = hr.id
+    ORDER BY f.created_at DESC
+")->fetchAll();
+$tlFeedbacksMap = [];
+foreach ($allFeedbacks as $fb) {
+    $tlFeedbacksMap[$fb['tl_id']][] = $fb;
+}
+
+$allTasks = $db->query("
+    SELECT t.id, t.title, t.status, t.created_by, t.assigned_to, t.due_date, t.priority, t.created_at, u.name as assigned_name
+    FROM tasks t
+    LEFT JOIN users u ON t.assigned_to = u.id
+    ORDER BY t.created_at DESC
+")->fetchAll();
+
 $tlReports = [];
 foreach ($tls as $tl) {
-    $teamMembers = $db->query("SELECT id, name, designation FROM users WHERE reporting_tl_id = {$tl['id']} AND status = 'active'")->fetchAll();
-    $memberIds = array_column($teamMembers, 'id');
-    $inClause = !empty($memberIds) ? implode(',', $memberIds) : '0';
+    $tlId = (int)$tl['id'];
+    $teamMembers = $tlMembersMap[$tlId] ?? [];
+    $memberIds = array_flip(array_column($teamMembers, 'id'));
 
-    $totalTasks = (int)$db->query("SELECT COUNT(*) FROM tasks WHERE created_by = {$tl['id']} OR assigned_to IN ($inClause)")->fetchColumn();
-    $completedTasks = (int)$db->query("SELECT COUNT(*) FROM tasks WHERE (created_by = {$tl['id']} OR assigned_to IN ($inClause)) AND status = 'completed'")->fetchColumn();
-    $reviewTasks = (int)$db->query("SELECT COUNT(*) FROM tasks WHERE (created_by = {$tl['id']} OR assigned_to IN ($inClause)) AND status = 'review'")->fetchColumn();
-    $inProgressTasks = (int)$db->query("SELECT COUNT(*) FROM tasks WHERE (created_by = {$tl['id']} OR assigned_to IN ($inClause)) AND status = 'in_progress'")->fetchColumn();
+    $totalTasks = 0;
+    $completedTasks = 0;
+    $reviewTasks = 0;
+    $inProgressTasks = 0;
+    $recentTasks = [];
 
-    $recentTasks = $db->query("
-        SELECT t.*, u.name as assigned_name
-        FROM tasks t
-        JOIN users u ON t.assigned_to = u.id
-        WHERE t.created_by = {$tl['id']} OR t.assigned_to IN ($inClause)
-        ORDER BY t.created_at DESC
-        LIMIT 4
-    ")->fetchAll();
-
-    // Fetch all historical feedbacks for this TL
-    $feedbacks = $db->query("
-        SELECT f.*, hr.name as hr_name
-        FROM tl_feedbacks f
-        JOIN users hr ON f.hr_id = hr.id
-        WHERE f.tl_id = {$tl['id']}
-        ORDER BY f.created_at DESC
-    ")->fetchAll();
+    foreach ($allTasks as $t) {
+        $isRelated = ($t['created_by'] == $tlId || isset($memberIds[$t['assigned_to']]));
+        if ($isRelated) {
+            $totalTasks++;
+            if ($t['status'] === 'completed') $completedTasks++;
+            elseif ($t['status'] === 'review') $reviewTasks++;
+            elseif ($t['status'] === 'in_progress') $inProgressTasks++;
+            if (count($recentTasks) < 4) {
+                $recentTasks[] = $t;
+            }
+        }
+    }
 
     $tlReports[] = [
         'tl' => $tl,
@@ -45,7 +67,7 @@ foreach ($tls as $tl) {
         'in_progress' => $inProgressTasks,
         'review' => $reviewTasks,
         'recent_tasks' => $recentTasks,
-        'feedbacks' => $feedbacks
+        'feedbacks' => $tlFeedbacksMap[$tlId] ?? []
     ];
 }
 

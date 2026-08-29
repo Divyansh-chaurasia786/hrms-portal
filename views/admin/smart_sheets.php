@@ -5,7 +5,6 @@ $db = getDBConnection();
 
 $sheets = $db->query("
     SELECT s.id, s.title, s.category, s.uploaded_by, s.created_at, 
-           COALESCE(JSON_LENGTH(s.rows_json), 0) as record_count, 
            u.name as uploader_name 
     FROM smart_sheet_uploads s 
     JOIN users u ON s.uploaded_by = u.id 

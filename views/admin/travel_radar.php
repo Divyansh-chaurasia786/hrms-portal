@@ -6,17 +6,24 @@ $selectedDate = !empty($_GET['date']) ? trim($_GET['date']) : date('Y-m-d');
 $selectedUserId = !empty($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
 
 // Fetch all active field staff for $selectedDate
+// Single High-Speed JOIN query without correlated subqueries
 $fieldEmployees = $db->query("
     SELECT u.id, u.name, u.emp_id, u.designation, u.work_mode, u.department_name, u.avatar,
            a.id as attendance_id, a.clock_in, a.clock_out, a.punch_in_lat, a.punch_in_lng, a.punch_out_lat, a.punch_out_lng,
            a.address as punch_address,
            tl.name as tl_name,
-           (SELECT COUNT(*) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$selectedDate}') as waypoints_count,
-           (SELECT COALESCE(SUM(l.distance_meters), 0) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$selectedDate}') as total_distance_meters,
-           (SELECT l.speed FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$selectedDate}' ORDER BY l.id DESC LIMIT 1) as current_speed
+           COALESCE(stats.waypoints_count, 0) as waypoints_count,
+           COALESCE(stats.total_distance_meters, 0) as total_distance_meters,
+           COALESCE(stats.current_speed, 0) as current_speed
     FROM users u
     LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$selectedDate}'
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
+    LEFT JOIN (
+        SELECT user_id, COUNT(*) as waypoints_count, SUM(distance_meters) as total_distance_meters, MAX(speed) as current_speed
+        FROM employee_travel_logs
+        WHERE recorded_at >= '{$selectedDate} 00:00:00' AND recorded_at <= '{$selectedDate} 23:59:59'
+        GROUP BY user_id
+    ) stats ON stats.user_id = u.id
     WHERE (u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%') AND u.status = 'active'
     ORDER BY CASE WHEN a.clock_in IS NOT NULL AND a.clock_out IS NULL THEN 1 ELSE 2 END, u.name ASC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
