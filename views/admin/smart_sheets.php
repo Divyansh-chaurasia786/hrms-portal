@@ -248,7 +248,7 @@ body[data-page="admin-smart-sheets"] main {
 <div class="font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= htmlspecialchars(json_encode($initialPayload)) ?>)">
     
     <!-- 🟢 MICROSOFT EXCEL 2021 TOP TITLE & RIBBON HEADER -->
-    <div class="bg-[#107c41] text-white rounded-t-xl shadow-lg border border-[#0d6535] overflow-hidden select-none w-full">
+    <div class="bg-[#107c41] text-white rounded-t-xl shadow-lg border border-[#0d6535] select-none w-full relative z-40 overflow-visible">
         
         <!-- Top App Bar: Title, Search, Status & Actions -->
         <div class="px-3 py-2 flex items-center justify-between gap-3 flex-wrap border-b border-[#0d6535]/60">
@@ -305,14 +305,33 @@ body[data-page="admin-smart-sheets"] main {
                         <span>Pull Live HRMS Data</span>
                         <i data-lucide="chevron-down" class="w-3 h-3"></i>
                     </button>
-                    <div x-show="liveMenuOpen" @click.away="liveMenuOpen = false" class="absolute right-0 mt-1 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 py-1 z-50 text-slate-800 text-xs font-medium" style="display: none;">
-                        <button type="button" @click="pullLivePortalData('employees'); liveMenuOpen = false;" class="w-full px-3 py-2 text-left hover:bg-emerald-50 flex items-center gap-2 text-slate-700">
-                            <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i>
-                            <span>👥 Pull All Live Employees</span>
+                    <div x-show="liveMenuOpen" 
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         @click.away="liveMenuOpen = false" 
+                         class="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-xl shadow-2xl border border-slate-300 py-1.5 z-50 text-slate-800 text-xs font-medium divide-y divide-slate-100" 
+                         style="display: none;">
+                        <button type="button" @click="pullLivePortalData('employees'); liveMenuOpen = false;" class="w-full px-3.5 py-2.5 text-left hover:bg-emerald-50 hover:text-emerald-900 flex items-center gap-2.5 text-slate-700 transition cursor-pointer">
+                            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-900">Pull All Live Employees</div>
+                                <div class="text-[10px] text-slate-400">Master Workforce Directory</div>
+                            </div>
                         </button>
-                        <button type="button" @click="pullLivePortalData('attendance'); liveMenuOpen = false;" class="w-full px-3 py-2 text-left hover:bg-emerald-50 flex items-center gap-2 text-slate-700">
-                            <i data-lucide="clock" class="w-4 h-4 text-indigo-600"></i>
-                            <span>🕒 Pull Today's Live Attendance</span>
+                        <button type="button" @click="pullLivePortalData('attendance'); liveMenuOpen = false;" class="w-full px-3.5 py-2.5 text-left hover:bg-indigo-50 hover:text-indigo-900 flex items-center gap-2.5 text-slate-700 transition cursor-pointer">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                                <i data-lucide="clock" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-900">Pull Today's Attendance</div>
+                                <div class="text-[10px] text-slate-400">Live punch status & hours</div>
+                            </div>
                         </button>
                     </div>
                 </div>
