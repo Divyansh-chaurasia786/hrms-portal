@@ -775,7 +775,61 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
                 }
             }
         }
-        return ['columns' => $columns, 'rows' => $rows];
+            // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
+    if (!empty($columns) && !empty($rows)) {
+        // 1. Remove trailing completely empty rows
+        $cleanRows = [];
+        foreach ($rows as $r) {
+            $hasData = false;
+            foreach ($r as $c) {
+                if (!empty(trim((string)$c))) {
+                    $hasData = true;
+                    break;
+                }
+            }
+            if ($hasData) {
+                $cleanRows[] = $r;
+            }
+        }
+        $rows = $cleanRows;
+
+        // 2. Find valid columns that contain headers or data
+        $validColIndices = [];
+        foreach ($columns as $idx => $cName) {
+            $colHasData = !empty(trim((string)$cName));
+            if (!$colHasData) {
+                foreach ($rows as $r) {
+                    if (!empty(trim((string)($r[$idx] ?? '')))) {
+                        $colHasData = true;
+                        break;
+                    }
+                }
+            }
+            if ($colHasData) {
+                $validColIndices[] = $idx;
+            }
+        }
+
+        if (!empty($validColIndices)) {
+            $cleanColumns = [];
+            foreach ($validColIndices as $idx) {
+                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
+            }
+            $columns = $cleanColumns;
+
+            $trimmedRows = [];
+            foreach ($rows as $r) {
+                $rowCells = [];
+                foreach ($validColIndices as $idx) {
+                    $rowCells[] = trim((string)($r[$idx] ?? ''));
+                }
+                $trimmedRows[] = $rowCells;
+            }
+            $rows = $trimmedRows;
+        }
+    }
+
+    return ['columns' => $columns, 'rows' => $rows];
     }
 
     // --- 2. HANDLE UPLOADED FILE ---
@@ -823,7 +877,61 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
                             $columns = array_shift($parsedSheetRows);
                             $rows = $parsedSheetRows;
                             $zip->close();
-                            return ['columns' => $columns, 'rows' => $rows];
+                                // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
+    if (!empty($columns) && !empty($rows)) {
+        // 1. Remove trailing completely empty rows
+        $cleanRows = [];
+        foreach ($rows as $r) {
+            $hasData = false;
+            foreach ($r as $c) {
+                if (!empty(trim((string)$c))) {
+                    $hasData = true;
+                    break;
+                }
+            }
+            if ($hasData) {
+                $cleanRows[] = $r;
+            }
+        }
+        $rows = $cleanRows;
+
+        // 2. Find valid columns that contain headers or data
+        $validColIndices = [];
+        foreach ($columns as $idx => $cName) {
+            $colHasData = !empty(trim((string)$cName));
+            if (!$colHasData) {
+                foreach ($rows as $r) {
+                    if (!empty(trim((string)($r[$idx] ?? '')))) {
+                        $colHasData = true;
+                        break;
+                    }
+                }
+            }
+            if ($colHasData) {
+                $validColIndices[] = $idx;
+            }
+        }
+
+        if (!empty($validColIndices)) {
+            $cleanColumns = [];
+            foreach ($validColIndices as $idx) {
+                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
+            }
+            $columns = $cleanColumns;
+
+            $trimmedRows = [];
+            foreach ($rows as $r) {
+                $rowCells = [];
+                foreach ($validColIndices as $idx) {
+                    $rowCells[] = trim((string)($r[$idx] ?? ''));
+                }
+                $trimmedRows[] = $rowCells;
+            }
+            $rows = $trimmedRows;
+        }
+    }
+
+    return ['columns' => $columns, 'rows' => $rows];
                         }
                     }
                 }
@@ -853,7 +961,61 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
                 if (!empty($xmlRows)) {
                     $columns = array_shift($xmlRows);
                     $rows = $xmlRows;
-                    return ['columns' => $columns, 'rows' => $rows];
+                        // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
+    if (!empty($columns) && !empty($rows)) {
+        // 1. Remove trailing completely empty rows
+        $cleanRows = [];
+        foreach ($rows as $r) {
+            $hasData = false;
+            foreach ($r as $c) {
+                if (!empty(trim((string)$c))) {
+                    $hasData = true;
+                    break;
+                }
+            }
+            if ($hasData) {
+                $cleanRows[] = $r;
+            }
+        }
+        $rows = $cleanRows;
+
+        // 2. Find valid columns that contain headers or data
+        $validColIndices = [];
+        foreach ($columns as $idx => $cName) {
+            $colHasData = !empty(trim((string)$cName));
+            if (!$colHasData) {
+                foreach ($rows as $r) {
+                    if (!empty(trim((string)($r[$idx] ?? '')))) {
+                        $colHasData = true;
+                        break;
+                    }
+                }
+            }
+            if ($colHasData) {
+                $validColIndices[] = $idx;
+            }
+        }
+
+        if (!empty($validColIndices)) {
+            $cleanColumns = [];
+            foreach ($validColIndices as $idx) {
+                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
+            }
+            $columns = $cleanColumns;
+
+            $trimmedRows = [];
+            foreach ($rows as $r) {
+                $rowCells = [];
+                foreach ($validColIndices as $idx) {
+                    $rowCells[] = trim((string)($r[$idx] ?? ''));
+                }
+                $trimmedRows[] = $rowCells;
+            }
+            $rows = $trimmedRows;
+        }
+    }
+
+    return ['columns' => $columns, 'rows' => $rows];
                 }
             }
         }
@@ -886,6 +1048,60 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
                 }
             }
             fclose($handle);
+        }
+    }
+
+        // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
+    if (!empty($columns) && !empty($rows)) {
+        // 1. Remove trailing completely empty rows
+        $cleanRows = [];
+        foreach ($rows as $r) {
+            $hasData = false;
+            foreach ($r as $c) {
+                if (!empty(trim((string)$c))) {
+                    $hasData = true;
+                    break;
+                }
+            }
+            if ($hasData) {
+                $cleanRows[] = $r;
+            }
+        }
+        $rows = $cleanRows;
+
+        // 2. Find valid columns that contain headers or data
+        $validColIndices = [];
+        foreach ($columns as $idx => $cName) {
+            $colHasData = !empty(trim((string)$cName));
+            if (!$colHasData) {
+                foreach ($rows as $r) {
+                    if (!empty(trim((string)($r[$idx] ?? '')))) {
+                        $colHasData = true;
+                        break;
+                    }
+                }
+            }
+            if ($colHasData) {
+                $validColIndices[] = $idx;
+            }
+        }
+
+        if (!empty($validColIndices)) {
+            $cleanColumns = [];
+            foreach ($validColIndices as $idx) {
+                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
+            }
+            $columns = $cleanColumns;
+
+            $trimmedRows = [];
+            foreach ($rows as $r) {
+                $rowCells = [];
+                foreach ($validColIndices as $idx) {
+                    $rowCells[] = trim((string)($r[$idx] ?? ''));
+                }
+                $trimmedRows[] = $rowCells;
+            }
+            $rows = $trimmedRows;
         }
     }
 
