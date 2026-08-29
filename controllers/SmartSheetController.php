@@ -6,9 +6,41 @@ class SmartSheetController {
         requireAuth('admin');
         $db = getDBConnection();
 
-        $sheets = $db->query("SELECT s.*, u.name as uploader_name FROM smart_sheet_uploads s JOIN users u ON s.uploaded_by = u.id ORDER BY s.created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+        // High-Speed Summary Query (Without pulling megabytes of rows_json on every load)
+        $sheets = $db->query("
+            SELECT s.id, s.title, s.category, s.uploaded_by, s.created_at, 
+                   COALESCE(JSON_LENGTH(s.rows_json), 0) as record_count, 
+                   u.name as uploader_name 
+            FROM smart_sheet_uploads s 
+            JOIN users u ON s.uploaded_by = u.id 
+            ORDER BY s.created_at DESC
+        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         require __DIR__ . '/../views/admin/smart_sheets.php';
+    }
+
+    public static function getSheetData(): void {
+        requireAuth();
+        $db = getDBConnection();
+        $sheetId = (int)($_GET['sheet_id'] ?? 0);
+
+        header('Content-Type: application/json');
+        if ($sheetId <= 0) {
+            echo json_encode(['columns' => [], 'rows' => []]);
+            exit;
+        }
+
+        $row = $db->query("SELECT columns_json, rows_json FROM smart_sheet_uploads WHERE id = {$sheetId}")->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            echo json_encode(['columns' => [], 'rows' => []]);
+            exit;
+        }
+
+        echo json_encode([
+            'columns' => json_decode($row['columns_json'] ?? '[]', true) ?: [],
+            'rows' => json_decode($row['rows_json'] ?? '[]', true) ?: []
+        ]);
+        exit;
     }
 
     public static function upload(): void {

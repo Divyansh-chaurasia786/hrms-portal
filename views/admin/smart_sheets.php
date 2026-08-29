@@ -4,32 +4,48 @@ $user = authUser();
 $db = getDBConnection();
 
 $sheets = $db->query("
-    SELECT s.*, u.name as uploader_name
-    FROM smart_sheet_uploads s
-    JOIN users u ON s.uploaded_by = u.id
+    SELECT s.id, s.title, s.category, s.uploaded_by, s.created_at, 
+           COALESCE(JSON_LENGTH(s.rows_json), 0) as record_count, 
+           u.name as uploader_name 
+    FROM smart_sheet_uploads s 
+    JOIN users u ON s.uploaded_by = u.id 
     ORDER BY s.created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 ?>
 
-<div class="space-y-6" x-data="{ 
-    uploadModalOpen: false, 
+<div class="space-y-6" x-data="{
+    uploadModalOpen: false,
     viewModalOpen: false,
     selectedSheet: null,
-    sheetSearch: '',
     parsedColumns: [],
     parsedRows: [],
+    sheetSearch: '',
+    isLoadingSheet: false,
+    activeTab: 'all',
 
-    openSheetViewer(s) {
+    async openSheetViewer(s) {
         this.selectedSheet = s;
-        try {
-            this.parsedColumns = JSON.parse(s.columns_json || '[]');
-            this.parsedRows = JSON.parse(s.rows_json || '[]');
-        } catch(e) {
-            this.parsedColumns = [];
-            this.parsedRows = [];
-        }
         this.sheetSearch = '';
+        this.parsedColumns = [];
+        this.parsedRows = [];
         this.viewModalOpen = true;
+        this.isLoadingSheet = true;
+
+        try {
+            if (s.columns_json && s.rows_json) {
+                this.parsedColumns = JSON.parse(s.columns_json);
+                this.parsedRows = JSON.parse(s.rows_json);
+            } else {
+                const res = await fetch('?action=get-smart-sheet-data&sheet_id=' + s.id);
+                const data = await res.json();
+                this.parsedColumns = data.columns || [];
+                this.parsedRows = data.rows || [];
+            }
+        } catch(e) {
+            console.error(e);
+        } finally {
+            this.isLoadingSheet = false;
+        }
     },
 
     get filteredRows() {
@@ -57,8 +73,8 @@ $sheets = $db->query("
         </button>
     </div>
 
-        <!-- Dynamic Category Filter Tabs -->
-    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" x-data="{ activeTab: 'all' }">
+    <!-- Dynamic Category Filter Tabs -->
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
         <button type="button" @click="activeTab = 'all'" :class="activeTab === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'" class="px-4 py-2 rounded-2xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 cursor-pointer">
             <i data-lucide="layers" class="w-3.5 h-3.5"></i> All Sections (<?= count($sheets) ?>)
         </button>
@@ -92,10 +108,16 @@ $sheets = $db->query("
             <?php foreach ($sheets as $s): 
                 $sTitle = $s['title'] ?? 'Custom Sheet';
                 $sCat = $s['category'] ?? 'General';
-                $rows = json_decode($s['rows_json'] ?? '[]', true) ?: [];
-                $cleanRowCnt = count(array_filter($rows, fn($r) => !empty(array_filter($r, fn($c) => !empty(trim((string)$c))))));
+                $cleanRowCnt = (int)($s['record_count'] ?? 0);
+                $sCardData = [
+                    'id' => (int)$s['id'],
+                    'title' => $sTitle,
+                    'category' => $sCat,
+                    'record_count' => $cleanRowCnt,
+                    'uploader_name' => $s['uploader_name'] ?? 'HR'
+                ];
             ?>
-                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition group" x-show="activeTab === 'all' || activeTab === '<?= htmlspecialchars(addslashes($s['category'] ?? 'General')) ?>'">
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition group" x-show="activeTab === 'all' || activeTab === '<?= htmlspecialchars(addslashes($sCat)) ?>'">
                     <div>
                         <div class="flex items-start justify-between gap-2">
                             <h3 class="font-extrabold text-slate-900 text-sm group-hover:text-emerald-700 transition truncate" title="<?= htmlspecialchars($sTitle) ?>"><?= htmlspecialchars($sTitle) ?></h3>
@@ -117,7 +139,7 @@ $sheets = $db->query("
                     </div>
 
                     <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-                        <button type="button" @click="openSheetViewer(<?= htmlspecialchars(json_encode($s)) ?>)" class="text-xs font-extrabold text-emerald-700 hover:text-emerald-800 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition cursor-pointer">
+                        <button type="button" @click="openSheetViewer(<?= htmlspecialchars(json_encode($sCardData)) ?>)" class="text-xs font-extrabold text-emerald-700 hover:text-emerald-800 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition cursor-pointer">
                             <i data-lucide="table" class="w-4 h-4"></i> View Clean Dynamic UI
                         </button>
                         <form action="?action=delete-smart-sheet" method="POST" onsubmit="return confirm('Delete this smart sheet record?');" class="inline">
@@ -134,7 +156,7 @@ $sheets = $db->query("
 
     <!-- 👁️ ULTRA-CLEAN DYNAMIC SPREADSHEET VIEWER MODAL -->
     <div x-show="viewModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4" style="display:none;">
-        <div @click.away="viewModalOpen = false" class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[88vh] flex flex-col">
+        <div @click.away="viewModalOpen = false" class="bg-white rounded-3xl max-w-5xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] flex flex-col">
             
             <!-- Modal Header -->
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
@@ -156,28 +178,28 @@ $sheets = $db->query("
                 </button>
             </div>
 
-            <!-- Search & Actions Filter Bar -->
+            <!-- Search Filter Bar -->
             <div class="flex items-center justify-between gap-3 shrink-0 flex-wrap">
                 <div class="relative flex-1 min-w-[240px]">
                     <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
-                    <input type="text" x-model="sheetSearch" placeholder="Search by name, email, or designation..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <input type="text" x-model="sheetSearch" placeholder="Search any cell in spreadsheet..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
+            </div>
 
-                <template x-if="selectedSheet && selectedSheet.category === 'employees'">
-                    <a href="?page=admin-employees" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                        <i data-lucide="users" class="w-3.5 h-3.5"></i> View Registered Employees Directory &rarr;
-                    </a>
-                </template>
+            <!-- Loading Spinner State -->
+            <div x-show="isLoadingSheet" class="py-16 text-center text-slate-400">
+                <i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-emerald-600 mb-2"></i>
+                <p class="text-xs font-bold text-slate-600">Loading spreadsheet data...</p>
             </div>
 
             <!-- Spreadsheet Table Container -->
-            <div class="overflow-auto border border-slate-200 rounded-2xl flex-1 max-h-[460px] shadow-2xs">
+            <div x-show="!isLoadingSheet" class="overflow-auto border border-slate-200 rounded-2xl flex-1 max-h-[480px] shadow-2xs">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="bg-slate-900 text-white uppercase text-[10px] font-black sticky top-0 z-20">
                         <tr>
                             <th class="py-3 px-3.5 border-r border-slate-800 w-12 text-center text-slate-400">#</th>
                             <template x-for="(col, colIdx) in parsedColumns" :key="colIdx">
-                                <th class="py-3 px-4 border-r border-slate-800 tracking-wider" x-text="col"></th>
+                                <th class="py-3 px-4 border-r border-slate-800 tracking-wider whitespace-nowrap" x-text="col"></th>
                             </template>
                         </tr>
                     </thead>
@@ -203,11 +225,8 @@ $sheets = $db->query("
 
             <!-- Modal Footer -->
             <div class="flex items-center justify-between pt-2 border-t border-slate-100 shrink-0 text-xs text-slate-500">
-                <span class="flex items-center gap-1.5 text-emerald-700 font-bold">
-                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
-                    All 23 employees verified & active in system
-                </span>
-                <button type="button" @click="viewModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+                <span class="text-slate-500 text-xs font-mono" x-text="'Total ' + parsedRows.length + ' rows loaded'"></span>
+                <button type="button" @click="viewModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
                     Close Viewer
                 </button>
             </div>
@@ -221,13 +240,13 @@ $sheets = $db->query("
                 <h3 class="font-extrabold text-sm text-slate-900">Import Google Sheet / CSV</h3>
                 <button type="button" @click="uploadModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
+            <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2" x-data="{ isSubmitting: false, selectedCat: 'auto' }" @submit="isSubmitting = true">
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Sheet Title *</label>
                     <input type="text" name="sheet_title" required placeholder="e.g. BDA Lucknow Team, Monthly Sales Targets, Attendance" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
                 </div>
 
-                <div x-data="{ selectedCat: 'auto' }">
+                <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Dataset Section / Category</label>
                     <select name="category" x-model="selectedCat" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
                         <option value="auto">⚡ Auto-Create Section Based on Sheet Data</option>
@@ -245,22 +264,26 @@ $sheets = $db->query("
                         <input type="text" name="custom_category" placeholder="Enter New Section Name (e.g. Field Logistics, Vendor Roster)" class="w-full bg-emerald-50/60 border border-emerald-300 rounded-xl px-3 py-2 text-xs font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500">
                     </div>
                 </div>
+
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Link (Must be full public link)</label>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Link (Must be public link)</label>
                     <input type="url" name="google_sheet_url" placeholder="https://docs.google.com/spreadsheets/d/1.../edit" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
                 </div>
+
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Or Upload File (Recommended .xlsx / .csv)</label>
                     <input type="file" name="sheet_file" accept=".csv, .xlsx, .xls, .tsv" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                 </div>
+
                 <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-[11px] space-y-1">
                     <div class="font-bold flex items-center gap-1.5">
-                        <i data-lucide="info" class="w-4 h-4 text-amber-600"></i> Google Sheets Sharing Tip:
+                        <i data-lucide="info" class="w-4 h-4 text-amber-600"></i> Sharing & Upload Tip:
                     </div>
                     <p class="text-[10px] text-amber-800 leading-relaxed">
-                        Agar Google Sheets link use kar rahe hain toh ensure karein link <strong>Full Copy</strong> ho aur Sharing <strong>"Anyone with the link can view"</strong> ho. Ya sabse aasan tareeqa: Sheet ko <strong>Download &rarr; Microsoft Excel (.xlsx)</strong> karke yahan <strong>Choose file</strong> se upload karein!
+                        Google Sheets link public viewable honi chahiye. Sabse fast tareeqa: Google Sheet se <strong>File &rarr; Download &rarr; Microsoft Excel (.xlsx)</strong> karke <strong>Choose file</strong> se upload karein!
                     </p>
                 </div>
+
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" @click="uploadModalOpen = false" :disabled="isSubmitting" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
                     <button type="submit" :disabled="isSubmitting" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition flex items-center gap-2 cursor-pointer disabled:opacity-50">
