@@ -147,6 +147,10 @@ $page = $_GET['page'] ?? 'dashboard';
             <a href="?page=admin-dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-dashboard' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i> HR Overview
             </a>
+                        <a href="?page=admin-birthdays" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-birthdays' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+                <i data-lucide="cake" class="w-4 h-4 text-pink-400"></i> Birthday Hub & Celebrations
+            </a>
+
             <a href="?page=admin-employees" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'admin-employees' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <i data-lucide="users" class="w-4 h-4"></i> Employee & Intern Directory
             </a>

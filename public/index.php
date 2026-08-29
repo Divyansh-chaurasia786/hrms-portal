@@ -480,6 +480,8 @@ if ($action) {
             requireActiveShift();
             EmployeeController::create();
             exit;
+        case 'update-employee-dob': requireActiveShift(); BirthdayController::updateDob(); break;
+        case 'send-birthday-wish': requireActiveShift(); BirthdayController::sendCelebrationWish(); break;
         case 'update-employee':
             requireActiveShift();
             EmployeeController::update();

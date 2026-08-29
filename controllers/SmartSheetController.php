@@ -82,15 +82,27 @@ class SmartSheetController {
                 if ($colEmailIdx === -1 && count($columns) > 1) $colEmailIdx = 1;
                 if ($colDesigIdx === -1 && count($columns) > 2) $colDesigIdx = 2;
 
+                // Look for DOB Column
+                $colDobIdx = -1;
+                foreach ($columns as $idx => $cName) {
+                    $cn = strtolower(trim((string)$cName));
+                    if (str_contains($cn, 'dob') || str_contains($cn, 'birth') || str_contains($cn, 'bday') || str_contains($cn, 'date of birth')) {
+                        $colDobIdx = $idx;
+                        break;
+                    }
+                }
+
                 $stmtInsertEmp = $db->prepare("
-                    INSERT INTO users (emp_id, name, email, role, designation, work_mode, department_name, status, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+                    INSERT INTO users (emp_id, name, email, role, designation, work_mode, department_name, date_of_birth, status, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
                 ");
 
                 foreach ($rows as $row) {
                     $eName = trim((string)($row[$colNameIdx] ?? ''));
                     $eEmail = strtolower(trim((string)($row[$colEmailIdx] ?? '')));
                     $eDesig = trim((string)($row[$colDesigIdx] ?? ''));
+                    $rawDob = ($colDobIdx !== -1) ? trim((string)($row[$colDobIdx] ?? '')) : null;
+                    $parsedDob = !empty($rawDob) && strtotime($rawDob) ? date('Y-m-d', strtotime($rawDob)) : null;
 
                     if (empty($eName) || empty($eEmail) || !filter_var($eEmail, FILTER_VALIDATE_EMAIL)) {
                         continue;
@@ -122,7 +134,7 @@ class SmartSheetController {
                         $designation = 'Team Lead';
                     }
 
-                    $stmtInsertEmp->execute([$newEmpId, $eName, $eEmail, $role, $designation, $workMode, $departmentName]);
+                    $stmtInsertEmp->execute([$newEmpId, $eName, $eEmail, $role, $designation, $workMode, $departmentName, $parsedDob]);
                     $existingEmails[] = $eEmail;
                     $registeredEmpCount++;
                 }
