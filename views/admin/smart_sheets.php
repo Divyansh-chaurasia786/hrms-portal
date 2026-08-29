@@ -27,27 +27,63 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 <script src="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js"></script>
 
 <style>
-/* Exact MS Excel 2021 Office Styling & Container Fit */
+/* Full-Width MS Excel 2021 Application Styling */
 #luckysheet {
     margin: 0px;
     padding: 0px;
     position: relative;
-    width: 100%;
-    height: 750px;
+    width: 100% !important;
+    height: 780px !important;
     left: 0px;
     top: 0px;
     border-radius: 0 0 16px 16px;
     overflow: hidden;
 }
+
+/* Ensure ALL Toolbar Buttons are always visible horizontally without 'More' compression */
+.luckysheet-toolbar {
+    background: #f8fafc !important;
+    padding: 4px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+    min-height: 42px !important;
+    height: auto !important;
+    overflow-x: auto !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+}
+
+.luckysheet-toolbar-button {
+    margin: 1px 2px !important;
+    padding: 3px 5px !important;
+    border-radius: 6px !important;
+}
+
+.luckysheet-toolbar-button:hover {
+    background-color: #e2e8f0 !important;
+}
+
+/* Formula Bar Styling */
+.luckysheet-wa-calculate {
+    background: #ffffff !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
+}
+
+/* Cell Grid & Headers */
 .luckysheet-grid-window {
-    background-color: #fff !important;
+    background-color: #ffffff !important;
 }
+
 .luckysheet-wa-editor {
-    font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
 }
-/* Ensure top ribbon and icons have high crisp rendering */
-.luckysheet-toolbar-menu-button {
-    cursor: pointer !important;
+
+/* Bottom Sheet Bar */
+.luckysheet-sheet-area {
+    background: #f1f5f9 !important;
+    border-top: 1px solid #cbd5e1 !important;
 }
 </style>
 
@@ -65,31 +101,31 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                 <div class="flex items-center gap-2">
                     <h1 class="text-sm font-extrabold text-white tracking-wide flex items-center gap-1.5">
                         <span x-text="currentSheetTitle"></span>
-                        <span class="text-[11px] font-normal text-emerald-200">.xlsx - Excel 2021</span>
+                        <span class="text-[11px] font-normal text-emerald-200">.xlsx - Excel 2021 Full Suite</span>
                     </h1>
-                    <span class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-800 text-emerald-200 font-bold">Cloud Live Sync</span>
+                    <span class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-800 text-emerald-200 font-bold">Auto-Synced</span>
                 </div>
-                <p class="text-[11px] text-emerald-100/80">Microsoft Excel 2021 Suite • 400+ Formulas • Charts • Conditional Formatting • Universal Sync</p>
+                <p class="text-[11px] text-emerald-100/80">All 400+ Formulas • Charts • Conditional Formatting • Filter & Sort • Data Validation • Live Two-Way Sync</p>
             </div>
         </div>
 
         <!-- Right: Actions & Tools -->
         <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" @click="sidebarCollapsed = !sidebarCollapsed" class="px-2.5 py-1.5 bg-emerald-800/90 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
+            <button type="button" @click="sidebarCollapsed = !sidebarCollapsed" class="px-3 py-1.5 bg-emerald-800/90 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
                 <i data-lucide="maximize-2" class="w-3.5 h-3.5" x-show="!sidebarCollapsed"></i>
                 <i data-lucide="minimize-2" class="w-3.5 h-3.5" x-show="sidebarCollapsed" style="display: none;"></i>
-                <span x-text="sidebarCollapsed ? 'Show Sidebar' : 'Fullscreen'"></span>
+                <span x-text="sidebarCollapsed ? 'Show Sidebar' : 'Fullscreen Excel'"></span>
             </button>
 
             <!-- 💾 Save & Sync Website-Wide -->
-            <button type="button" @click="saveAndSyncExcel()" :disabled="isSaving" class="px-3.5 py-1.5 bg-white hover:bg-emerald-50 text-[#107c41] rounded-xl font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-                <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <button type="button" @click="saveAndSyncExcel()" :disabled="isSaving" class="px-4 py-1.5 bg-white hover:bg-emerald-50 text-[#107c41] rounded-xl font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                <i data-lucide="save" class="w-4 h-4"></i>
                 <span x-text="isSaving ? 'Syncing...' : 'Save & Sync All'"></span>
             </button>
 
             <!-- 📤 Upload Any Sheet -->
             <button type="button" @click="uploadModalOpen = true" class="px-3.5 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
-                <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Upload Any Sheet
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload Any Sheet
             </button>
         </div>
     </div>
@@ -167,7 +203,7 @@ document.addEventListener('alpine:init', () => {
             if (defaultId > 0) {
                 this.loadAndRenderSheet(defaultId);
             } else {
-                this.renderBlankLuckysheet('Sheet1', [], []);
+                this.renderBlankLuckysheet('Sheet1');
             }
         },
 
@@ -180,50 +216,76 @@ document.addEventListener('alpine:init', () => {
                 this.renderLuckysheetFromData(data.title || 'Sheet1', data.columns || [], data.rows || []);
             } catch(e) {
                 console.error(e);
-                this.renderBlankLuckysheet('Sheet1', [], []);
+                this.renderBlankLuckysheet('Sheet1');
             }
         },
 
         renderLuckysheetFromData(sheetName, columns, rows) {
-            // Convert simple 2D arrays to Luckysheet cell data objects
             const celldata = [];
-            const rowCount = Math.max(rows.length + 25, 60);
-            const colCount = Math.max(columns.length + 10, 26);
+            const customColLen = {};
+            const rowCount = Math.max(rows.length + 30, 80);
+            const colCount = Math.max(columns.length + 12, 28);
 
-            // Row 0: Column Headers
+            // Calculate Optimal Column Widths based on text length
             columns.forEach((colName, cIdx) => {
+                let maxLen = String(colName).length;
+                rows.forEach(r => {
+                    if (r && r[cIdx] !== undefined) {
+                        maxLen = Math.max(maxLen, String(r[cIdx]).length);
+                    }
+                });
+                // Dynamic width (minimum 100px, up to 260px for long names/emails)
+                customColLen[cIdx] = Math.min(Math.max(maxLen * 10 + 30, 110), 280);
+
+                // Row 0: Dark Blue Header with Clean White Text
                 celldata.push({
                     r: 0,
                     c: cIdx,
                     v: {
                         m: String(colName),
                         v: String(colName),
-                        bg: '#2d3748',
+                        bg: '#1e293b',
                         fc: '#ffffff',
                         bl: 1,
                         ht: 0,
-                        vt: 0
+                        vt: 0,
+                        ff: 'Segoe UI'
                     }
                 });
             });
 
-            // Rows 1+: Data
+            // Rows 1+: Data Cells with proper alignments and numbers
             rows.forEach((row, rIdx) => {
                 if (Array.isArray(row)) {
                     row.forEach((cellVal, cIdx) => {
                         if (cellVal !== undefined && cellVal !== null && cellVal !== '') {
-                            const strVal = String(cellVal);
-                            const numVal = parseFloat(strVal);
-                            const isNum = !isNaN(numVal) && !strVal.includes('@') && !strVal.includes('-') && !strVal.includes('/');
+                            const strVal = String(cellVal).trim();
+                            const numVal = parseFloat(strVal.replace(/[^0-9.-]/g, ''));
+                            const isPureNum = !isNaN(numVal) && !strVal.includes('@') && !strVal.includes('-') && !strVal.includes('/') && /^[0-9.]+$/.test(strVal);
                             
+                            const cellObj = {
+                                m: strVal,
+                                v: isPureNum ? numVal : strVal,
+                                ff: 'Segoe UI',
+                                ht: isPureNum ? 2 : 0, // Right align numbers, left align text
+                                vt: 0
+                            };
+
+                            // Status badge colors
+                            if (strVal === 'Present' || strVal === 'active' || strVal === 'Done') {
+                                cellObj.bg = '#d1fae5';
+                                cellObj.fc = '#065f46';
+                                cellObj.bl = 1;
+                            } else if (strVal === 'Absent' || strVal === 'inactive' || strVal === 'Pending') {
+                                cellObj.bg = '#fee2e2';
+                                cellObj.fc = '#991b1b';
+                                cellObj.bl = 1;
+                            }
+
                             celldata.push({
                                 r: rIdx + 1,
                                 c: cIdx,
-                                v: {
-                                    m: strVal,
-                                    v: isNum ? numVal : strVal,
-                                    ct: { fa: 'General', t: isNum ? 'n' : 'g' }
-                                }
+                                v: cellObj
                             });
                         }
                     });
@@ -232,11 +294,14 @@ document.addEventListener('alpine:init', () => {
 
             const sheetConfig = [{
                 name: sheetName,
-                color: '',
+                color: '#107c41',
                 status: 1,
                 order: 0,
                 data: [],
-                config: {},
+                config: {
+                    columnlen: customColLen,
+                    rowlen: { 0: 32 }
+                },
                 index: 0,
                 celldata: celldata,
                 row: rowCount,
@@ -249,7 +314,7 @@ document.addEventListener('alpine:init', () => {
         renderBlankLuckysheet(sheetName) {
             const sheetConfig = [{
                 name: sheetName || 'Sheet1',
-                color: '',
+                color: '#107c41',
                 status: 1,
                 order: 0,
                 data: [],
@@ -322,6 +387,8 @@ document.addEventListener('alpine:init', () => {
                     view: true,
                     zoom: true
                 },
+                defaultFontSize: 11,
+                defaultFont: 'Segoe UI',
                 enableAddRow: true,
                 enableAddBackTop: true,
                 data: sheetsData
@@ -333,11 +400,9 @@ document.addEventListener('alpine:init', () => {
             this.isSaving = true;
 
             try {
-                // Extract clean 2D table from active Luckysheet
                 const fullSheet = luckysheet.getSheetData();
                 if (!fullSheet || fullSheet.length === 0) return;
 
-                // Row 0 as headers
                 const headerRow = fullSheet[0] || [];
                 const columns = [];
                 headerRow.forEach((cell, idx) => {
@@ -345,7 +410,6 @@ document.addEventListener('alpine:init', () => {
                     columns.push(colName);
                 });
 
-                // Rows 1+ as data
                 const rows = [];
                 for (let r = 1; r < fullSheet.length; r++) {
                     const rowData = [];
