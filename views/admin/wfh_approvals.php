@@ -16,7 +16,7 @@ if ($user['role'] === 'admin') {
         JOIN users u ON r.user_id = u.id
         LEFT JOIN users tl ON u.reporting_tl_id = tl.id
         LEFT JOIN users hr ON r.reviewed_by = hr.id
-        ORDER BY r.wfh_date DESC, r.applied_at DESC
+        ORDER BY r.created_at DESC, r.applied_at DESC
     ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 } else {
     $requests = $db->query("
@@ -28,7 +28,7 @@ if ($user['role'] === 'admin') {
         LEFT JOIN users tl ON u.reporting_tl_id = tl.id
         LEFT JOIN users hr ON r.reviewed_by = hr.id
         WHERE u.reporting_tl_id = " . (int)($user['id'] ?? 0) . "
-        ORDER BY r.wfh_date DESC, r.applied_at DESC
+        ORDER BY r.created_at DESC, r.applied_at DESC
     ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 

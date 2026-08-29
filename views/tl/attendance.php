@@ -423,8 +423,9 @@ foreach ($myMonthlyLogs as $ml) {
                                                         <span class="text-slate-300 font-normal">&rarr;</span>
                                                         <span><?= end($sessions)['clock_out'] ? formatTime(end($sessions)['clock_out']) : '<span class="text-emerald-600 font-bold">Active</span>' ?></span>
                                                     </div>
+                                                    <?php $totalSessHours = array_sum(array_column($sessions, 'hours')); ?>
                                                     <div class="text-[10px] font-sans font-medium text-slate-500 mt-0.5 flex items-center gap-1.5">
-                                                        <span>Total: <strong class="text-slate-900 font-mono"><?= $calcHours > 0 ? $calcHours . ' hrs' : round($totalSessHours, 1) . ' hrs' ?></strong></span>
+                                                        <span>Total: <strong class="text-slate-900 font-mono"><?= $calcHours > 0 ? $calcHours . ' hrs' : round((float)$totalSessHours, 1) . ' hrs' ?></strong></span>
                                                         <span class="text-slate-300">•</span>
                                                         <span class="px-1.5 py-0.2 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[9px]"><?= count($sessions) ?> Punches</span>
                                                     </div>

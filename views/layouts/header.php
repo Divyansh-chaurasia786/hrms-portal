@@ -25,11 +25,7 @@
     <meta name="apple-mobile-web-app-title" content="Ecofone HRMS">
     <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Ecofone+HRMS&background=4f46e5&color=fff&size=192&rounded=true&bold=true">
     <meta name="theme-color" content="#4f46e5">
-        <!-- Background Preload of Studio Resources -->
-    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js">
-    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js">
-    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js">
-    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -61,6 +57,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        /* Strict isolation: Never allow unstyled luckysheet menu spill on non-sheet pages */
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-context-menu,
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-cols-menu,
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-rows-menu,
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-filter-menu,
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-sheet-magicMenu,
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-menuButton,
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-menulist,
+        body:not([data-page="admin-smart-sheets"]) .luckysheet-modal-dialog {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            height: 0 !important;
+            width: 0 !important;
+            overflow: hidden !important;
+        }
         /* Hide scrollbars completely while keeping scrollability */
         .no-scrollbar::-webkit-scrollbar,
         aside::-webkit-scrollbar,
@@ -77,7 +90,7 @@
         }
     </style>
 </head>
-<body class="h-full antialiased text-slate-800 flex" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
+<body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
 <script>
 function handlePunchOutGeo(form) {

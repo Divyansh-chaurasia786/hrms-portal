@@ -4,7 +4,7 @@ $user = authUser();
 $db = getDBConnection();
 
 if (!isset($requests)) {
-    $requests = $db->query("SELECT * FROM wfh_requests WHERE user_id = {$user['id']} ORDER BY wfh_date DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $requests = $db->query("SELECT * FROM wfh_requests WHERE user_id = {$user['id']} ORDER BY COALESCE(wfh_date, request_date) DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 $minAllowed = date('Y-m-d', strtotime('+2 days'));
 ?>
@@ -77,8 +77,8 @@ $minAllowed = date('Y-m-d', strtotime('+2 days'));
                         <?php foreach ($requests as $r): ?>
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3.5 px-4 whitespace-nowrap">
-                                    <div class="font-bold text-slate-900"><?= formatDate($r['wfh_date']) ?></div>
-                                    <div class="text-[10px] text-slate-400 font-mono"><?= date('l', strtotime($r['wfh_date'])) ?></div>
+                                    <div class="font-bold text-slate-900"><?= formatDate($r['COALESCE(wfh_date, request_date)']) ?></div>
+                                    <div class="text-[10px] text-slate-400 font-mono"><?= date('l', strtotime($r['COALESCE(wfh_date, request_date)'])) ?></div>
                                 </td>
                                 <td class="py-3.5 px-4 max-w-md">
                                     <div class="text-xs text-slate-800 line-clamp-2"><?= htmlspecialchars($r['reason']) ?></div>
@@ -127,7 +127,7 @@ $minAllowed = date('Y-m-d', strtotime('+2 days'));
             <form action="?action=apply-wfh" method="POST" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Select WFH Date (Min 2 Days in Advance) *</label>
-                    <input type="date" name="wfh_date" min="<?= $minAllowed ?>" value="<?= $minAllowed ?>" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500">
+                    <input type="date" name="COALESCE(wfh_date, request_date)" min="<?= $minAllowed ?>" value="<?= $minAllowed ?>" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500">
                     <p class="text-[10px] text-slate-400 mt-1">Earliest selectable date: <?= formatDate($minAllowed) ?></p>
                 </div>
 
