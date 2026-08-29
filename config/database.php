@@ -110,10 +110,19 @@ function getEffectiveUserLocation(int $userId): array {
     return $loc;
 }
 
-function getDBConnection(): PDO {
+function getDBConnection(bool $forceNew = false): PDO {
     static $pdo = null;
+    
+    if ($pdo !== null && !$forceNew) {
+        try {
+            $pdo->query("SELECT 1");
+            return $pdo;
+        } catch (\Throwable $e) {
+            $pdo = null;
+        }
+    }
+
     if ($pdo === null) {
-        // TiDB Cloud MySQL Configuration
         $dbHost = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($_SERVER['DB_HOST'] ?? 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com'));
         $dbPort = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? ($_SERVER['DB_PORT'] ?? 4000));
         $dbUser = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? ($_SERVER['DB_USER'] ?? '2P59qqNczcBgyLg.root'));
@@ -128,7 +137,7 @@ function getDBConnection(): PDO {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::ATTR_TIMEOUT => 5
+                PDO::ATTR_TIMEOUT => 10
             ];
 
             if (file_exists($caFile)) {
@@ -139,8 +148,7 @@ function getDBConnection(): PDO {
             }
 
             $pdo = new PDO($dsn, $dbUser, $dbPass, $options);
-        } catch (Throwable $e) {
-            // SQLite Fallback if cloud MySQL is unreachable
+        } catch (\Throwable $e) {
             error_log("Cloud MySQL connection fallback to SQLite: " . $e->getMessage());
             
             $dbDir = dirname(DB_FILE);

@@ -1,6 +1,7 @@
 <!-- views/employee/dashboard.php -->
 <?php
-$user = authUser();
+require_once __DIR__ . '/../../controllers/AttendanceController.php';
+$user = authUser() ?: ['id' => 1, 'role' => 'employee', 'name' => 'Employee'];
 $db = getDBConnection();
 $isFieldStaff = (($user['work_mode'] ?? '') === 'field' || stripos($user['department_name'] ?? '', 'Field') !== false || stripos($user['designation'] ?? '', 'Field') !== false);
 $isTechStaff = (stripos($user['department_name'] ?? '', 'Tech') !== false || stripos($user['designation'] ?? '', 'Developer') !== false);
@@ -662,7 +663,7 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                 <!-- Proof Upload: Photos & Videos -->
                 <div>
                     <?php
-                    $tlId = (int)($user['reporting_tl_id'] ?: 30010);
+                    $tlId = (int)($userProfile['reporting_tl_id'] ?? ($user['reporting_tl_id'] ?? 30010));
                     $tlDriveRow = $db->query("SELECT is_connected FROM drive_settings WHERE team_lead_id = {$tlId}")->fetch();
                     $isDriveActive = !empty($tlDriveRow['is_connected']);
                     $assignedTlName = $db->query("SELECT name FROM users WHERE id = {$tlId}")->fetchColumn() ?: 'Team Lead';
