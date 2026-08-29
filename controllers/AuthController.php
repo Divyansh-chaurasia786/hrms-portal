@@ -128,7 +128,7 @@ class AuthController {
         }
 
         $userId = (int)$_SESSION['pending_otp_user_id'];
-        $otp = trim($_POST['otp'] ?? '');
+        $otp = preg_replace('/[^0-9]/', '', trim($_POST['otp'] ?? ''));
 
         if (empty($otp) || strlen($otp) !== 6) {
             setFlash('error', 'Please enter a valid 6-digit OTP verification code.');

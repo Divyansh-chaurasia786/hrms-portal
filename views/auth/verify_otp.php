@@ -207,6 +207,18 @@ $user = $user ?? ['email' => ($_SESSION['pending_otp_email'] ?? 'user@company.co
             }
         }
 
+        if (otpForm) {
+            otpForm.addEventListener("submit", (e) => {
+                let fullCode = "";
+                inputs.forEach((inp) => { fullCode += inp.value; });
+                hiddenOtp.value = fullCode;
+                if (fullCode.length !== 6) {
+                    e.preventDefault();
+                    alert("Please enter the complete 6-digit verification code sent to your email.");
+                }
+            });
+        }
+
         // 60-Second Cooldown Live Timer
         let secondsLeft = <?= (int)$cooldownRemaining ?>;
         const resendBtn = document.getElementById("resendBtn");
