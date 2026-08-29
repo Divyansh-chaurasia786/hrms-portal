@@ -27,70 +27,69 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 <script src="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js"></script>
 
 <style>
-/* Full-Width MS Excel 2021 Application Styling */
-#luckysheet {
-    margin: 0px;
-    padding: 0px;
-    position: relative;
+/* 100% Full-Width Responsive Container without Blank Spaces */
+#luckysheet-wrapper {
     width: 100% !important;
-    height: 780px !important;
-    left: 0px;
-    top: 0px;
+    max-width: 100% !important;
+    position: relative;
+}
+
+#luckysheet {
+    margin: 0px !important;
+    padding: 0px !important;
+    position: relative !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 800px !important;
     border-radius: 0 0 16px 16px;
     overflow: hidden;
 }
 
-/* Ensure ALL Toolbar Buttons are always visible horizontally without 'More' compression */
+/* Force all Luckysheet internal containers to stretch to full width */
+.luckysheet,
+.luckysheet-workarea,
+.luckysheet-wa-calculate,
+.luckysheet-grid-window,
+.luckysheet-sheet-area {
+    width: 100% !important;
+}
+
+/* Full Width Toolbar showing all instruments */
 .luckysheet-toolbar {
+    width: 100% !important;
     background: #f8fafc !important;
     padding: 4px 8px !important;
     display: flex !important;
     align-items: center !important;
-    flex-wrap: wrap !important;
-    gap: 2px !important;
-    min-height: 42px !important;
-    height: auto !important;
     overflow-x: auto !important;
     border-bottom: 1px solid #cbd5e1 !important;
 }
 
-.luckysheet-toolbar-button {
-    margin: 1px 2px !important;
-    padding: 3px 5px !important;
-    border-radius: 6px !important;
+.luckysheet-toolbar::-webkit-scrollbar {
+    height: 4px;
+}
+.luckysheet-toolbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
 }
 
-.luckysheet-toolbar-button:hover {
-    background-color: #e2e8f0 !important;
-}
-
-/* Formula Bar Styling */
+/* Crisp Formula Bar */
 .luckysheet-wa-calculate {
     background: #ffffff !important;
     border-bottom: 1px solid #cbd5e1 !important;
     font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
 }
 
-/* Cell Grid & Headers */
-.luckysheet-grid-window {
-    background-color: #ffffff !important;
-}
-
 .luckysheet-wa-editor {
     font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
 }
-
-/* Bottom Sheet Bar */
-.luckysheet-sheet-area {
-    background: #f1f5f9 !important;
-    border-top: 1px solid #cbd5e1 !important;
-}
 </style>
 
-<div class="space-y-3 font-sans text-slate-800" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= $initialSheetId ?>)">
+<div class="space-y-3 font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= $initialSheetId ?>)">
     
     <!-- 🟢 MICROSOFT EXCEL 2021 TOP APP HEADER -->
-    <div class="bg-[#107c41] text-white rounded-t-2xl p-3 shadow-xl border-t border-r border-l border-[#0d6535] flex items-center justify-between gap-3 flex-wrap select-none">
+    <div class="bg-[#107c41] text-white rounded-t-2xl p-3 shadow-xl border-t border-r border-l border-[#0d6535] flex items-center justify-between gap-3 flex-wrap select-none w-full">
         
         <!-- Left: Office 365 / Excel 2021 Branding & Workbook Title -->
         <div class="flex items-center gap-3">
@@ -111,7 +110,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 
         <!-- Right: Actions & Tools -->
         <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" @click="sidebarCollapsed = !sidebarCollapsed" class="px-3 py-1.5 bg-emerald-800/90 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
+            <button type="button" @click="toggleFullscreen()" class="px-3 py-1.5 bg-emerald-800/90 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
                 <i data-lucide="maximize-2" class="w-3.5 h-3.5" x-show="!sidebarCollapsed"></i>
                 <i data-lucide="minimize-2" class="w-3.5 h-3.5" x-show="sidebarCollapsed" style="display: none;"></i>
                 <span x-text="sidebarCollapsed ? 'Show Sidebar' : 'Fullscreen Excel'"></span>
@@ -119,7 +118,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 
             <!-- 💾 Save & Sync Website-Wide -->
             <button type="button" @click="saveAndSyncExcel()" :disabled="isSaving" class="px-4 py-1.5 bg-white hover:bg-emerald-50 text-[#107c41] rounded-xl font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-                <i data-lucide="save" class="w-4 h-4"></i>
+                <i data-lucide="save" class="w-3.5 h-3.5"></i>
                 <span x-text="isSaving ? 'Syncing...' : 'Save & Sync All'"></span>
             </button>
 
@@ -140,7 +139,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
     </div>
 
     <!-- 📊 MICROSOFT EXCEL 2021 CANVAS CONTAINER -->
-    <div class="bg-white rounded-b-2xl shadow-2xl border-r border-l border-b border-slate-300 overflow-hidden relative">
+    <div id="luckysheet-wrapper" class="bg-white rounded-b-2xl shadow-2xl border-r border-l border-b border-slate-300 overflow-hidden relative w-full">
         <div id="luckysheet"></div>
     </div>
 
@@ -200,11 +199,29 @@ document.addEventListener('alpine:init', () => {
         initStudio(sheetList, defaultId) {
             this.allSheets = sheetList || [];
             this.currentSheetId = defaultId;
+
+            // Handle window resize dynamically
+            window.addEventListener('resize', () => {
+                if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
+                    luckysheet.resize();
+                }
+            });
+
             if (defaultId > 0) {
                 this.loadAndRenderSheet(defaultId);
             } else {
                 this.renderBlankLuckysheet('Sheet1');
             }
+        },
+
+        toggleFullscreen() {
+            this.sidebarCollapsed = !this.sidebarCollapsed;
+            setTimeout(() => {
+                if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
+                    luckysheet.resize();
+                }
+                window.dispatchEvent(new Event('resize'));
+            }, 320);
         },
 
         async loadAndRenderSheet(sheetId) {
@@ -226,7 +243,7 @@ document.addEventListener('alpine:init', () => {
             const rowCount = Math.max(rows.length + 30, 80);
             const colCount = Math.max(columns.length + 12, 28);
 
-            // Calculate Optimal Column Widths based on text length
+            // Calculate Optimal Column Widths
             columns.forEach((colName, cIdx) => {
                 let maxLen = String(colName).length;
                 rows.forEach(r => {
@@ -234,10 +251,9 @@ document.addEventListener('alpine:init', () => {
                         maxLen = Math.max(maxLen, String(r[cIdx]).length);
                     }
                 });
-                // Dynamic width (minimum 100px, up to 260px for long names/emails)
                 customColLen[cIdx] = Math.min(Math.max(maxLen * 10 + 30, 110), 280);
 
-                // Row 0: Dark Blue Header with Clean White Text
+                // Header Row (Row 0)
                 celldata.push({
                     r: 0,
                     c: cIdx,
@@ -254,7 +270,7 @@ document.addEventListener('alpine:init', () => {
                 });
             });
 
-            // Rows 1+: Data Cells with proper alignments and numbers
+            // Data Rows (Row 1+)
             rows.forEach((row, rIdx) => {
                 if (Array.isArray(row)) {
                     row.forEach((cellVal, cIdx) => {
@@ -267,11 +283,10 @@ document.addEventListener('alpine:init', () => {
                                 m: strVal,
                                 v: isPureNum ? numVal : strVal,
                                 ff: 'Segoe UI',
-                                ht: isPureNum ? 2 : 0, // Right align numbers, left align text
+                                ht: isPureNum ? 2 : 0,
                                 vt: 0
                             };
 
-                            // Status badge colors
                             if (strVal === 'Present' || strVal === 'active' || strVal === 'Done') {
                                 cellObj.bg = '#d1fae5';
                                 cellObj.fc = '#065f46';
@@ -393,6 +408,13 @@ document.addEventListener('alpine:init', () => {
                 enableAddBackTop: true,
                 data: sheetsData
             });
+
+            // Ensure instant resize to fill full width
+            setTimeout(() => {
+                if (typeof luckysheet !== 'undefined' && luckysheet.resize) {
+                    luckysheet.resize();
+                }
+            }, 100);
         },
 
         async saveAndSyncExcel() {
