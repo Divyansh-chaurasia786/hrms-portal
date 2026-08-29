@@ -6,7 +6,7 @@ class SmartSheetController {
         requireAuth('admin');
         $db = getDBConnection();
 
-        // High-Speed Summary Query (Without pulling megabytes of rows_json on every load)
+        // Fast summary query
         $sheets = $db->query("
             SELECT s.id, s.title, s.category, s.uploaded_by, s.created_at, 
                    COALESCE(JSON_LENGTH(s.rows_json), 0) as record_count, 
@@ -26,25 +26,54 @@ class SmartSheetController {
 
         header('Content-Type: application/json');
         if ($sheetId <= 0) {
-            echo json_encode(['columns' => [], 'rows' => []]);
+            echo json_encode(['columns' => [], 'rows' => [], 'styles' => []]);
             exit;
         }
 
-        $row = $db->query("SELECT columns_json, rows_json FROM smart_sheet_uploads WHERE id = {$sheetId}")->fetch(PDO::FETCH_ASSOC);
+        $row = $db->query("SELECT * FROM smart_sheet_uploads WHERE id = {$sheetId}")->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            echo json_encode(['columns' => [], 'rows' => []]);
+            echo json_encode(['columns' => [], 'rows' => [], 'styles' => []]);
             exit;
         }
 
         echo json_encode([
+            'id' => (int)$row['id'],
+            'title' => $row['title'],
+            'category' => $row['category'],
             'columns' => json_decode($row['columns_json'] ?? '[]', true) ?: [],
             'rows' => json_decode($row['rows_json'] ?? '[]', true) ?: []
         ]);
         exit;
     }
 
+    public static function saveSheetData(): void {
+        requireAuth('admin');
+        requireActiveShift();
+        $db = getDBConnection();
+
+        $sheetId = (int)($_POST['sheet_id'] ?? 0);
+        $columns = json_decode($_POST['columns_json'] ?? '[]', true);
+        $rows = json_decode($_POST['rows_json'] ?? '[]', true);
+
+        header('Content-Type: application/json');
+        if ($sheetId <= 0 || empty($columns)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid sheet payload']);
+            exit;
+        }
+
+        $stmt = $db->prepare("UPDATE smart_sheet_uploads SET columns_json = ?, rows_json = ? WHERE id = ?");
+        $stmt->execute([json_encode($columns, JSON_UNESCAPED_UNICODE), json_encode($rows, JSON_UNESCAPED_UNICODE), $sheetId]);
+
+        // Auto-Sync edited data website-wide
+        self::syncDataWebsiteWide($db, $columns, $rows);
+
+        echo json_encode(['success' => true, 'message' => 'Workbook changes saved and synced website-wide!']);
+        exit;
+    }
+
     public static function upload(): void {
         requireAuth('admin');
+        requireActiveShift();
         $user = authUser();
         $db = getDBConnection();
 
@@ -58,18 +87,18 @@ class SmartSheetController {
                 $title = !empty($uploadedFile) ? pathinfo($originalName, PATHINFO_FILENAME) : 'Google Sheet Import';
             }
 
-            // Parse via Universal Spreadsheet Parser (supports CSV, XLSX, TSV, XML, Google Sheets GViz)
+            // Parse via High-Accuracy Spreadsheet Engine
             $parsed = parseSpreadsheetData($uploadedFile, $sheetUrl, $originalName);
             $columns = $parsed['columns'] ?? [];
             $rows = $parsed['rows'] ?? [];
 
             if (empty($columns)) {
-                setFlash('error', 'Unable to parse data from the uploaded sheet or URL. If using Google Sheets, make sure Sharing is set to "Anyone with the link can view", or upload an .xlsx / .csv file.');
+                setFlash('error', 'Unable to parse data from the uploaded sheet or URL. Please ensure the link is public or upload the .xlsx file directly.');
                 header('Location: ?page=admin-smart-sheets');
                 exit;
             }
 
-            // Dynamic Classification & Custom Section Matcher
+            // Classification & Custom Section Matching
             $userCategory = trim($_POST['category'] ?? '');
             $customCategory = trim($_POST['custom_category'] ?? '');
 
@@ -78,297 +107,41 @@ class SmartSheetController {
             } elseif (!empty($userCategory) && $userCategory !== 'auto') {
                 $category = $userCategory;
             } else {
-                // Auto-Classification from Title and Header Columns
                 $combinedContext = strtolower($title . ' ' . implode(' ', array_map('strval', $columns)));
-                
-                if (str_contains($combinedContext, 'bda') || str_contains($combinedContext, 'fsm') || str_contains($combinedContext, 'sales')) {
+                if (str_contains($combinedContext, 'bda') || str_contains($combinedContext, 'sales')) {
                     $category = 'BDA & Sales Team';
-                } elseif (str_contains($combinedContext, 'punch') || str_contains($combinedContext, 'attendance') || str_contains($combinedContext, 'clock') || str_contains($combinedContext, 'present') || str_contains($combinedContext, 'absent') || str_contains($combinedContext, 'status') || str_contains($combinedContext, 'in time')) {
+                } elseif (str_contains($combinedContext, 'attendance') || str_contains($combinedContext, 'punch')) {
                     $category = 'Attendance Logs';
-                } elseif (str_contains($combinedContext, 'salary') || str_contains($combinedContext, 'payroll') || str_contains($combinedContext, 'net pay') || str_contains($combinedContext, 'basic pay') || str_contains($combinedContext, 'ctc')) {
+                } elseif (str_contains($combinedContext, 'payroll') || str_contains($combinedContext, 'salary')) {
                     $category = 'Payroll & Salary';
-                } elseif (str_contains($combinedContext, 'lead') || str_contains($combinedContext, 'calling') || str_contains($combinedContext, 'client') || str_contains($combinedContext, 'prospect')) {
+                } elseif (str_contains($combinedContext, 'lead') || str_contains($combinedContext, 'calling')) {
                     $category = 'Lead CRM & Calling';
-                } elseif (str_contains($combinedContext, 'target') || str_contains($combinedContext, 'kpi') || str_contains($combinedContext, 'performance')) {
-                    $category = 'Targets & KPIs';
-                } elseif (str_contains($combinedContext, 'asset') || str_contains($combinedContext, 'inventory') || str_contains($combinedContext, 'hardware')) {
-                    $category = 'Assets & Hardware';
-                } elseif (str_contains($combinedContext, 'email') || str_contains($combinedContext, 'designation') || str_contains($combinedContext, 'name') || str_contains($combinedContext, 'staff') || str_contains($combinedContext, 'employee')) {
+                } elseif (str_contains($combinedContext, 'email') || str_contains($combinedContext, 'employee') || str_contains($combinedContext, 'staff')) {
                     $category = 'Workforce Directory';
                 } else {
                     $category = !empty($title) ? ucwords(strtolower($title)) : 'General Datasets';
                 }
             }
 
-            // --- ⚡ 1. AUTOMATIC EMPLOYEE REGISTRATION ENGINE ---
-            $registeredEmpCount = 0;
-            if (($category === 'employees' || $category === 'Workforce Directory' || $category === 'BDA & Sales Team' || str_contains(strtolower($category), 'bda') || str_contains(strtolower($category), 'employee')) && !empty($rows)) {
-                $existingEmails = $db->query("SELECT email FROM users")->fetchAll(PDO::FETCH_COLUMN) ?: [];
-                $existingEmails = array_map('strtolower', array_map('trim', $existingEmails));
+            // 💾 Insert into smart_sheet_uploads
+            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (uploaded_by, title, category, columns_json, rows_json, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+            $stmt->execute([$user['id'], $title, $category, json_encode($columns, JSON_UNESCAPED_UNICODE), json_encode($rows, JSON_UNESCAPED_UNICODE)]);
 
-                // Find max existing EMP ID
-                $maxEmpNum = 5;
-                $allEmpIds = $db->query("SELECT emp_id FROM users WHERE emp_id LIKE 'EMP%'")->fetchAll(PDO::FETCH_COLUMN) ?: [];
-                foreach ($allEmpIds as $eid) {
-                    if (preg_match('/EMP(\d+)/', $eid, $m)) {
-                        $num = (int)$m[1];
-                        if ($num > $maxEmpNum) $maxEmpNum = $num;
-                    }
-                }
+            // ⚡ UNIVERSAL 360-DEGREE WEBSITE-WIDE AUTO-SYNC
+            $syncReport = self::syncDataWebsiteWide($db, $columns, $rows);
 
-                // Match column indices
-                $colNameIdx = -1;
-                $colEmailIdx = -1;
-                $colDesigIdx = -1;
-
-                foreach ($columns as $idx => $cName) {
-                    $cn = strtolower(trim((string)$cName));
-                    if ($colNameIdx === -1 && (str_contains($cn, 'name') || str_contains($cn, 'staff') || str_contains($cn, 'employee'))) $colNameIdx = $idx;
-                    if ($colEmailIdx === -1 && (str_contains($cn, 'email') || str_contains($cn, 'mail'))) $colEmailIdx = $idx;
-                    if ($colDesigIdx === -1 && (str_contains($cn, 'designation') || str_contains($cn, 'role') || str_contains($cn, 'position') || str_contains($cn, 'dept'))) $colDesigIdx = $idx;
-                }
-
-                if ($colNameIdx === -1) $colNameIdx = 0;
-                if ($colEmailIdx === -1 && count($columns) > 1) $colEmailIdx = 1;
-                if ($colDesigIdx === -1 && count($columns) > 2) $colDesigIdx = 2;
-
-                // Look for DOB Column
-                $colDobIdx = -1;
-                foreach ($columns as $idx => $cName) {
-                    $cn = strtolower(trim((string)$cName));
-                    if (str_contains($cn, 'dob') || str_contains($cn, 'birth') || str_contains($cn, 'bday') || str_contains($cn, 'date of birth')) {
-                        $colDobIdx = $idx;
-                        break;
-                    }
-                }
-
-                $stmtInsertEmp = $db->prepare("
-                    INSERT INTO users (emp_id, name, email, role, designation, work_mode, department_name, date_of_birth, status, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
-                ");
-
-                foreach ($rows as $row) {
-                    $eName = trim((string)($row[$colNameIdx] ?? ''));
-                    $eEmail = strtolower(trim((string)($row[$colEmailIdx] ?? '')));
-                    $eDesig = trim((string)($row[$colDesigIdx] ?? ''));
-                    $rawDob = ($colDobIdx !== -1) ? trim((string)($row[$colDobIdx] ?? '')) : null;
-                    $parsedDob = !empty($rawDob) && strtotime($rawDob) ? date('Y-m-d', strtotime($rawDob)) : null;
-
-                    if (empty($eName) || empty($eEmail) || !filter_var($eEmail, FILTER_VALIDATE_EMAIL)) {
-                        continue;
-                    }
-
-                    if (in_array($eEmail, $existingEmails)) {
-                        continue; // Already exists
-                    }
-
-                    $maxEmpNum++;
-                    $newEmpId = sprintf('EMP%03d', $maxEmpNum);
-
-                    $role = 'employee';
-                    $workMode = 'office';
-                    $departmentName = 'Operations';
-                    $designation = !empty($eDesig) ? $eDesig : 'Executive';
-
-                    $upperDesig = strtoupper($eDesig);
-                    if (str_contains($upperDesig, 'FSM') || str_contains($upperDesig, 'FIELD')) {
-                        $designation = 'Field Sales Manager (FSM)';
-                        $workMode = 'field';
-                        $departmentName = 'Field Operations';
-                    } elseif (str_contains($upperDesig, 'BDA') || str_contains($upperDesig, 'CALL')) {
-                        $designation = 'Business Development Associate (BDA)';
-                        $workMode = 'office';
-                        $departmentName = 'Business Development';
-                    } elseif (str_contains($upperDesig, 'TL') || str_contains($upperDesig, 'LEAD')) {
-                        $role = 'team_lead';
-                        $designation = 'Team Lead';
-                    }
-
-                    $stmtInsertEmp->execute([$newEmpId, $eName, $eEmail, $role, $designation, $workMode, $departmentName, $parsedDob]);
-                    $existingEmails[] = $eEmail;
-                    $registeredEmpCount++;
-                }
+            $msg = "📊 Sheet <strong>" . htmlspecialchars($title) . "</strong> ingested successfully!";
+            if (!empty($syncReport['employees'])) {
+                $msg .= " • <strong>{$syncReport['employees']}</strong> workforce profiles synced.";
+            }
+            if (!empty($syncReport['attendance'])) {
+                $msg .= " • <strong>{$syncReport['attendance']}</strong> attendance records auto-populated.";
+            }
+            if (!empty($syncReport['birthdays'])) {
+                $msg .= " • <strong>{$syncReport['birthdays']}</strong> employee birthdays updated.";
             }
 
-            // --- ⚡ 2. AUTOMATIC ATTENDANCE AUTO-SYNC ENGINE ---
-            $syncedAttendanceCount = 0;
-            if ($category === 'attendance' && !empty($rows)) {
-                $allUsers = $db->query("SELECT id, emp_id, name, email FROM users")->fetchAll(PDO::FETCH_ASSOC);
-
-                $matchUser = function(string $empVal) use ($allUsers, $user): int {
-                    $val = trim($empVal);
-                    if (empty($val)) return $user['id'];
-                    foreach ($allUsers as $u) {
-                        if (!empty($u['emp_id']) && strcasecmp($u['emp_id'], $val) === 0) return $u['id'];
-                        if (stripos($u['name'], $val) !== false || stripos($val, $u['name']) !== false) return $u['id'];
-                        if (!empty($u['email']) && strcasecmp($u['email'], $val) === 0) return $u['id'];
-                    }
-                    return $user['id'];
-                };
-
-                $mapStatusAndTimes = function(string $rawStatus, ?string $rawIn, ?string $rawOut, ?float $rawHours): array {
-                    $s = strtolower(trim($rawStatus));
-                    $status = 'present';
-                    $clockIn = '10:00:00';
-                    $clockOut = '19:00:00';
-                    $totalHours = 9.0;
-
-                    if (in_array($s, ['a', 'absent', 'abs', '0', 'no', 'false'])) {
-                        $status = 'absent';
-                        $clockIn = null;
-                        $clockOut = null;
-                        $totalHours = 0.0;
-                    } elseif (in_array($s, ['hd', 'half day', 'half_day', 'half', '0.5', 'h'])) {
-                        $status = 'half_day';
-                        $clockIn = '10:00:00';
-                        $clockOut = '14:30:00';
-                        $totalHours = 4.5;
-                    } elseif (in_array($s, ['l', 'leave', 'pl', 'cl', 'sl', 'on_leave'])) {
-                        $status = 'on_leave';
-                        $clockIn = null;
-                        $clockOut = null;
-                        $totalHours = 0.0;
-                    } else {
-                        $status = 'present';
-                        if (!empty($rawIn) && strtotime($rawIn)) {
-                            $clockIn = date('H:i:s', strtotime($rawIn));
-                        }
-                        if (!empty($rawOut) && strtotime($rawOut)) {
-                            $clockOut = date('H:i:s', strtotime($rawOut));
-                        }
-                        if ($rawHours !== null && $rawHours > 0) {
-                            $totalHours = $rawHours;
-                        } elseif ($clockIn && $clockOut) {
-                            $totalHours = round((strtotime($clockOut) - strtotime($clockIn)) / 3600, 2);
-                        } else {
-                            $totalHours = 9.0;
-                        }
-                    }
-
-                    return [
-                        'status' => $status,
-                        'clock_in' => $clockIn,
-                        'clock_out' => $clockOut,
-                        'total_hours' => $totalHours
-                    ];
-                };
-
-                // Monthly Matrix Check
-                $dayColumns = [];
-                foreach ($columns as $idx => $cName) {
-                    $trimmed = trim((string)$cName);
-                    if (is_numeric($trimmed) && (int)$trimmed >= 1 && (int)$trimmed <= 31) {
-                        $dayColumns[(int)$trimmed] = $idx;
-                    }
-                }
-
-                if (count($dayColumns) >= 5) {
-                    $currentYearMonth = date('Y-m');
-                    if (preg_match('/(202\d[-_\/]\d{1,2})/', $title . ' ' . $originalName, $ymMatch)) {
-                        $currentYearMonth = date('Y-m', strtotime($ymMatch[1] . '-01'));
-                    }
-
-                    foreach ($rows as $row) {
-                        $empName = trim((string)($row[0] ?? ($row[1] ?? '')));
-                        if (empty($empName)) continue;
-                        $matchedUserId = $matchUser($empName);
-
-                        foreach ($dayColumns as $dayNum => $colIdx) {
-                            $dayVal = trim((string)($row[$colIdx] ?? ''));
-                            if (empty($dayVal)) continue;
-
-                            $dateStr = sprintf('%s-%02d', $currentYearMonth, $dayNum);
-                            $eval = $mapStatusAndTimes($dayVal, null, null, null);
-
-                            $existing = $db->query("SELECT id FROM attendance WHERE user_id = {$matchedUserId} AND date = '{$dateStr}'")->fetch(PDO::FETCH_ASSOC);
-                            if ($existing) {
-                                $stmt = $db->prepare("UPDATE attendance SET clock_in = ?, clock_out = ?, total_hours = ?, status = ?, notes = 'Imported Historical Matrix Sheet', tl_approved = 1, hr_corrected = 1 WHERE id = ?");
-                                $stmt->execute([$eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status'], $existing['id']]);
-                            } else {
-                                $stmt = $db->prepare("INSERT INTO attendance (user_id, date, clock_in, clock_out, total_hours, status, notes, tl_approved, hr_corrected, is_geofence_verified) VALUES (?, ?, ?, ?, ?, ?, 'Imported Historical Matrix Sheet', 1, 1, 1)");
-                                $stmt->execute([$matchedUserId, $dateStr, $eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status']]);
-                            }
-                            $syncedAttendanceCount++;
-                        }
-                    }
-                } else {
-                    $colMap = ['emp' => 0, 'date' => 1, 'in' => -1, 'out' => -1, 'status' => -1, 'hours' => -1];
-                    foreach ($columns as $idx => $colName) {
-                        $c = strtolower(trim((string)$colName));
-                        if ($colMap['emp'] === 0 && (str_contains($c, 'emp') || str_contains($c, 'name') || str_contains($c, 'staff'))) $colMap['emp'] = $idx;
-                        if ($colMap['date'] === 1 && (str_contains($c, 'date') || str_contains($c, 'day'))) $colMap['date'] = $idx;
-                        if (str_contains($c, 'in') || str_contains($c, 'punch_in')) $colMap['in'] = $idx;
-                        if (str_contains($c, 'out') || str_contains($c, 'punch_out')) $colMap['out'] = $idx;
-                        if (str_contains($c, 'status') || str_contains($c, 'present') || str_contains($c, 'attendance')) $colMap['status'] = $idx;
-                    }
-
-                    foreach ($rows as $row) {
-                        $empVal = trim((string)($row[$colMap['emp']] ?? ''));
-                        if (empty($empVal)) continue;
-                        $matchedUserId = $matchUser($empVal);
-
-                        $rawDate = trim((string)($row[$colMap['date']] ?? date('Y-m-d')));
-                        $parsedDate = date('Y-m-d', strtotime($rawDate));
-                        if (!$parsedDate || $parsedDate === '1970-01-01') $parsedDate = date('Y-m-d');
-
-                        $rawIn = $colMap['in'] !== -1 ? trim((string)($row[$colMap['in']] ?? '')) : null;
-                        $rawOut = $colMap['out'] !== -1 ? trim((string)($row[$colMap['out']] ?? '')) : null;
-                        $rawStatus = $colMap['status'] !== -1 ? trim((string)($row[$colMap['status']] ?? 'present')) : 'present';
-
-                        $eval = $mapStatusAndTimes($rawStatus, $rawIn, $rawOut, null);
-
-                        $existing = $db->query("SELECT id FROM attendance WHERE user_id = {$matchedUserId} AND date = '{$parsedDate}'")->fetch(PDO::FETCH_ASSOC);
-                        if ($existing) {
-                            $stmt = $db->prepare("UPDATE attendance SET clock_in = ?, clock_out = ?, total_hours = ?, status = ?, notes = 'Imported Historical Sheet', tl_approved = 1, hr_corrected = 1 WHERE id = ?");
-                            $stmt->execute([$eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status'], $existing['id']]);
-                        } else {
-                            $stmt = $db->prepare("INSERT INTO attendance (user_id, date, clock_in, clock_out, total_hours, status, notes, tl_approved, hr_corrected, is_geofence_verified) VALUES (?, ?, ?, ?, ?, ?, 'Imported Historical Sheet', 1, 1, 1)");
-                            $stmt->execute([$matchedUserId, $parsedDate, $eval['clock_in'], $eval['clock_out'], $eval['total_hours'], $eval['status']]);
-                        }
-                        $syncedAttendanceCount++;
-                    }
-                }
-            }
-
-            // Calculate auto-formula aggregates
-            $numericSums = [];
-            foreach ($rows as $row) {
-                foreach ($row as $colIdx => $val) {
-                    $cleanedVal = preg_replace('/[^\d.]/', '', (string)$val);
-                    if (is_numeric($cleanedVal) && !empty($cleanedVal)) {
-                        $numericSums[$colIdx] = ($numericSums[$colIdx] ?? 0) + (float)$cleanedVal;
-                    }
-                }
-            }
-
-            $summary = [
-                'total_rows' => count($rows),
-                'total_columns' => count($columns),
-                'column_sums' => $numericSums,
-                'registered_employees' => $registeredEmpCount,
-                'synced_attendance_records' => $syncedAttendanceCount
-            ];
-
-            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (title, file_type, original_filename, category, columns_json, rows_json, summary_json, uploaded_by) VALUES (?, 'spreadsheet', ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $title,
-                !empty($sheetUrl) ? 'Google Sheet: ' . substr($sheetUrl, 0, 80) : $originalName,
-                $category,
-                json_encode($columns),
-                json_encode($rows),
-                json_encode($summary),
-                $user['id']
-            ]);
-
-            $successMsg = "🎉 Smart Sheet '{$title}' processed successfully (" . count($rows) . " rows)! Category: " . strtoupper($category);
-            if ($registeredEmpCount > 0) {
-                $successMsg .= " • 👤 {$registeredEmpCount} Employees automatically registered into Employee Directory!";
-            }
-            if ($syncedAttendanceCount > 0) {
-                $successMsg .= " • ⚡ {$syncedAttendanceCount} Attendance records synced!";
-            }
-
-            setFlash('success', $successMsg);
+            setFlash('success', $msg);
             header('Location: ?page=admin-smart-sheets');
             exit;
         }
@@ -376,13 +149,177 @@ class SmartSheetController {
 
     public static function delete(): void {
         requireAuth('admin');
+        requireActiveShift();
         $db = getDBConnection();
-        $sheetId = (int)($_POST['sheet_id'] ?? 0);
-        if ($sheetId > 0) {
-            $db->prepare("DELETE FROM smart_sheet_uploads WHERE id = ?")->execute([$sheetId]);
-            setFlash('success', 'Smart Sheet deleted successfully.');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $sheetId = (int)($_POST['sheet_id'] ?? 0);
+            if ($sheetId > 0) {
+                $db->prepare("DELETE FROM smart_sheet_uploads WHERE id = ?")->execute([$sheetId]);
+                setFlash('success', 'Smart sheet record deleted.');
+            }
         }
         header('Location: ?page=admin-smart-sheets');
         exit;
+    }
+
+    // ⚡ UNIVERSAL SYNC ENGINE
+    private static function syncDataWebsiteWide($db, array $columns, array $rows): array {
+        $report = ['employees' => 0, 'attendance' => 0, 'birthdays' => 0];
+        if (empty($columns) || empty($rows)) return $report;
+
+        // 1. Column Index Resolvers
+        $colNameIdx = -1;
+        $colEmailIdx = -1;
+        $colDesigIdx = -1;
+        $colPhoneIdx = -1;
+        $colDobIdx = -1;
+        $colSalaryIdx = -1;
+        $colDeptIdx = -1;
+        $colDateIdx = -1;
+        $colStatusIdx = -1;
+        $colInIdx = -1;
+        $colOutIdx = -1;
+
+        foreach ($columns as $idx => $cName) {
+            $cn = strtolower(trim((string)$cName));
+            if ($colNameIdx === -1 && (str_contains($cn, 'name') || str_contains($cn, 'employee name') || str_contains($cn, 'staff name'))) $colNameIdx = $idx;
+            if ($colEmailIdx === -1 && (str_contains($cn, 'email') || str_contains($cn, 'mail'))) $colEmailIdx = $idx;
+            if ($colDesigIdx === -1 && (str_contains($cn, 'desig') || str_contains($cn, 'role') || str_contains($cn, 'position'))) $colDesigIdx = $idx;
+            if ($colPhoneIdx === -1 && (str_contains($cn, 'phone') || str_contains($cn, 'mobile') || str_contains($cn, 'contact') || str_contains($cn, 'whatsapp'))) $colPhoneIdx = $idx;
+            if ($colDobIdx === -1 && (str_contains($cn, 'dob') || str_contains($cn, 'birth') || str_contains($cn, 'bday'))) $colDobIdx = $idx;
+            if ($colSalaryIdx === -1 && (str_contains($cn, 'salary') || str_contains($cn, 'basic') || str_contains($cn, 'stipend') || str_contains($cn, 'ctc'))) $colSalaryIdx = $idx;
+            if ($colDeptIdx === -1 && (str_contains($cn, 'dept') || str_contains($cn, 'department'))) $colDeptIdx = $idx;
+            if ($colDateIdx === -1 && (str_contains($cn, 'date') && !str_contains($cn, 'birth'))) $colDateIdx = $idx;
+            if ($colStatusIdx === -1 && (str_contains($cn, 'status') || str_contains($cn, 'attendance'))) $colStatusIdx = $idx;
+            if ($colInIdx === -1 && (str_contains($cn, 'in time') || str_contains($cn, 'clock in') || str_contains($cn, 'punch in'))) $colInIdx = $idx;
+            if ($colOutIdx === -1 && (str_contains($cn, 'out time') || str_contains($cn, 'clock out') || str_contains($cn, 'punch out'))) $colOutIdx = $idx;
+        }
+
+        if ($colNameIdx === -1 && count($columns) > 0) $colNameIdx = 0;
+        if ($colEmailIdx === -1 && count($columns) > 1) {
+            foreach ($rows as $r) {
+                if (isset($r[1]) && str_contains((string)$r[1], '@')) {
+                    $colEmailIdx = 1;
+                    break;
+                }
+            }
+        }
+
+        $existingUsers = $db->query("SELECT id, LOWER(email) as email, name FROM users")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $emailToUser = [];
+        $nameToUser = [];
+        foreach ($existingUsers as $eu) {
+            if (!empty($eu['email'])) $emailToUser[$eu['email']] = $eu;
+            if (!empty($eu['name'])) $nameToUser[strtolower(trim($eu['name']))] = $eu;
+        }
+
+        // Get max EMP ID
+        $maxEmp = $db->query("SELECT MAX(CAST(SUBSTRING(emp_id, 4) AS UNSIGNED)) FROM users WHERE emp_id LIKE 'EMP%'")->fetchColumn() ?: 25;
+
+        // Loop rows for Workforce Sync & DOB Sync
+        foreach ($rows as $row) {
+            $rawName = ($colNameIdx !== -1 && isset($row[$colNameIdx])) ? trim((string)$row[$colNameIdx]) : '';
+            $rawEmail = ($colEmailIdx !== -1 && isset($row[$colEmailIdx])) ? strtolower(trim((string)$row[$colEmailIdx])) : '';
+            $rawDesig = ($colDesigIdx !== -1 && isset($row[$colDesigIdx])) ? trim((string)$row[$colDesigIdx]) : '';
+            $rawPhone = ($colPhoneIdx !== -1 && isset($row[$colPhoneIdx])) ? trim((string)$row[$colPhoneIdx]) : '';
+            $rawDob = ($colDobIdx !== -1 && isset($row[$colDobIdx])) ? trim((string)$row[$colDobIdx]) : '';
+            $rawSalary = ($colSalaryIdx !== -1 && isset($row[$colSalaryIdx])) ? (float)preg_replace('/[^0-9.]/', '', (string)$row[$colSalaryIdx]) : 0;
+            $rawDept = ($colDeptIdx !== -1 && isset($row[$colDeptIdx])) ? trim((string)$row[$colDeptIdx]) : '';
+
+            $parsedDob = !empty($rawDob) && strtotime($rawDob) ? date('Y-m-d', strtotime($rawDob)) : null;
+
+            if (empty($rawName) && empty($rawEmail)) continue;
+
+            // Generate clean email if missing
+            if (empty($rawEmail) && !empty($rawName)) {
+                $rawEmail = strtolower(preg_replace('/[^a-z0-9]/', '', $rawName)) . '@ecofone.in';
+            }
+
+            // Clean designation & role
+            $role = 'employee';
+            $desig = !empty($rawDesig) ? $rawDesig : 'Executive';
+            $workMode = 'office';
+            $dept = !empty($rawDept) ? $rawDept : 'Operations';
+
+            $upperDesig = strtoupper($desig);
+            if ($upperDesig === 'BDA' || str_contains($upperDesig, 'BUSINESS DEVELOPMENT')) {
+                $desig = 'BDA';
+                $dept = 'Business Development';
+            } elseif ($upperDesig === 'FSM' || str_contains($upperDesig, 'FIELD')) {
+                $desig = 'FSM';
+                $workMode = 'field';
+                $dept = 'Field Operations';
+            }
+
+            if (isset($emailToUser[$rawEmail])) {
+                // Update existing user profile & DOB
+                $uId = $emailToUser[$rawEmail]['id'];
+                $updateFields = [];
+                $params = [];
+
+                if ($parsedDob) {
+                    $updateFields[] = "date_of_birth = COALESCE(date_of_birth, ?)";
+                    $params[] = $parsedDob;
+                    $report['birthdays']++;
+                }
+                if (!empty($rawPhone)) {
+                    $updateFields[] = "phone = COALESCE(phone, ?)";
+                    $params[] = $rawPhone;
+                }
+                if ($rawSalary > 0) {
+                    $updateFields[] = "salary_basic = CASE WHEN salary_basic IS NULL OR salary_basic = 0 THEN ? ELSE salary_basic END";
+                    $params[] = $rawSalary;
+                }
+
+                if (!empty($updateFields)) {
+                    $params[] = $uId;
+                    $db->prepare("UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?")->execute($params);
+                }
+            } else {
+                // Register new user
+                $maxEmp++;
+                $newEmpId = 'EMP' . str_pad($maxEmp, 3, '0', STR_PAD_LEFT);
+                $stmtNew = $db->prepare("
+                    INSERT INTO users (emp_id, name, email, role, designation, work_mode, department_name, date_of_birth, phone, salary_basic, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+                ");
+                $stmtNew->execute([$newEmpId, $rawName, $rawEmail, $role, $desig, $workMode, $dept, $parsedDob, $rawPhone ?: null, $rawSalary ?: null]);
+                $emailToUser[$rawEmail] = ['id' => $db->lastInsertId(), 'name' => $rawName, 'email' => $rawEmail];
+                $report['employees']++;
+                if ($parsedDob) $report['birthdays']++;
+            }
+
+            // Attendance Sync if Date and Status present
+            if ($colDateIdx !== -1 && isset($row[$colDateIdx])) {
+                $rawDate = trim((string)$row[$colDateIdx]);
+                if (!empty($rawDate) && strtotime($rawDate)) {
+                    $attDate = date('Y-m-d', strtotime($rawDate));
+                    $matchedUser = $emailToUser[$rawEmail] ?? ($nameToUser[strtolower($rawName)] ?? null);
+
+                    if ($matchedUser) {
+                        $attStatus = 'present';
+                        $rawSt = ($colStatusIdx !== -1 && isset($row[$colStatusIdx])) ? strtolower(trim((string)$row[$colStatusIdx])) : '';
+                        if (str_contains($rawSt, 'absent') || $rawSt === 'a') $attStatus = 'absent';
+                        elseif (str_contains($rawSt, 'wfh')) $attStatus = 'wfh';
+                        elseif (str_contains($rawSt, 'leave') || $rawSt === 'l') $attStatus = 'on_leave';
+
+                        $clockIn = ($colInIdx !== -1 && !empty($row[$colInIdx])) ? date('Y-m-d H:i:s', strtotime("{$attDate} {$row[$colInIdx]}")) : "{$attDate} 09:30:00";
+                        $clockOut = ($colOutIdx !== -1 && !empty($row[$colOutIdx])) ? date('Y-m-d H:i:s', strtotime("{$attDate} {$row[$colOutIdx]}")) : "{$attDate} 18:30:00";
+
+                        $existingAtt = $db->query("SELECT id FROM attendance WHERE user_id = {$matchedUser['id']} AND date = '{$attDate}'")->fetch();
+                        if (!$existingAtt) {
+                            $db->prepare("
+                                INSERT INTO attendance (user_id, date, clock_in, clock_out, total_hours, status, notes, tl_approved, hr_corrected, is_geofence_verified)
+                                VALUES (?, ?, ?, ?, 9.0, ?, 'Imported via Smart Sheet Ingestion', 1, 1, 1)
+                            ")->execute([$matchedUser['id'], $attDate, $clockIn, $clockOut, $attStatus]);
+                            $report['attendance']++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $report;
     }
 }

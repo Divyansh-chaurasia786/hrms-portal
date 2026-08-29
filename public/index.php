@@ -324,6 +324,7 @@ if ($action) {
     case 'upload-calling-leads': requireActiveShift(); CallingController::uploadLeads(); break;
     case 'update-calling-disposition': requireActiveShift(); CallingController::updateDisposition(); break;
     case 'get-smart-sheet-data': SmartSheetController::getSheetData(); break;
+    case 'save-smart-sheet-data': requireActiveShift(); SmartSheetController::saveSheetData(); break;
     case 'upload-smart-sheet': requireActiveShift(); SmartSheetController::upload(); break;
     case 'log-travel-coordinate': AttendanceController::logTravelCoordinate(); break;
     case 'get-travel-logs': AttendanceController::getTravelLogs(); break;
