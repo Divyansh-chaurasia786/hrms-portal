@@ -63,17 +63,26 @@ $initialPayload = [
     overflow: hidden;
 }
 
-/* Force all Luckysheet internal containers to stretch to 100% width */
+/* Force all Luckysheet internal containers and canvas to stretch to 100% width */
 .luckysheet,
 .luckysheet-workarea,
 .luckysheet-wa-calculate,
 .luckysheet-grid-window,
 .luckysheet-grid-window-holder,
 .luckysheet-cell-main,
-.luckysheet-sheet-area {
+.luckysheet-sheet-area,
+#luckysheet-grid-window-1,
+#luckysheet-cell-main {
     width: 100% !important;
+    min-width: 100% !important;
     max-width: 100% !important;
     font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
+    box-sizing: border-box !important;
+}
+
+/* Ensure canvas background matches grid line pattern */
+.luckysheet-grid-window-holder {
+    background-color: #f8fafc !important;
 }
 
 /* 🟢 Excel 2021 Formula Bar */
@@ -631,8 +640,13 @@ document.addEventListener('alpine:init', () => {
         buildSheetConfigObject(sheetName, columns, rows) {
             const celldata = [];
             const customColLen = {};
-            const rowCount = Math.max(rows.length + 50, 100);
-            const colCount = Math.max(columns.length + 30, 52);
+            const colCount = Math.max(columns.length + 35, 52);
+            const rowCount = Math.max(rows.length + 60, 100);
+
+            // Fill all columns up to colCount with standard width to prevent any right-side blank space
+            for (let c = 0; c < colCount; c++) {
+                customColLen[c] = 110;
+            }
 
             columns.forEach((colName, cIdx) => {
                 let maxLen = String(colName).length;
@@ -746,6 +760,10 @@ document.addEventListener('alpine:init', () => {
                 container: 'luckysheet',
                 title: this.currentSheetTitle,
                 lang: 'en',
+                column: 52,
+                row: 100,
+                defaultColWidth: 110,
+                defaultRowHeight: 24,
                 showinfobar: false,
                 showtoolbar: true, // ✅ FULL MS EXCEL 2021 OFFICIAL TOOLBAR
                 showtoolbarConfig: {
