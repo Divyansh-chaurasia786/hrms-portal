@@ -280,20 +280,26 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                         outLng: 0,
                         doEmpPunchOut() {
                             this.outState = 'saving';
+                            const submitWithCoords = (lat, lng) => {
+                                const form = this.$refs.empPunchOutForm;
+                                if (form) {
+                                    if (form.querySelector('input[name=latitude]')) form.querySelector('input[name=latitude]').value = lat || '';
+                                    if (form.querySelector('input[name=longitude]')) form.querySelector('input[name=longitude]').value = lng || '';
+                                    form.submit();
+                                }
+                            };
                             if (navigator.geolocation) {
                                 navigator.geolocation.getCurrentPosition(
                                     (p) => {
-                                        this.outLat = p.coords.latitude;
-                                        this.outLng = p.coords.longitude;
-                                        this.$nextTick(() => this.$refs.empPunchOutForm.submit());
+                                        submitWithCoords(p.coords.latitude, p.coords.longitude);
                                     },
                                     (e) => {
-                                        this.$nextTick(() => this.$refs.empPunchOutForm.submit());
+                                        submitWithCoords(null, null);
                                     },
-                                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
                                 );
                             } else {
-                                this.$nextTick(() => this.$refs.empPunchOutForm.submit());
+                                submitWithCoords(null, null);
                             }
                         }
                     }">

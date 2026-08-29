@@ -53,11 +53,11 @@ class AttendanceController {
                 // Re-punch for new session
                 $db->prepare("
                     UPDATE attendance 
-                    SET clock_out = NULL, status = ?, notes = ?,
+                    SET clock_in = ?, clock_out = NULL, status = ?, notes = ?,
                         punch_in_lat = COALESCE(?, punch_in_lat), punch_in_lng = COALESCE(?, punch_in_lng),
                         tl_approved = 0, force_logged_out_by = NULL, force_logout_at = NULL
                     WHERE id = ?
-                ")->execute([$status, $notes, $userLat, $userLng, $existing['id']]);
+                ")->execute([$now, $status, $notes, $userLat, $userLng, $existing['id']]);
 
                 // Get next session number
                 $maxSess = (int)$db->query("SELECT COALESCE(MAX(session_number), 0) FROM attendance_sessions WHERE attendance_id = {$existing['id']}")->fetchColumn();
@@ -322,9 +322,23 @@ class AttendanceController {
 
     public static function getTodayAttendanceForUser(int $userId): ?array {
         $db = getDBConnection();
+        $today = date('Y-m-d');
         $stmt = $db->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
-        $stmt->execute([$userId, date('Y-m-d')]);
-        return $stmt->fetch() ?: null;
+        $stmt->execute([$userId, $today]);
+        $att = $stmt->fetch();
+        if (!$att) return null;
+
+        // Fetch latest session to ensure accurate current active session clock_in time
+        $latestSess = $db->query("SELECT * FROM attendance_sessions WHERE attendance_id = {$att['id']} ORDER BY session_number DESC, id DESC LIMIT 1")->fetch();
+        if ($latestSess) {
+            if ($latestSess['clock_out'] === null) {
+                $att['clock_in'] = $latestSess['clock_in'];
+                $att['clock_out'] = null;
+            } else {
+                $att['clock_out'] = $latestSess['clock_out'];
+            }
+        }
+        return $att;
     }
 
     public static function getTeamLiveStatus(int $tlId): array {
