@@ -11,6 +11,14 @@
         <!-- Leaflet Maps CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- PWA Manifest & Mobile Standalone Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ecofone HRMS">
+    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Ecofone+HRMS&background=4f46e5&color=fff&size=192&rounded=true&bold=true">
+    <meta name="theme-color" content="#4f46e5">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -56,7 +64,7 @@
         }
     </style>
 </head>
-<body class="h-full antialiased text-slate-800 flex" x-data="{ sidebarOpen: false }">
+<body class="h-full antialiased text-slate-800 flex" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false }">
 
 <script>
 function handlePunchOutGeo(form) {
