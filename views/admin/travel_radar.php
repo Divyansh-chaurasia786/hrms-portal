@@ -230,9 +230,207 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     </div>
 </div>
 
-<!-- Leaflet JS & CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function() {
+    let radarMap = null;
+    let currentLayerGroup = null;
+
+    function getOrInitMap() {
+        const container = document.getElementById('radarMap');
+        if (!container || typeof L === 'undefined') return null;
+
+        // If map container already has Leaflet instance attached
+        if (container._leaflet_id && radarMap) {
+            radarMap.invalidateSize();
+            return radarMap;
+        }
+
+        try {
+            if (radarMap) {
+                radarMap.remove();
+            }
+            radarMap = L.map('radarMap', { zoomControl: true }).setView([26.8467, 80.9462], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(radarMap);
+
+            currentLayerGroup = L.layerGroup().addTo(radarMap);
+            setTimeout(() => radarMap.invalidateSize(), 100);
+            return radarMap;
+        } catch(e) {
+            console.error('Map init error:', e);
+            return null;
+        }
+    }
+
+    window.fetchAndRenderStaffLogs = function(userId, date, isSilent = false, callback = null) {
+        if (!userId) return;
+        const map = getOrInitMap();
+
+        fetch(`?action=get-travel-logs&user_id=${userId}&date=${date}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const emp = data.employee;
+                const waypoints = data.waypoints || [];
+
+                // Update Alpine state
+                const alpineEl = document.querySelector('[x-data]');
+                if (alpineEl && alpineEl._x_dataStack && alpineEl._x_dataStack[0]) {
+                    const ctx = alpineEl._x_dataStack[0];
+                    if (emp) {
+                        ctx.selectedEmp = emp;
+                        const item = ctx.fieldEmployees.find(e => Number(e.id) === Number(userId));
+                        if (item) {
+                            item.total_distance_meters = emp.total_distance_meters;
+                            item.current_speed = emp.current_speed;
+                            item.waypoints_count = emp.waypoints_count;
+                            item.clock_in = emp.clock_in;
+                            item.clock_out = emp.clock_out;
+                        }
+                    }
+                }
+
+                renderCoordinates(emp, waypoints, isSilent);
+            }
+            if (callback) callback();
+        })
+        .catch(err => {
+            console.error('Failed to fetch travel logs:', err);
+            if (callback) callback();
+        });
+    };
+
+    function renderCoordinates(emp, waypoints, isSilent) {
+        const map = getOrInitMap();
+        if (!map || !currentLayerGroup) return;
+
+        currentLayerGroup.clearLayers();
+        map.invalidateSize();
+
+        const coords = [];
+
+        // 1. Add Punch In Coordinate
+        if (emp && emp.punch_in_lat && emp.punch_in_lng) {
+            const lat = parseFloat(emp.punch_in_lat);
+            const lng = parseFloat(emp.punch_in_lng);
+            if (!isNaN(lat) && !isNaN(lng)) coords.push([lat, lng]);
+        }
+
+        // 2. Add All Travel Waypoints
+        waypoints.forEach(wp => {
+            if (wp.latitude && wp.longitude) {
+                const lat = parseFloat(wp.latitude);
+                const lng = parseFloat(wp.longitude);
+                if (!isNaN(lat) && !isNaN(lng)) coords.push([lat, lng]);
+            }
+        });
+
+        // 3. Add Punch Out Coordinate
+        if (emp && emp.punch_out_lat && emp.punch_out_lng) {
+            const lat = parseFloat(emp.punch_out_lat);
+            const lng = parseFloat(emp.punch_out_lng);
+            if (!isNaN(lat) && !isNaN(lng)) coords.push([lat, lng]);
+        }
+
+        if (coords.length > 0) {
+            // Draw Route Polyline Trail
+            if (coords.length > 1) {
+                const polyline = L.polyline(coords, {
+                    color: '#4f46e5',
+                    weight: 6,
+                    opacity: 0.9,
+                    dashArray: '6, 6',
+                    lineJoin: 'round'
+                }).addTo(currentLayerGroup);
+
+                // Add Waypoint dots along the route
+                coords.forEach((pt, i) => {
+                    if (i > 0 && i < coords.length - 1) {
+                        L.circleMarker(pt, {
+                            radius: 5,
+                            color: '#4338ca',
+                            fillColor: '#818cf8',
+                            fillOpacity: 0.9,
+                            weight: 2
+                        }).addTo(currentLayerGroup).bindPopup(`<strong>📍 Waypoint Stop #${i + 1}</strong>`);
+                    }
+                });
+
+                if (!isSilent) {
+                    try {
+                        const bounds = polyline.getBounds();
+                        if (bounds.isValid() && (bounds.getNorthEast().lat !== bounds.getSouthWest().lat)) {
+                            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
+                        } else {
+                            map.setView(coords[coords.length - 1], 16);
+                        }
+                    } catch(e) {
+                        map.setView(coords[coords.length - 1], 16);
+                    }
+                }
+            } else {
+                if (!isSilent) {
+                    map.setView(coords[0], 16);
+                }
+            }
+
+            // Start Pin 🚩 (Punch In)
+            const startIcon = L.divIcon({
+                html: '<div style="background:#10b981;color:#fff;font-weight:800;font-size:11px;padding:5px 10px;border-radius:14px;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.35);white-space:nowrap;cursor:pointer;">🚩 Start (Punch In)</div>',
+                className: 'custom-map-pin',
+                iconAnchor: [35, 20]
+            });
+            L.marker(coords[0], { icon: startIcon }).addTo(currentLayerGroup)
+             .bindPopup(`<strong>${emp ? emp.name : 'Staff'}</strong><br>🚩 Shift Started: ${emp && emp.clock_in ? emp.clock_in : 'Logged'}`);
+
+            // Live Location Pin 🚗 (Current Position)
+            const latestCoord = coords[coords.length - 1];
+            const speedVal = Number(emp ? emp.current_speed || 0 : 0).toFixed(0);
+            const liveIcon = L.divIcon({
+                html: `<div style="background:#4f46e5;color:#fff;font-weight:800;font-size:11px;padding:5px 10px;border-radius:14px;border:2px solid #fff;box-shadow:0 3px 12px rgba(79,70,229,0.6);white-space:nowrap;cursor:pointer;">🚗 ${emp ? emp.name : 'Staff'} (${speedVal} km/h)</div>`,
+                className: 'custom-live-pin',
+                iconAnchor: [35, 20]
+            });
+            L.marker(latestCoord, { icon: liveIcon }).addTo(currentLayerGroup)
+             .bindPopup(`<strong>🚗 Live Location: ${emp ? emp.name : 'Staff'}</strong><br>⚡ Speed: ${Number(emp ? emp.current_speed || 0 : 0).toFixed(1)} km/h<br>📍 Status: ${emp && emp.clock_in && !emp.clock_out ? '🟢 Active On Duty' : 'Shift Concluded'}`);
+
+            // Stop Pin 🛑 if shift concluded
+            if (emp && emp.clock_out && coords.length > 1) {
+                const stopIcon = L.divIcon({
+                    html: '<div style="background:#ef4444;color:#fff;font-weight:800;font-size:11px;padding:5px 10px;border-radius:14px;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.35);white-space:nowrap;cursor:pointer;">🛑 Shift Ended</div>',
+                    className: 'custom-stop-pin',
+                    iconAnchor: [35, 20]
+                });
+                L.marker(latestCoord, { icon: stopIcon }).addTo(currentLayerGroup);
+            }
+
+        } else {
+            // No coordinates -> default center on Lucknow
+            if (!isSilent) {
+                map.setView([26.8467, 80.9462], 13);
+            }
+        }
+    }
+
+    window.initRadarMapAndRender = function(userId, date) {
+        getOrInitMap();
+        if (userId) {
+            window.fetchAndRenderStaffLogs(userId, date, false);
+        }
+    };
+
+    // Auto-trigger on page render
+    setTimeout(() => {
+        const initUser = <?= $selectedUserId ?>;
+        const initDate = '<?= htmlspecialchars($selectedDate) ?>';
+        if (initUser) window.initRadarMapAndRender(initUser, initDate);
+    }, 200);
+})();
+</script>
 
 <script>
 (function() {
