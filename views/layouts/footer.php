@@ -15,51 +15,126 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
 
 <?php if ($isFieldActive): ?>
 <script>
-// 🚗 Background Live GPS Route Tracker for Active Field Staff
-(function() {
+// 🚗 High-Resilience GPS Route Tracker with Offline Caching & Battery Telemetry
+(function initResilientGpsTracker() {
     let lastLat = null;
     let lastLng = null;
+    let currentBatteryLevel = null;
     const attId = <?= $activeAttId ?>;
+    const QUEUE_KEY = 'hrms_gps_offline_queue_' + attId;
 
-    function sendGpsPing(lat, lng, speed) {
+    // 1. Battery Telemetry Monitor
+    if (navigator.getBattery) {
+        navigator.getBattery().then(battery => {
+            currentBatteryLevel = Math.round(battery.level * 100);
+            battery.addEventListener('levelchange', () => {
+                currentBatteryLevel = Math.round(battery.level * 100);
+                // If battery drops below 5%, send emergency shutdown ping
+                if (currentBatteryLevel <= 5 && lastLat && lastLng) {
+                    sendGpsPing(lastLat, lastLng, 0, true);
+                }
+            });
+        }).catch(() => {});
+    }
+
+    // 2. Offline Queue Helpers
+    function getOfflineQueue() {
+        try {
+            return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+        } catch(e) { return []; }
+    }
+
+    function saveToOfflineQueue(ping) {
+        const q = getOfflineQueue();
+        q.push(ping);
+        // Keep max 500 pings to prevent memory overflow
+        if (q.length > 500) q.shift();
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+    }
+
+    function flushOfflineQueue() {
+        if (!navigator.onLine) return;
+        const q = getOfflineQueue();
+        if (q.length === 0) return;
+
+        fetch('?action=sync-offline-gps-batch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ pings: q })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                localStorage.removeItem(QUEUE_KEY);
+                console.log(`✅ Flushed ${data.synced_count} offline GPS pings to server!`);
+            }
+        })
+        .catch(() => {});
+    }
+
+    // Flush automatically when network comes back online
+    window.addEventListener('online', flushOfflineQueue);
+
+    function sendGpsPing(lat, lng, speed, isEmergency = false) {
         if (!lat || !lng) return;
-        
-        // Skip ping if user hasn't moved more than 5 meters (reduces duplicate database bloat)
-        if (lastLat !== null && lastLng !== null) {
+
+        if (lastLat !== null && lastLng !== null && !isEmergency) {
             const dist = Math.sqrt(Math.pow(lat - lastLat, 2) + Math.pow(lng - lastLng, 2)) * 111000;
-            if (dist < 8) return; // under 8 meters
+            if (dist < 8) return; // Ignore under 8 meters movement
         }
 
         lastLat = lat;
         lastLng = lng;
 
+        const pingData = {
+            attendance_id: attId,
+            latitude: lat,
+            longitude: lng,
+            speed: speed ? (speed * 3.6).toFixed(1) : 0,
+            battery_level: currentBatteryLevel,
+            recorded_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+        };
+
+        if (!navigator.onLine) {
+            // Save to offline queue
+            saveToOfflineQueue(pingData);
+            return;
+        }
+
         const fd = new FormData();
         fd.append('attendance_id', attId);
         fd.append('latitude', lat);
         fd.append('longitude', lng);
-        fd.append('speed', speed ? (speed * 3.6).toFixed(1) : 0); // m/s to km/h
+        fd.append('speed', pingData.speed);
+        if (currentBatteryLevel !== null) fd.append('battery_level', currentBatteryLevel);
+        fd.append('recorded_at', pingData.recorded_at);
 
         fetch('?action=record-travel-gps', {
             method: 'POST',
             body: fd,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).catch(err => console.log('GPS Ping err:', err));
+        })
+        .then(() => {
+            // Also flush any previous offline queue
+            flushOfflineQueue();
+        })
+        .catch(err => {
+            saveToOfflineQueue(pingData);
+        });
     }
 
     if (navigator.geolocation) {
-        // High accuracy real-time position watcher
         navigator.geolocation.watchPosition(
             function(pos) {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                const speed = pos.coords.speed || 0;
-                sendGpsPing(lat, lng, speed);
+                sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
             },
             function(err) { console.log('Location watch error:', err); },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
         );
 
-        // Fallback interval every 30 seconds
         setInterval(function() {
             navigator.geolocation.getCurrentPosition(
                 function(pos) {
@@ -68,7 +143,7 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
                 function(err) {},
                 { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
             );
-        }, 30000);
+        }, 25000);
     }
 })();
 </script>

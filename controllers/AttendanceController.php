@@ -415,9 +415,9 @@ class AttendanceController {
             exit;
         }
 
-        // 2. Fetch Raw Waypoints for $date
+                // 2. Fetch Raw Waypoints for $date (including Battery & Offline flags)
         $logs = $db->query("
-            SELECT id, user_id, latitude, longitude, speed, distance_meters, recorded_at 
+            SELECT id, user_id, latitude, longitude, speed, battery_level, is_offline_sync, distance_meters, recorded_at 
             FROM employee_travel_logs 
             WHERE user_id = {$userId} AND DATE(recorded_at) = '{$date}' 
             ORDER BY id ASC
@@ -508,12 +508,18 @@ class AttendanceController {
         $startLocation = !empty($cleanWaypoints) ? $cleanWaypoints[0] : null;
         $endLocation = !empty($cleanWaypoints) ? $cleanWaypoints[count($cleanWaypoints) - 1] : null;
 
+                $lastLog = !empty($logs) ? $logs[count($logs) - 1] : null;
+        $latestBattery = $lastLog && isset($lastLog['battery_level']) ? (int)$lastLog['battery_level'] : null;
+        $lastSeenAt = $lastLog ? date('h:i A', strtotime($lastLog['recorded_at'])) : ($emp['clock_in'] ? date('h:i A', strtotime($emp['clock_in'])) : null);
+
         $analytics = [
             'total_distance_km' => $totalDistanceKm,
             'total_waypoints' => count($cleanWaypoints),
             'total_stops' => count($stops),
             'max_speed_kmh' => round($maxSpeed, 1),
             'avg_speed_kmh' => $avgSpeed,
+            'latest_battery_level' => $latestBattery,
+            'last_seen_at' => $lastSeenAt,
             'shift_start_time' => $emp['clock_in'] ? date('h:i A', strtotime($emp['clock_in'])) : 'Not Started',
             'shift_end_time' => $emp['clock_out'] ? date('h:i A', strtotime($emp['clock_out'])) : ($emp['clock_in'] ? 'Active On Field' : 'No Shift'),
             'is_active_now' => (!empty($emp['clock_in']) && empty($emp['clock_out']))

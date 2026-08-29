@@ -268,13 +268,28 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                 <!-- Map Top Bar: Selected Staff Summary & Map Style Switcher -->
                 <div class="flex items-center justify-between flex-wrap gap-2 px-1">
                     <template x-if="selectedEmp">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span class="font-bold text-xs text-slate-900" x-text="selectedEmp.name"></span>
                             <span class="text-[10px] text-slate-500 font-mono" x-text="'(' + (selectedEmp.emp_id || '') + ')'"></span>
                             <span class="text-xs text-slate-400">•</span>
                             <span class="text-xs font-bold text-blue-700 font-mono" x-text="analytics.total_distance_km + ' KM traveled'"></span>
                             <span class="text-xs text-slate-400">•</span>
                             <span class="text-xs font-semibold text-slate-600" x-text="analytics.total_stops + ' stops'"></span>
+                            
+                            <!-- 🔋 Live Battery & Last Seen Status Telemetry -->
+                            <template x-if="analytics.latest_battery_level !== null && analytics.latest_battery_level !== undefined">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 shadow-2xs"
+                                      :class="analytics.latest_battery_level > 20 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-300 animate-pulse'">
+                                    <span x-text="analytics.latest_battery_level > 20 ? '🔋' : '🪫'"></span>
+                                    <span x-text="analytics.latest_battery_level + '% Battery'"></span>
+                                </span>
+                            </template>
+
+                            <template x-if="analytics.last_seen_at">
+                                <span class="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                    Last Ping: <strong class="text-slate-800" x-text="analytics.last_seen_at"></strong>
+                                </span>
+                            </template>
                         </div>
                     </template>
 

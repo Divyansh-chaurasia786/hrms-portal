@@ -222,43 +222,97 @@ if ($action) {
             header('Expires: 0');
             echo $xml;
             exit;
-        case 'record-travel-gps':
-            requireAuth();
+                case 'record-travel-gps':
             $user = authUser();
-            $attId = (int)($_POST['attendance_id'] ?? 0);
+            $attendanceId = (int)($_POST['attendance_id'] ?? 0);
             $lat = (float)($_POST['latitude'] ?? 0);
             $lng = (float)($_POST['longitude'] ?? 0);
             $speed = (float)($_POST['speed'] ?? 0);
+            $battery = isset($_POST['battery_level']) ? (int)$_POST['battery_level'] : null;
+            $recordedAt = !empty($_POST['recorded_at']) ? trim($_POST['recorded_at']) : date('Y-m-d H:i:s');
+            $isOffline = !empty($_POST['is_offline']) ? 1 : 0;
 
-            if ($lat != 0 && $lng != 0) {
+            if ($user && $lat != 0 && $lng != 0) {
                 $db = getDBConnection();
-                
-                // Get last waypoint to calculate distance delta
-                $lastPoint = $db->query("SELECT latitude, longitude FROM employee_travel_logs WHERE user_id = {$user['id']} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
-                $distMeters = 0;
-                if ($lastPoint) {
-                    $earthR = 6371000;
-                    $dLat = deg2rad($lat - (float)$lastPoint['latitude']);
-                    $dLon = deg2rad($lng - (float)$lastPoint['longitude']);
-                    $a = sin($dLat/2)**2 + cos(deg2rad((float)$lastPoint['latitude'])) * cos(deg2rad($lat)) * sin($dLon/2)**2;
-                    $distMeters = (int)round($earthR * 2 * atan2(sqrt($a), sqrt(1-$a)));
+                if ($attendanceId <= 0) {
+                    $today = date('Y-m-d');
+                    $attRow = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch();
+                    if ($attRow) $attendanceId = (int)$attRow['id'];
                 }
 
-                $stmt = $db->prepare("
-                    INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters, recorded_at)
-                    VALUES (?, ?, ?, ?, ?, ?, NOW())
-                ");
-                $stmt->execute([$attId, $user['id'], $lat, $lng, $speed, $distMeters]);
-                
-                // Also update latest position in attendance table
-                $db->prepare("UPDATE attendance SET latitude = ?, longitude = ? WHERE id = ?")->execute([$lat, $lng, $attId]);
+                if ($attendanceId > 0) {
+                    // Calculate distance from previous coordinate
+                    $prev = $db->query("SELECT latitude, longitude FROM employee_travel_logs WHERE attendance_id = {$attendanceId} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                    $distMeters = 0;
+                    if ($prev) {
+                        $distMeters = (int)calculateDistance($lat, $lng, (float)$prev['latitude'], (float)$prev['longitude']);
+                    }
 
-                echo json_encode(['success' => true, 'dist' => $distMeters]);
-                exit;
+                    $stmt = $db->prepare("
+                        INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, battery_level, is_offline_sync, distance_meters, recorded_at) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([$attendanceId, $user['id'], $lat, $lng, $speed, $battery, $isOffline, $distMeters, $recordedAt]);
+
+                    // Update latest location in attendance
+                    $db->prepare("UPDATE attendance SET latitude = ?, longitude = ? WHERE id = ?")->execute([$lat, $lng, $attendanceId]);
+
+                    echo json_encode(['success' => true, 'dist' => $distMeters]);
+                    exit;
+                }
             }
-            echo json_encode(['success' => false, 'error' => 'Invalid coords']);
+            echo json_encode(['success' => false]);
             exit;
-            case 'create-role': RoleController::create(); break;
+
+        case 'sync-offline-gps-batch':
+            $user = authUser();
+            $input = json_decode(file_get_contents('php://input'), true);
+            $pings = $input['pings'] ?? [];
+
+            if ($user && !empty($pings)) {
+                $db = getDBConnection();
+                $today = date('Y-m-d');
+                $attRow = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch();
+                $attendanceId = $attRow ? (int)$attRow['id'] : 0;
+
+                if ($attendanceId > 0) {
+                    $stmt = $db->prepare("
+                        INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, battery_level, is_offline_sync, distance_meters, recorded_at) 
+                        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    ");
+
+                    $syncedCount = 0;
+                    $lastLat = 0;
+                    $lastLng = 0;
+
+                    foreach ($pings as $p) {
+                        $pLat = (float)($p['latitude'] ?? 0);
+                        $pLng = (float)($p['longitude'] ?? 0);
+                        $pSpeed = (float)($p['speed'] ?? 0);
+                        $pBattery = isset($p['battery_level']) ? (int)$p['battery_level'] : null;
+                        $pTime = !empty($p['recorded_at']) ? $p['recorded_at'] : date('Y-m-d H:i:s');
+                        $pDist = (int)($p['distance_meters'] ?? 0);
+
+                        if ($pLat != 0 && $pLng != 0) {
+                            $stmt->execute([$attendanceId, $user['id'], $pLat, $pLng, $pSpeed, $pBattery, $pDist, $pTime]);
+                            $syncedCount++;
+                            $lastLat = $pLat;
+                            $lastLng = $pLng;
+                        }
+                    }
+
+                    if ($lastLat != 0 && $lastLng != 0) {
+                        $db->prepare("UPDATE attendance SET latitude = ?, longitude = ? WHERE id = ?")->execute([$lastLat, $lastLng, $attendanceId]);
+                    }
+
+                    echo json_encode(['success' => true, 'synced_count' => $syncedCount]);
+                    exit;
+                }
+            }
+            echo json_encode(['success' => false, 'message' => 'No active shift or empty pings']);
+            exit;
+
+        case 'create-role': RoleController::create(); break;
     case 'delete-role': RoleController::delete(); break;
     case 'apply-wfh': WfhController::apply(); break;
     case 'review-wfh': WfhController::review(); break;
