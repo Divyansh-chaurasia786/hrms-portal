@@ -13,9 +13,24 @@ $sheets = $db->query("
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
 $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
+
+// Preload initial sheet data directly on server-side for INSTANT 0ms rendering
+$initialSheet = null;
+if ($initialSheetId > 0) {
+    $stmt = $db->prepare("SELECT id, title, columns_json, rows_json FROM smart_sheet_uploads WHERE id = ?");
+    $stmt->execute([$initialSheetId]);
+    $initialSheet = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+$initialPayload = [
+    'id' => $initialSheet ? (int)$initialSheet['id'] : 0,
+    'title' => $initialSheet ? $initialSheet['title'] : 'Excel Workbook',
+    'columns' => ($initialSheet && !empty($initialSheet['columns_json'])) ? json_decode($initialSheet['columns_json'], true) : [],
+    'rows' => ($initialSheet && !empty($initialSheet['rows_json'])) ? json_decode($initialSheet['rows_json'], true) : []
+];
 ?>
 
-<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins (Scoped strictly) -->
+<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins -->
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' />
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' />
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' />
@@ -129,7 +144,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 }
 </style>
 
-<div class="space-y-2 font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= $initialSheetId ?>)">
+<div class="space-y-2 font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= htmlspecialchars(json_encode($initialPayload)) ?>)">
     
     <!-- 🟢 MICROSOFT EXCEL 2021 TOP TITLE BAR -->
     <div class="bg-[#107c41] text-white rounded-t-2xl p-2.5 shadow-xl border border-[#0d6535] flex items-center justify-between gap-3 flex-wrap select-none w-full">
@@ -157,7 +172,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                    x-model="searchQuery" 
                    @input.debounce.200ms="searchInExcel()" 
                    @keydown.enter="searchNextInExcel()"
-                   placeholder="Search in sheet (e.g. name, date, value)..." 
+                   placeholder="Search anything in sheet..." 
                    class="w-full bg-emerald-900/90 hover:bg-emerald-900 focus:bg-emerald-950 text-white placeholder-emerald-200/60 border border-emerald-600 focus:border-white rounded-xl pl-8 pr-16 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-white transition shadow-inner">
             
             <div class="absolute right-2 top-1 flex items-center gap-1" x-show="searchQuery.trim()">
@@ -315,6 +330,16 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 
     <!-- 📊 MICROSOFT EXCEL 2021 CANVAS CONTAINER -->
     <div id="luckysheet-wrapper" class="bg-white rounded-b-2xl shadow-2xl border-r border-l border-b border-slate-300 overflow-hidden relative w-full">
+        <!-- High-Speed Loading Overlay -->
+        <div x-show="isFetchingSheet" class="absolute inset-0 bg-white/80 backdrop-blur-xs z-30 flex flex-col items-center justify-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-[#107c41] text-white flex items-center justify-center font-bold shadow-lg animate-bounce">
+                X
+            </div>
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-[#107c41]"></i>
+                Loading Excel 2021 Workbook...
+            </div>
+        </div>
         <div id="luckysheet"></div>
     </div>
 
@@ -372,18 +397,20 @@ document.addEventListener('alpine:init', () => {
         searchMatches: [],
         currentMatchIdx: 0,
         isSaving: false,
+        isFetchingSheet: false,
         syncSuccessBanner: false,
 
-        initStudio(sheetList, defaultId) {
+        initStudio(sheetList, initialData) {
             this.allSheets = sheetList || [];
-            this.currentSheetId = defaultId;
 
             window.addEventListener('resize', () => {
                 this.resizeLuckysheet();
             });
 
-            if (defaultId > 0) {
-                this.loadAndRenderSheet(defaultId);
+            if (initialData && initialData.id > 0) {
+                this.currentSheetId = initialData.id;
+                this.currentSheetTitle = initialData.title || 'Excel Workbook';
+                this.renderLuckysheetFromData(initialData.title || 'Sheet1', initialData.columns || [], initialData.rows || []);
             } else {
                 this.renderBlankLuckysheet('Sheet1');
             }
@@ -412,7 +439,6 @@ document.addEventListener('alpine:init', () => {
         executeExcelFormat(type, value) {
             if (typeof luckysheet === 'undefined') return;
 
-            // Direct Luckysheet Core Range & Cell Formatter
             if (type === 'bold') {
                 luckysheet.setRangeFormat("bl", 1);
             } else if (type === 'italic') {
@@ -508,6 +534,7 @@ document.addEventListener('alpine:init', () => {
 
         async loadAndRenderSheet(sheetId) {
             this.currentSheetId = sheetId;
+            this.isFetchingSheet = true;
             try {
                 const res = await fetch('?action=get-smart-sheet-data&sheet_id=' + sheetId);
                 const data = await res.json();
@@ -516,6 +543,8 @@ document.addEventListener('alpine:init', () => {
             } catch(e) {
                 console.error(e);
                 this.renderBlankLuckysheet('Sheet1');
+            } finally {
+                this.isFetchingSheet = false;
             }
         },
 
@@ -523,7 +552,6 @@ document.addEventListener('alpine:init', () => {
             const celldata = [];
             const customColLen = {};
             const rowCount = Math.max(rows.length + 50, 100);
-            // Render 52 columns (A to AZ) so grid spans full screen without blank right gap
             const colCount = Math.max(columns.length + 30, 52);
 
             columns.forEach((colName, cIdx) => {
