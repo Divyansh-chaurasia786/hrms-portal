@@ -182,57 +182,6 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
         </div>
     </div>
 
-    <!-- 📊 MASTER JOURNEY TELEMETRY SUMMARY BAR -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <!-- 1. Start / Punch In -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div class="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                <span>🚩 Punch In Time</span>
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            </div>
-            <strong class="text-slate-900 font-extrabold text-sm block truncate" x-text="analytics.shift_start_time"></strong>
-            <p class="text-[10px] text-slate-500 truncate" x-text="startLocation ? (startLocation.lat.toFixed(4) + ', ' + startLocation.lng.toFixed(4)) : 'No Coords'"></p>
-        </div>
-
-        <!-- 2. End / Punch Out -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div class="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                <span>🏁 Punch Out Time</span>
-                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-            </div>
-            <strong class="text-slate-900 font-extrabold text-sm block truncate" x-text="analytics.shift_end_time"></strong>
-            <p class="text-[10px] text-slate-500 truncate" x-text="endLocation ? (endLocation.lat.toFixed(4) + ', ' + endLocation.lng.toFixed(4)) : 'No Coords'"></p>
-        </div>
-
-        <!-- 3. Total Distance -->
-        <div class="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm space-y-1 bg-gradient-to-b from-indigo-50/50 to-white">
-            <div class="text-indigo-600 text-[10px] font-bold uppercase tracking-wider">🚗 Total Traveled</div>
-            <strong class="text-indigo-950 font-black text-base block font-mono" x-text="analytics.total_distance_km + ' KM'"></strong>
-            <p class="text-[10px] text-indigo-500">Full shift distance</p>
-        </div>
-
-        <!-- 4. Total Stoppages -->
-        <div class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm space-y-1 bg-gradient-to-b from-amber-50/50 to-white">
-            <div class="text-amber-700 text-[10px] font-bold uppercase tracking-wider">🛑 Stoppages / Visits</div>
-            <strong class="text-amber-950 font-black text-base block font-mono" x-text="analytics.total_stops + ' Stops'"></strong>
-            <p class="text-[10px] text-amber-600">Stationary > 3 mins</p>
-        </div>
-
-        <!-- 5. Max Speed -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">⚡ Top Speed</div>
-            <strong class="text-slate-900 font-black text-base block font-mono" x-text="analytics.max_speed_kmh + ' KM/H'"></strong>
-            <p class="text-[10px] text-slate-500">Peak recorded speed</p>
-        </div>
-
-        <!-- 6. Total Waypoints -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">📍 Total Pings</div>
-            <strong class="text-slate-900 font-black text-base block font-mono" x-text="analytics.total_waypoints + ' Points'"></strong>
-            <p class="text-[10px] text-slate-500">Audit trail resolution</p>
-        </div>
-    </div>
-
     <!-- 🗺️ MAIN RADAR GRID: ROSTER ON LEFT, MAP & TIMELINE ON RIGHT -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
