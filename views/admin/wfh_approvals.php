@@ -24,37 +24,10 @@ $pendingRequests = array_filter($requests, fn($r) => ($r['status'] ?? '') === 'p
             </div>
             <div>
                 <h1 class="text-xl font-bold text-slate-900 tracking-tight">WFH Policy & Approvals Command</h1>
-                <p class="text-xs text-slate-500 mt-0.5">Strict 2-day advance notice enforcement, TL/HR reviews, and Head HR schedule manager.</p>
+                <p class="text-xs text-slate-500 mt-0.5">Strict 2-day advance notice enforcement, employee applications, and TL/HR approval reviews.</p>
             </div>
         </div>
     </div>
-
-    <!-- Top Card: Head HR WFH Date Range Manager -->
-    <?php if ($user['role'] === 'admin'): ?>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <div class="flex items-center gap-2.5">
-                <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
-                <h3 class="font-bold text-sm text-slate-900">Head HR Work-From-Home Schedule</h3>
-            </div>
-            <p class="text-xs text-slate-500">Set an active date window for Head HR remote attendance. Reverts to In-Office mode automatically after expiry.</p>
-
-            <form action="?action=set-hr-wfh" method="POST" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">From Date</label>
-                    <input type="date" name="from_date" value="<?= $user['hr_wfh_start_date'] ?? '' ?>" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">To Date</label>
-                    <input type="date" name="to_date" value="<?= $user['hr_wfh_end_date'] ?? '' ?>" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
-                        Save HR Remote Schedule
-                    </button>
-                </div>
-            </form>
-        </div>
-    <?php endif; ?>
 
     <!-- Pending Requests Queue -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
