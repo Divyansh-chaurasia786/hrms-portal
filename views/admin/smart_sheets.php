@@ -891,6 +891,7 @@ document.addEventListener('alpine:init', () => {
                             const numVal = parseFloat(strVal.replace(/[^0-9.-]/g, ''));
                             const isPureNum = !isNaN(numVal) && !strVal.includes('@') && !strVal.includes('-') && !strVal.includes('/') && /^[0-9.]+$/.test(strVal);
                             
+                            const isFormula = strVal.startsWith('=');
                             const cellObj = {
                                 m: strVal,
                                 v: isPureNum ? numVal : strVal,
@@ -898,6 +899,11 @@ document.addEventListener('alpine:init', () => {
                                 ht: isPureNum ? 2 : 0,
                                 vt: 0
                             };
+
+                            if (isFormula) {
+                                cellObj.f = strVal;
+                                cellObj.m = '';
+                            }
 
                             if (strVal === 'Present' || strVal === 'active' || strVal === 'Done') {
                                 cellObj.bg = '#d1fae5';
@@ -975,6 +981,9 @@ document.addEventListener('alpine:init', () => {
                 defaultColWidth: 110,
                 defaultRowHeight: 24,
                 showinfobar: false,
+                sheetFormulaBar: true,
+                functionButton: true,
+                allowEdit: true,
                 showtoolbar: true, // ✅ FULL MS EXCEL 2021 OFFICIAL TOOLBAR
                 showtoolbarConfig: {
                     undoRedo: true,
