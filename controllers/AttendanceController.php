@@ -384,45 +384,151 @@ class AttendanceController {
         exit;
     }
 
-    public static function getTravelLogs(): void {
+        public static function getTravelLogs(): void {
         requireAuth();
         $userId = (int)($_GET['user_id'] ?? 0);
         $date = !empty($_GET['date']) ? trim($_GET['date']) : date('Y-m-d');
-        $attendanceId = (int)($_GET['attendance_id'] ?? 0);
         $db = getDBConnection();
 
-        if ($userId > 0) {
-            $logs = $db->query("
-                SELECT id, user_id, latitude, longitude, speed, distance_meters, recorded_at 
-                FROM employee_travel_logs 
-                WHERE user_id = {$userId} AND DATE(recorded_at) = '{$date}' 
-                ORDER BY id ASC
-            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-            $emp = $db->query("
-                SELECT u.id, u.name, u.emp_id, u.designation, u.work_mode, u.department_name,
-                       tl.name as tl_name,
-                       a.id as attendance_id, a.clock_in, a.clock_out, a.punch_in_lat, a.punch_in_lng, a.punch_out_lat, a.punch_out_lng,
-                       (SELECT COUNT(*) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}') as waypoints_count,
-                       (SELECT COALESCE(SUM(l.distance_meters), 0) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}') as total_distance_meters,
-                       (SELECT l.speed FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}' ORDER BY l.id DESC LIMIT 1) as current_speed
-                FROM users u
-                LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$date}'
-                LEFT JOIN users tl ON u.reporting_tl_id = tl.id
-                WHERE u.id = {$userId}
-            ")->fetch(PDO::FETCH_ASSOC);
-
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'employee' => $emp, 'waypoints' => $logs]);
-            exit;
-        } elseif ($attendanceId > 0) {
-            $logs = $db->query("SELECT latitude, longitude, speed, distance_meters, recorded_at FROM employee_travel_logs WHERE attendance_id = {$attendanceId} ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'waypoints' => $logs]);
+        if ($userId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Missing user_id']);
             exit;
         }
 
-        echo json_encode(['success' => false, 'message' => 'Missing user_id or attendance_id']);
+        // 1. Fetch User & Shift Details for $date
+        $emp = $db->query("
+            SELECT u.id, u.name, u.emp_id, u.designation, u.work_mode, u.department_name, u.avatar,
+                   tl.name as tl_name,
+                   a.id as attendance_id, a.clock_in, a.clock_out, a.punch_in_lat, a.punch_in_lng, a.punch_out_lat, a.punch_out_lng,
+                   a.address, a.total_hours, a.status as attendance_status,
+                   (SELECT COUNT(*) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}') as waypoints_count,
+                   (SELECT COALESCE(SUM(l.distance_meters), 0) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}') as total_distance_meters,
+                   (SELECT l.speed FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}' ORDER BY l.id DESC LIMIT 1) as current_speed
+            FROM users u
+            LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$date}'
+            LEFT JOIN users tl ON u.reporting_tl_id = tl.id
+            WHERE u.id = {$userId}
+        ")->fetch(PDO::FETCH_ASSOC);
+
+        if (!$emp) {
+            echo json_encode(['success' => false, 'message' => 'Employee not found']);
+            exit;
+        }
+
+        // 2. Fetch Raw Waypoints for $date
+        $logs = $db->query("
+            SELECT id, user_id, latitude, longitude, speed, distance_meters, recorded_at 
+            FROM employee_travel_logs 
+            WHERE user_id = {$userId} AND DATE(recorded_at) = '{$date}' 
+            ORDER BY id ASC
+        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // 3. Compute Stoppages, Speeds, and Start/End points
+        $maxSpeed = 0;
+        $totalSpeed = 0;
+        $speedSamples = 0;
+        $stops = [];
+        $cleanWaypoints = [];
+        $lastPt = null;
+
+        // If punch in coordinates exist, ensure first waypoint
+        if (!empty($emp['punch_in_lat']) && !empty($emp['punch_in_lng'])) {
+            $cleanWaypoints[] = [
+                'lat' => (float)$emp['punch_in_lat'],
+                'lng' => (float)$emp['punch_in_lng'],
+                'speed' => 0,
+                'time' => $emp['clock_in'] ? date('h:i A', strtotime($emp['clock_in'])) : '09:00 AM',
+                'type' => 'start',
+                'title' => 'Shift Started (Punch In)'
+            ];
+        }
+
+        foreach ($logs as $l) {
+            $lat = (float)$l['latitude'];
+            $lng = (float)$l['longitude'];
+            $speed = (float)$l['speed'];
+            $timeStr = date('h:i A', strtotime($l['recorded_at']));
+
+            if ($lat == 0 || $lng == 0) continue;
+
+            if ($speed > $maxSpeed) $maxSpeed = $speed;
+            if ($speed > 0) {
+                $totalSpeed += $speed;
+                $speedSamples++;
+            }
+
+            // Identify stoppage if distance moved is small and speed < 3 km/h
+            $isStop = false;
+            if ($lastPt) {
+                $distDelta = (int)$l['distance_meters'];
+                $timeDeltaSeconds = strtotime($l['recorded_at']) - strtotime($lastPt['recorded_at']);
+                if ($distDelta < 20 && $timeDeltaSeconds >= 180) { // Stationary for 3+ minutes
+                    $isStop = true;
+                    $stopDurationMins = round($timeDeltaSeconds / 60);
+                    $stops[] = [
+                        'stop_number' => count($stops) + 1,
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'arrival_time' => date('h:i A', strtotime($lastPt['recorded_at'])),
+                        'departure_time' => $timeStr,
+                        'duration' => "{$stopDurationMins} mins",
+                        'title' => "Client Visit / Stoppage #" . (count($stops) + 1)
+                    ];
+                }
+            }
+
+            $cleanWaypoints[] = [
+                'lat' => $lat,
+                'lng' => $lng,
+                'speed' => $speed,
+                'time' => $timeStr,
+                'distance_meters' => (int)$l['distance_meters'],
+                'is_stop' => $isStop,
+                'type' => 'waypoint'
+            ];
+
+            $lastPt = $l;
+        }
+
+        // If punch out coordinates exist, append as final point
+        if (!empty($emp['punch_out_lat']) && !empty($emp['punch_out_lng'])) {
+            $cleanWaypoints[] = [
+                'lat' => (float)$emp['punch_out_lat'],
+                'lng' => (float)$emp['punch_out_lng'],
+                'speed' => 0,
+                'time' => $emp['clock_out'] ? date('h:i A', strtotime($emp['clock_out'])) : '07:00 PM',
+                'type' => 'end',
+                'title' => 'Shift Concluded (Punch Out)'
+            ];
+        }
+
+        $avgSpeed = $speedSamples > 0 ? round($totalSpeed / $speedSamples, 1) : 0;
+        $totalDistanceKm = round(((float)$emp['total_distance_meters']) / 1000, 2);
+
+        $startLocation = !empty($cleanWaypoints) ? $cleanWaypoints[0] : null;
+        $endLocation = !empty($cleanWaypoints) ? $cleanWaypoints[count($cleanWaypoints) - 1] : null;
+
+        $analytics = [
+            'total_distance_km' => $totalDistanceKm,
+            'total_waypoints' => count($cleanWaypoints),
+            'total_stops' => count($stops),
+            'max_speed_kmh' => round($maxSpeed, 1),
+            'avg_speed_kmh' => $avgSpeed,
+            'shift_start_time' => $emp['clock_in'] ? date('h:i A', strtotime($emp['clock_in'])) : 'Not Started',
+            'shift_end_time' => $emp['clock_out'] ? date('h:i A', strtotime($emp['clock_out'])) : ($emp['clock_in'] ? 'Active On Field' : 'No Shift'),
+            'is_active_now' => (!empty($emp['clock_in']) && empty($emp['clock_out']))
+        ];
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'employee' => $emp,
+            'analytics' => $analytics,
+            'start_location' => $startLocation,
+            'end_location' => $endLocation,
+            'stops' => $stops,
+            'waypoints' => $cleanWaypoints
+        ]);
         exit;
     }
 
