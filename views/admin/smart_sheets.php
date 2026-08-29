@@ -15,7 +15,7 @@ $sheets = $db->query("
 $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 ?>
 
-<div class="space-y-4" x-data="msExcelStudio" x-init="initStudio(<?= $initialSheetId ?>)">
+<div class="space-y-4" x-data="msExcelStudio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= $initialSheetId ?>)">
     
     <!-- 🟢 MICROSOFT EXCEL 365 TOP RIBBON & TITLE BAR -->
     <div class="bg-[#107c41] text-white rounded-3xl p-3 sm:p-4 shadow-xl border border-emerald-800 flex flex-col gap-3">
@@ -32,7 +32,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                             <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/20 text-white font-bold">Cloud Synced</span>
                         </h1>
                     </div>
-                    <p class="text-xs text-emerald-100/90 font-medium">Full spreadsheet instruments, formulas, custom formatting, and 100% automatic website synchronization.</p>
+                    <p class="text-xs text-emerald-100/90 font-medium">Full spreadsheet instruments, formulas, in-place instant editing & deletion, and 100% automatic website synchronization.</p>
                 </div>
             </div>
 
@@ -51,21 +51,32 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
             </div>
         </div>
 
-        <!-- 📑 TOP WORKBOOK TABS (Click tab to open that exact sheet!) -->
+        <!-- 📑 TOP WORKBOOK TABS (Click tab to switch, ✕ to delete instantly without page refresh!) -->
         <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2 border-t border-emerald-600/60">
             <div class="text-[11px] uppercase font-bold text-emerald-200 tracking-wider mr-1 shrink-0 flex items-center gap-1">
-                <i data-lucide="layers" class="w-3.5 h-3.5"></i> Sheets:
+                <i data-lucide="layers" class="w-3.5 h-3.5"></i> Workbooks:
             </div>
 
-            <?php foreach ($sheets as $idx => $sh): ?>
-                <button type="button" 
-                        @click="switchSheet(<?= (int)$sh['id'] ?>)" 
-                        :class="currentSheetId === <?= (int)$sh['id'] ?> ? 'bg-white text-[#107c41] shadow-md font-black' : 'bg-emerald-800/60 text-emerald-100 hover:bg-emerald-700/80 font-bold border border-emerald-700'" 
-                        class="px-3.5 py-1.5 rounded-xl text-xs transition shrink-0 flex items-center gap-1.5 cursor-pointer">
-                    <span><?= htmlspecialchars($sh['title']) ?></span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[9px] font-mono" :class="currentSheetId === <?= (int)$sh['id'] ?> ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-900 text-emerald-300'"><?= (int)$sh['record_count'] ?></span>
-                </button>
-            <?php endforeach; ?>
+            <template x-for="(sh, idx) in allSheets" :key="sh.id">
+                <div class="flex items-center rounded-xl transition shrink-0 border"
+                     :class="currentSheetId === sh.id ? 'bg-white text-[#107c41] border-white shadow-md font-black' : 'bg-emerald-800/60 text-emerald-100 hover:bg-emerald-700/80 font-bold border-emerald-700'">
+                    
+                    <button type="button" 
+                            @click="switchSheet(sh.id)" 
+                            class="px-3 py-1.5 text-xs flex items-center gap-1.5 cursor-pointer">
+                        <span x-text="sh.title"></span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[9px] font-mono" :class="currentSheetId === sh.id ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-900 text-emerald-300'" x-text="sh.record_count"></span>
+                    </button>
+
+                    <!-- ✕ Instant In-Place Sheet Delete (No Page Refresh!) -->
+                    <button type="button" 
+                            @click.stop="deleteSheetInPlace(sh.id, sh.title)" 
+                            title="Delete this workbook"
+                            class="pr-2 pl-0.5 py-1 text-xs opacity-60 hover:opacity-100 hover:text-rose-600 cursor-pointer">
+                        ✕
+                    </button>
+                </div>
+            </template>
 
             <button type="button" @click="uploadModalOpen = true" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-700/50 hover:bg-emerald-600 text-white border border-dashed border-emerald-400 transition shrink-0 flex items-center gap-1 cursor-pointer">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Sheet
@@ -77,7 +88,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
     <div x-show="syncSuccessBanner" class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 text-xs font-bold flex items-center justify-between shadow-sm transition" style="display: none;">
         <span class="flex items-center gap-2">
             <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
-            ✅ All sheet changes saved! Employee Directory, Attendance Logs, and Birthday Hub have been automatically updated!
+            ✅ Changes saved & synced! Employee Directory, Attendance Logs, and Birthday Hub updated automatically!
         </span>
         <button type="button" @click="syncSuccessBanner = false" class="text-emerald-700 hover:text-emerald-900 font-bold">✕</button>
     </div>
@@ -104,7 +115,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                     </select>
                 </div>
 
-                <!-- Text Formatting: Bold, Italic, Strikethrough -->
+                <!-- Text Formatting: Bold, Italic -->
                 <div class="flex items-center bg-white border border-slate-300 rounded-xl p-0.5 shadow-2xs">
                     <button type="button" @click="isBold = !isBold" :class="isBold ? 'bg-emerald-100 text-emerald-900 font-black' : 'text-slate-700 hover:bg-slate-100'" class="w-7 h-7 rounded-lg text-xs font-bold transition flex items-center justify-center cursor-pointer">B</button>
                     <button type="button" @click="isItalic = !isItalic" :class="isItalic ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100'" class="w-7 h-7 rounded-lg text-xs italic font-bold transition flex items-center justify-center cursor-pointer">I</button>
@@ -122,13 +133,22 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 
                 <div class="h-5 w-px bg-slate-300 mx-0.5"></div>
 
-                <!-- Add Row & Column -->
+                <!-- Add & Delete In-Place Instruments -->
                 <div class="flex items-center gap-1">
                     <button type="button" @click="addRow()" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-300 rounded-xl font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition">
                         <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i> Row
                     </button>
                     <button type="button" @click="addColumn()" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-300 rounded-xl font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition">
-                        <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i> Column
+                        <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i> Col
+                    </button>
+                    <button type="button" @click="deleteSelectedRow()" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-slate-300 rounded-xl font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition" title="Delete selected row">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i> Del Row
+                    </button>
+                    <button type="button" @click="deleteSelectedColumn()" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-slate-300 rounded-xl font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition" title="Delete selected column">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i> Del Col
+                    </button>
+                    <button type="button" @click="clearActiveCell()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-xl font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition" title="Clear cell">
+                        ⌫ Clear
                     </button>
                 </div>
             </div>
@@ -298,6 +318,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 document.addEventListener('alpine:init', () => {
     Alpine.data('msExcelStudio', () => ({
         uploadModalOpen: false,
+        allSheets: [],
         currentSheetId: 0,
         currentSheetTitle: '',
         columns: [],
@@ -314,7 +335,8 @@ document.addEventListener('alpine:init', () => {
         cellBg: 'bg-white',
         syncSuccessBanner: false,
 
-        initStudio(defaultId) {
+        initStudio(sheetList, defaultId) {
+            this.allSheets = sheetList || [];
             if (defaultId > 0) {
                 this.switchSheet(defaultId);
             }
@@ -372,6 +394,68 @@ document.addEventListener('alpine:init', () => {
             const newColName = 'Column ' + (this.columns.length + 1);
             this.columns.push(newColName);
             this.rows.forEach(r => r.push(''));
+        },
+
+        deleteSelectedRow() {
+            if (this.rows.length > 0 && this.activeCell.r >= 0 && this.activeCell.r < this.rows.length) {
+                this.rows.splice(this.activeCell.r, 1);
+                if (this.activeCell.r >= this.rows.length) {
+                    this.activeCell.r = Math.max(0, this.rows.length - 1);
+                }
+                this.selectCell(this.activeCell.r, this.activeCell.c);
+            }
+        },
+
+        deleteSelectedColumn() {
+            if (this.columns.length > 1 && this.activeCell.c >= 0 && this.activeCell.c < this.columns.length) {
+                const targetC = this.activeCell.c;
+                this.columns.splice(targetC, 1);
+                this.rows.forEach(r => r.splice(targetC, 1));
+                if (this.activeCell.c >= this.columns.length) {
+                    this.activeCell.c = Math.max(0, this.columns.length - 1);
+                }
+                this.selectCell(this.activeCell.r, this.activeCell.c);
+            }
+        },
+
+        clearActiveCell() {
+            if (this.rows[this.activeCell.r]) {
+                this.rows[this.activeCell.r][this.activeCell.c] = '';
+                this.formulaInput = '';
+                this.activeCell.val = '';
+            }
+        },
+
+        async deleteSheetInPlace(sheetId, sheetTitle) {
+            if (!confirm('Are you sure you want to delete "' + sheetTitle + '"?')) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('sheet_id', sheetId);
+
+                const res = await fetch('?action=delete-smart-sheet', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    body: formData
+                });
+
+                // Remove sheet from allSheets list in memory
+                this.allSheets = this.allSheets.filter(s => s.id !== sheetId);
+
+                // Switch to next remaining sheet
+                if (this.currentSheetId === sheetId) {
+                    if (this.allSheets.length > 0) {
+                        this.switchSheet(this.allSheets[0].id);
+                    } else {
+                        this.columns = [];
+                        this.rows = [];
+                        this.currentSheetId = 0;
+                        this.currentSheetTitle = '';
+                    }
+                }
+            } catch(e) {
+                alert('Failed to delete sheet');
+            }
         },
 
         async saveAndSyncWorkbook() {

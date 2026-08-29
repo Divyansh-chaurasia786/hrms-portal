@@ -156,8 +156,15 @@ class SmartSheetController {
             $sheetId = (int)($_POST['sheet_id'] ?? 0);
             if ($sheetId > 0) {
                 $db->prepare("DELETE FROM smart_sheet_uploads WHERE id = ?")->execute([$sheetId]);
-                setFlash('success', 'Smart sheet record deleted.');
             }
+
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Sheet deleted successfully']);
+                exit;
+            }
+
+            setFlash('success', 'Smart sheet record deleted.');
         }
         header('Location: ?page=admin-smart-sheets');
         exit;
