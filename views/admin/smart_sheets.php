@@ -57,8 +57,14 @@ body[data-page="admin-smart-sheets"] main {
     position: relative;
     box-sizing: border-box;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
-    height: calc(100vh - 145px) !important;
+    height: calc(100vh - 150px) !important;
     overflow: hidden !important;
+}
+
+/* Ensure mouse events and cell selection bounding box map 1:1 without offset */
+.luckysheet-cell-selected,
+.luckysheet-cell-selected-focus {
+    pointer-events: auto !important;
 }
 
 #luckysheet {
@@ -513,6 +519,79 @@ document.addEventListener('alpine:init', () => {
                 this.resizeLuckysheet();
             });
 
+            // ⌨️ GLOBAL MICROSOFT EXCEL 2021 KEYBOARD SHORTCUTS ENGINE
+            window.addEventListener('keydown', (e) => {
+                if (typeof luckysheet === 'undefined') return;
+
+                const isCtrl = e.ctrlKey || e.metaKey;
+                const isAlt = e.altKey;
+                const isShift = e.shiftKey;
+                const key = e.key.toLowerCase();
+
+                // Ctrl + B: Bold
+                if (isCtrl && key === 'b') {
+                    e.preventDefault();
+                    luckysheet.setFontBold();
+                    this.triggerRealtimeAutoSync();
+                    return;
+                }
+
+                // Ctrl + I: Italic
+                if (isCtrl && key === 'i') {
+                    e.preventDefault();
+                    luckysheet.setFontItalic();
+                    this.triggerRealtimeAutoSync();
+                    return;
+                }
+
+                // Ctrl + U: Underline
+                if (isCtrl && key === 'u') {
+                    e.preventDefault();
+                    luckysheet.setFontUnderline();
+                    this.triggerRealtimeAutoSync();
+                    return;
+                }
+
+                // Ctrl + Z: Undo
+                if (isCtrl && !isShift && key === 'z') {
+                    e.preventDefault();
+                    luckysheet.undo();
+                    this.triggerRealtimeAutoSync();
+                    return;
+                }
+
+                // Ctrl + Y or Ctrl + Shift + Z: Redo
+                if ((isCtrl && key === 'y') || (isCtrl && isShift && key === 'z')) {
+                    e.preventDefault();
+                    luckysheet.redo();
+                    this.triggerRealtimeAutoSync();
+                    return;
+                }
+
+                // Ctrl + F: Excel Find
+                if (isCtrl && key === 'f') {
+                    e.preventDefault();
+                    const searchInput = document.querySelector('input[x-model="searchQuery"]');
+                    if (searchInput) searchInput.focus();
+                    return;
+                }
+
+                // Alt + =: AutoSum
+                if (isAlt && (e.key === '=' || e.key === '+')) {
+                    e.preventDefault();
+                    luckysheet.insertFunction('SUM');
+                    return;
+                }
+
+                // F2: Edit Cell
+                if (e.key === 'F2') {
+                    e.preventDefault();
+                    const cellFocus = document.querySelector('.luckysheet-cell-selected-focus');
+                    if (cellFocus) cellFocus.dblclick();
+                    return;
+                }
+            });
+
             // ⚡ 1. Check if Multi-Sheet Workbook is preserved in Device Vault
             let savedMultiSheets = null;
             if (window.HRMSCache) {
@@ -564,6 +643,10 @@ document.addEventListener('alpine:init', () => {
             this.$nextTick(() => {
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 this.resizeLuckysheet();
+                setTimeout(() => {
+                    this.resizeLuckysheet();
+                    window.dispatchEvent(new Event('resize'));
+                }, 50);
             });
         },
 
