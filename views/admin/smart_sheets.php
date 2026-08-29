@@ -650,9 +650,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         createLuckysheetInstance(sheetsData) {
-            if (typeof luckysheet === 'undefined') return;
+            if (typeof luckysheet === 'undefined' || !luckysheet.create) {
+                setTimeout(() => this.createLuckysheetInstance(sheetsData), 60);
+                return;
+            }
 
-            luckysheet.destroy();
+            try { luckysheet.destroy(); } catch(e) {}
             luckysheet.create({
                 container: 'luckysheet',
                 title: this.currentSheetTitle,

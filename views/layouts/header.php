@@ -25,6 +25,11 @@
     <meta name="apple-mobile-web-app-title" content="Ecofone HRMS">
     <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Ecofone+HRMS&background=4f46e5&color=fff&size=192&rounded=true&bold=true">
     <meta name="theme-color" content="#4f46e5">
+        <!-- Background Preload of Studio Resources -->
+    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js">
+    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js">
+    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js">
+    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
