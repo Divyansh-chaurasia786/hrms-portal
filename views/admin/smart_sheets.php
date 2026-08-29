@@ -56,8 +56,8 @@ $initialPayload = [
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: calc(100vh - 210px) !important;
-    min-height: 680px !important;
+    height: calc(100vh - 160px) !important;
+    min-height: 720px !important;
     border-radius: 0 0 16px 16px;
     overflow: hidden;
 }
@@ -74,7 +74,7 @@ $initialPayload = [
     max-width: 100% !important;
 }
 
-/* Formula Bar Full Width */
+/* Formula Bar Full Width & Clean Style */
 .luckysheet-wa-calculate {
     background: #ffffff !important;
     border-bottom: 1px solid #cbd5e1 !important;
@@ -89,9 +89,16 @@ $initialPayload = [
     width: 100% !important;
 }
 
-/* Hide default cramped toolbar in favor of our comprehensive MS Excel 2021 Ribbon */
+/* Full Microsoft Excel 2021 Toolbar Styling */
 .luckysheet-toolbar {
-    display: none !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    padding: 4px 8px !important;
+    width: 100% !important;
+}
+
+.luckysheet-toolbar-button {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
 }
 
 /* Prevent unstyled context menu text spilling onto the screen */
@@ -110,40 +117,9 @@ $initialPayload = [
     background: #f1f5f9 !important;
     border-top: 1px solid #cbd5e1 !important;
 }
-
-/* Excel 2021 Ribbon Button Hover & Active states */
-.excel-ribbon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 6px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #334155;
-    transition: all 0.15s ease;
-    cursor: pointer;
-    border: 1px solid transparent;
-    user-select: none;
-}
-.excel-ribbon-btn:hover {
-    background-color: #e2e8f0;
-    border-color: #cbd5e1;
-    color: #0f172a;
-}
-.excel-ribbon-btn:active {
-    background-color: #cbd5e1;
-    transform: scale(0.97);
-}
-.excel-ribbon-divider {
-    height: 22px;
-    width: 1px;
-    background-color: #cbd5e1;
-    margin: 0 4px;
-}
 </style>
 
-<div class="space-y-2 font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= htmlspecialchars(json_encode($initialPayload)) ?>)">
+<div class="space-y-1.5 font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= htmlspecialchars(json_encode($initialPayload)) ?>)">
     
     <!-- 🟢 MICROSOFT EXCEL 2021 TOP TITLE BAR -->
     <div class="bg-[#107c41] text-white rounded-t-2xl p-2.5 shadow-xl border border-[#0d6535] flex items-center justify-between gap-3 flex-wrap select-none w-full">
@@ -157,7 +133,7 @@ $initialPayload = [
                 <div class="flex items-center gap-2">
                     <h1 class="text-sm font-extrabold text-white tracking-wide flex items-center gap-1.5">
                         <span x-text="currentSheetTitle"></span>
-                        <span class="text-[10px] font-normal text-emerald-200">.xlsx - Excel 2021 Enterprise</span>
+                        <span class="text-[10px] font-normal text-emerald-200">.xlsx - Excel 2021 Enterprise (400+ Formulas • Charts • Conditional Formatting)</span>
                     </h1>
                     <span class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-800 text-emerald-200 font-bold">Live Synced</span>
                 </div>
@@ -171,7 +147,7 @@ $initialPayload = [
                    x-model="searchQuery" 
                    @input.debounce.200ms="searchInExcel()" 
                    @keydown.enter="searchNextInExcel()"
-                   placeholder="Search anything in sheet..." 
+                   placeholder="Search in sheet (e.g. name, date, value)..." 
                    class="w-full bg-emerald-900/90 hover:bg-emerald-900 focus:bg-emerald-950 text-white placeholder-emerald-200/60 border border-emerald-600 focus:border-white rounded-xl pl-8 pr-16 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-white transition shadow-inner">
             
             <div class="absolute right-2 top-1 flex items-center gap-1" x-show="searchQuery.trim()">
@@ -201,123 +177,6 @@ $initialPayload = [
         </div>
     </div>
 
-    <!-- 🛠️ 100% COMPLETE FULL-WIDTH MICROSOFT EXCEL 2021 RIBBON -->
-    <div class="bg-[#f8fafc] border-x border-b border-slate-300 p-1.5 flex items-center justify-between gap-1 text-xs select-none w-full flex-wrap shadow-inner">
-        
-        <!-- All Excel Instruments Row -->
-        <div class="flex items-center gap-1 flex-wrap w-full">
-            
-            <!-- 1. Undo / Redo -->
-            <button type="button" @click="executeExcelCommand('undo')" class="excel-ribbon-btn" title="Undo (Ctrl+Z)">
-                <i data-lucide="undo" class="w-3.5 h-3.5"></i>
-            </button>
-            <button type="button" @click="executeExcelCommand('redo')" class="excel-ribbon-btn" title="Redo (Ctrl+Y)">
-                <i data-lucide="redo" class="w-3.5 h-3.5"></i>
-            </button>
-
-            <div class="excel-ribbon-divider"></div>
-
-            <!-- 2. Font Family & Size -->
-            <div class="flex items-center gap-1 bg-white border border-slate-300 rounded-md px-1.5 py-0.5 shadow-2xs">
-                <select @change="executeExcelFormat('font', $event.target.value)" class="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none pr-1">
-                    <option value="Segoe UI" selected>Segoe UI</option>
-                    <option value="Calibri">Calibri</option>
-                    <option value="Arial">Arial</option>
-                    <option value="Consolas">Consolas</option>
-                    <option value="Georgia">Georgia</option>
-                </select>
-                <select @change="executeExcelFormat('fontSize', $event.target.value)" class="bg-transparent text-xs font-bold text-slate-700 border-l border-slate-200 pl-1 focus:outline-none">
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11" selected>11</option>
-                    <option value="12">12</option>
-                    <option value="14">14</option>
-                    <option value="16">16</option>
-                    <option value="18">18</option>
-                </select>
-            </div>
-
-            <!-- 3. Bold, Italic, Underline, Strikethrough -->
-            <div class="flex items-center bg-white border border-slate-300 rounded-md p-0.5 shadow-2xs">
-                <button type="button" @click="executeExcelFormat('bold')" class="excel-ribbon-btn font-black w-6 h-6" title="Bold (Ctrl+B)">B</button>
-                <button type="button" @click="executeExcelFormat('italic')" class="excel-ribbon-btn italic font-bold w-6 h-6" title="Italic (Ctrl+I)">I</button>
-                <button type="button" @click="executeExcelFormat('underline')" class="excel-ribbon-btn underline font-bold w-6 h-6" title="Underline (Ctrl+U)">U</button>
-                <button type="button" @click="executeExcelFormat('strikethrough')" class="excel-ribbon-btn line-through font-bold w-6 h-6" title="Strikethrough">S</button>
-            </div>
-
-            <!-- 4. Text Color & Fill Color -->
-            <div class="flex items-center gap-1 bg-white border border-slate-300 rounded-md px-1.5 py-0.5 shadow-2xs">
-                <span class="text-[10px] font-bold text-slate-400">Fill:</span>
-                <button type="button" @click="executeExcelFormat('bgColor', '#ffffff')" class="w-3.5 h-3.5 rounded bg-white border border-slate-300" title="No Fill"></button>
-                <button type="button" @click="executeExcelFormat('bgColor', '#fef08a')" class="w-3.5 h-3.5 rounded bg-yellow-300" title="Yellow"></button>
-                <button type="button" @click="executeExcelFormat('bgColor', '#a7f3d0')" class="w-3.5 h-3.5 rounded bg-emerald-300" title="Green"></button>
-                <button type="button" @click="executeExcelFormat('bgColor', '#fecdd3')" class="w-3.5 h-3.5 rounded bg-rose-300" title="Red"></button>
-                <button type="button" @click="executeExcelFormat('bgColor', '#c7d2fe')" class="w-3.5 h-3.5 rounded bg-indigo-300" title="Blue"></button>
-            </div>
-
-            <div class="excel-ribbon-divider"></div>
-
-            <!-- 5. Borders & Merge -->
-            <div class="flex items-center bg-white border border-slate-300 rounded-md p-0.5 shadow-2xs">
-                <button type="button" @click="executeExcelFormat('border', 'all')" class="excel-ribbon-btn" title="All Borders">
-                    <i data-lucide="grid" class="w-3.5 h-3.5"></i>
-                </button>
-                <button type="button" @click="executeExcelFormat('border', 'none')" class="excel-ribbon-btn text-[10px]" title="Clear Borders">
-                    No Border
-                </button>
-                <button type="button" @click="executeExcelFormat('merge')" class="excel-ribbon-btn text-[10px] font-bold" title="Merge & Center">
-                    Merge
-                </button>
-            </div>
-
-            <!-- 6. Alignments -->
-            <div class="flex items-center bg-white border border-slate-300 rounded-md p-0.5 shadow-2xs">
-                <button type="button" @click="executeExcelFormat('align', 'left')" class="excel-ribbon-btn w-6 h-6" title="Align Left">
-                    <i data-lucide="align-left" class="w-3 h-3"></i>
-                </button>
-                <button type="button" @click="executeExcelFormat('align', 'center')" class="excel-ribbon-btn w-6 h-6" title="Align Center">
-                    <i data-lucide="align-center" class="w-3 h-3"></i>
-                </button>
-                <button type="button" @click="executeExcelFormat('align', 'right')" class="excel-ribbon-btn w-6 h-6" title="Align Right">
-                    <i data-lucide="align-right" class="w-3 h-3"></i>
-                </button>
-                <button type="button" @click="executeExcelFormat('textWrap')" class="excel-ribbon-btn text-[10px]" title="Wrap Text">
-                    Wrap
-                </button>
-            </div>
-
-            <div class="excel-ribbon-divider"></div>
-
-            <!-- 7. Number & Currency Formats -->
-            <div class="flex items-center bg-white border border-slate-300 rounded-md px-1.5 py-0.5 gap-1 shadow-2xs font-mono text-xs">
-                <button type="button" @click="executeExcelFormat('currency', 'INR')" class="excel-ribbon-btn font-bold px-1" title="Rupee (₹)">₹</button>
-                <button type="button" @click="executeExcelFormat('currency', 'USD')" class="excel-ribbon-btn font-bold px-1" title="Dollar ($)">$</button>
-                <button type="button" @click="executeExcelFormat('percent')" class="excel-ribbon-btn font-bold px-1" title="Percentage (%)">%</button>
-                <button type="button" @click="executeExcelFormat('comma')" class="excel-ribbon-btn font-bold px-1" title="Comma (,)">,</button>
-                <button type="button" @click="executeExcelFormat('decimalIncrease')" class="excel-ribbon-btn font-bold px-1" title="Increase Decimal">.00</button>
-                <button type="button" @click="executeExcelFormat('decimalDecrease')" class="excel-ribbon-btn font-bold px-1" title="Decrease Decimal">.0</button>
-            </div>
-
-            <div class="excel-ribbon-divider"></div>
-
-            <!-- 8. Advanced Tools: AutoSum, Freeze, Filter, Sort, Chart, Validation -->
-            <div class="flex items-center gap-1">
-                <button type="button" @click="executeExcelFormat('autoSum')" class="excel-ribbon-btn bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200" title="AutoSum">
-                    <span class="font-bold mr-0.5">Σ</span> AutoSum
-                </button>
-                <button type="button" @click="executeExcelFormat('filter')" class="excel-ribbon-btn" title="Sort & Filter Funnel">
-                    <i data-lucide="filter" class="w-3.5 h-3.5 text-slate-600"></i>
-                    <span class="ml-1">Filter</span>
-                </button>
-                <button type="button" @click="executeExcelFormat('freeze')" class="excel-ribbon-btn" title="Freeze Header Row">
-                    <i data-lucide="snowflake" class="w-3.5 h-3.5 text-blue-600"></i>
-                    <span class="ml-1">Freeze</span>
-                </button>
-            </div>
-
-        </div>
-    </div>
-
     <!-- ⚡ SYNC NOTIFICATION TOAST -->
     <div x-show="syncSuccessBanner" class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs font-bold flex items-center justify-between shadow-sm transition" style="display: none;">
         <span class="flex items-center gap-2">
@@ -339,7 +198,7 @@ $initialPayload = [
                     <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-[#107c41]"></i>
                     <span x-text="isEngineLoading ? 'Initializing Excel 2021 Studio Engine...' : 'Syncing Sheet Data...'"></span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-1 font-medium">Preparing formulas, grid cells, and Ribbon tools...</p>
+                <p class="text-[10px] text-slate-400 mt-1 font-medium">Preparing 400+ formulas, grid cells, and Ribbon tools...</p>
             </div>
         </div>
         <div id="luckysheet"></div>
@@ -443,62 +302,6 @@ document.addEventListener('alpine:init', () => {
                 this.resizeLuckysheet();
                 window.dispatchEvent(new Event('resize'));
             }, 320);
-        },
-
-        executeExcelCommand(cmd) {
-            if (typeof luckysheet === 'undefined') return;
-            if (cmd === 'undo') luckysheet.undo();
-            else if (cmd === 'redo') luckysheet.redo();
-        },
-
-        executeExcelFormat(type, value) {
-            if (typeof luckysheet === 'undefined') return;
-
-            if (type === 'bold') {
-                luckysheet.setRangeFormat("bl", 1);
-            } else if (type === 'italic') {
-                luckysheet.setRangeFormat("it", 1);
-            } else if (type === 'underline') {
-                luckysheet.setRangeFormat("un", 1);
-            } else if (type === 'strikethrough') {
-                luckysheet.setRangeFormat("cl", 1);
-            } else if (type === 'font') {
-                luckysheet.setRangeFormat("ff", value);
-            } else if (type === 'fontSize') {
-                luckysheet.setRangeFormat("fs", parseInt(value));
-            } else if (type === 'bgColor') {
-                luckysheet.setRangeFormat("bg", value);
-            } else if (type === 'align') {
-                const alignCode = value === 'left' ? 0 : (value === 'center' ? 1 : 2);
-                luckysheet.setRangeFormat("ht", alignCode);
-            } else if (type === 'textWrap') {
-                luckysheet.setRangeFormat("tb", 1);
-            } else if (type === 'merge') {
-                luckysheet.setMerge("merge-all");
-            } else if (type === 'border') {
-                if (value === 'all') {
-                    luckysheet.setBorder("all", { rangeType: "all", borderType: "border-all", color: "#000000", style: "1" });
-                } else {
-                    luckysheet.setBorder("none");
-                }
-            } else if (type === 'currency') {
-                const fmt = value === 'INR' ? '₹#,##0.00' : '$#,##0.00';
-                luckysheet.setRangeFormat("ct", { fa: fmt, t: "n" });
-            } else if (type === 'percent') {
-                luckysheet.setRangeFormat("ct", { fa: "0.00%", t: "n" });
-            } else if (type === 'comma') {
-                luckysheet.setRangeFormat("ct", { fa: "#,##0", t: "n" });
-            } else if (type === 'decimalIncrease') {
-                luckysheet.setRangeFormat("ct", { fa: "#,##0.000", t: "n" });
-            } else if (type === 'decimalDecrease') {
-                luckysheet.setRangeFormat("ct", { fa: "#,##0", t: "n" });
-            } else if (type === 'freeze') {
-                luckysheet.setFrozenRow(1);
-            } else if (type === 'filter') {
-                luckysheet.setFilter();
-            } else if (type === 'autoSum') {
-                luckysheet.insertFunction("SUM");
-            }
         },
 
         searchInExcel() {
@@ -700,7 +503,45 @@ document.addEventListener('alpine:init', () => {
                 title: this.currentSheetTitle,
                 lang: 'en',
                 showinfobar: false,
-                showtoolbar: false,
+                showtoolbar: true, // ✅ FULL MS EXCEL 2021 OFFICIAL TOOLBAR
+                showtoolbarConfig: {
+                    undoRedo: true, // Undo / Redo
+                    paintFormat: true, // Format Painter
+                    currencyFormat: true, // ₹ / $ Currency Formats
+                    percentageFormat: true, // Percentage
+                    numberDecrease: true, // Decimal Decrease
+                    numberIncrease: true, // Decimal Increase
+                    moreFormats: true, // More Formats (Date, Time, Custom)
+                    font: true, // Font Family
+                    fontSize: true, // Font Size
+                    bold: true, // Bold
+                    italic: true, // Italic
+                    strikethrough: true, // Strikethrough
+                    underline: true, // Underline
+                    textColor: true, // Text Color
+                    fillColor: true, // Background Fill Color
+                    border: true, // All Borders / Border Styles
+                    mergeCell: true, // Merge & Center
+                    horizontalAlignMode: true, // Left, Center, Right Alignment
+                    verticalAlignMode: true, // Top, Middle, Bottom Alignment
+                    textWrapMode: true, // Wrap Text
+                    textRotateMode: true, // Text Rotation
+                    image: true, // Insert Image
+                    link: true, // Hyperlink
+                    chart: true, // Insert Charts (Bar, Column, Pie, Line)
+                    postil: true, // Cell Notes / Comments
+                    pivotTable: true, // Pivot Tables
+                    function: true, // 400+ Formula Functions & AutoSum
+                    frozenMode: true, // Freeze Panes (Row, Column, Panes)
+                    sortAndFilter: true, // Sort & Filter Funnel
+                    conditionalFormat: true, // Conditional Formatting Rules
+                    dataVerification: true, // Data Validation Dropdowns
+                    splitColumn: true, // Text to Columns
+                    screenshot: true, // Cell Screenshot
+                    findAndReplace: true, // Find & Replace
+                    protection: true, // Protect Sheet / Lock Cells
+                    print: true // Print Sheet
+                },
                 showsheetbar: true,
                 showsheetbarConfig: {
                     add: true,
