@@ -745,6 +745,47 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
             }
         }
 
+                // Check if response is GViz JSON format
+        if (empty($csvContent)) {
+            foreach ($fetchUrls as $fUrl) {
+                $jsonUrl = preg_replace('/out:csv/', 'out:json', $fUrl);
+                $ch = curl_init($jsonUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_TIMEOUT => 15,
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_USERAGENT => 'Mozilla/5.0'
+                ]);
+                $rawJson = curl_exec($ch);
+                curl_close($ch);
+
+                if ($rawJson && preg_match('/google\.visualization\.Query\.setResponse\((.*)\);/s', $rawJson, $jMatch)) {
+                    $gvizData = json_decode($jMatch[1], true);
+                    if ($gvizData && isset($gvizData['table'])) {
+                        $cols = [];
+                        foreach ($gvizData['table']['cols'] as $c) {
+                            $cols[] = trim((string)($c['label'] ?? ($c['id'] ?? '')));
+                        }
+                        $rRows = [];
+                        foreach ($gvizData['table']['rows'] as $r) {
+                            $rowVals = [];
+                            foreach ($r['c'] as $cObj) {
+                                $rowVals[] = trim((string)($cObj['v'] ?? ($cObj['f'] ?? '')));
+                            }
+                            if (!empty(array_filter($rowVals))) {
+                                $rRows[] = $rowVals;
+                            }
+                        }
+                        if (!empty($cols) || !empty($rRows)) {
+                            $columns = $cols;
+                            $rows = $rRows;
+                        }
+                    }
+                }
+            }
+        }
+
         if (empty($csvContent)) {
             foreach ($fetchUrls as $fUrl) {
                 $ctx = stream_context_create([

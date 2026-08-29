@@ -243,6 +243,14 @@ $sheets = $db->query("
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Or Upload CSV / Excel (.xlsx) File</label>
                     <input type="file" name="sheet_file" accept=".csv, .xlsx, .xls, .tsv" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                 </div>
+                                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-[11px] space-y-1">
+                    <div class="font-bold flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-4 h-4 text-amber-600"></i> Google Sheets Sharing Tip:
+                    </div>
+                    <p class="text-[10px] text-amber-800 leading-relaxed">
+                        Make sure your Google Sheet is set to <strong>"Anyone with the link can view"</strong> (Click Share button in top-right of your Google Sheet &rarr; General Access &rarr; Anyone with link).
+                    </p>
+                </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" @click="uploadModalOpen = false" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
                     <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition">Process & Ingest</button>

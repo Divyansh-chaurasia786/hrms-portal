@@ -542,8 +542,14 @@ if (closeBtn) {
     });
 }
 
-// 3. Background Shift Lock: Alert if user closes tab during active shift without Punching Out
+// 3. Background Shift Lock: Alert ONLY if user actually closes browser/tab, NEVER on form submit
+let isFormSubmitting = false;
+document.addEventListener('submit', () => {
+    isFormSubmitting = true;
+}, true);
+
 window.addEventListener('beforeunload', (e) => {
+    if (isFormSubmitting) return; // Allow form submit without popup!
     const isShiftActive = document.body.dataset.shiftActive === '1';
     if (isShiftActive) {
         e.preventDefault();
