@@ -2,6 +2,9 @@
 // public/index.php
 date_default_timezone_set('Asia/Kolkata');
 
+// ⚡ Instant Output Compression
+if (!ob_start('ob_gzhandler')) ob_start();
+
 // 🛡️ Global Security Headers
 if (!headers_sent()) {
     header("X-Frame-Options: SAMEORIGIN");

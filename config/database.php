@@ -42,15 +42,21 @@ function getOfficeLocationById(int $id): ?array {
 }
 
 function getEffectiveUserLocation(int $userId): array {
+    static $locationCache = [];
+    if (isset($locationCache[$userId])) {
+        return $locationCache[$userId];
+    }
+
     $db = getDBConnection();
     $stmt = $db->prepare("SELECT id, name, role, designation, reporting_tl_id, assigned_office_location, temp_office_location, temp_location_expires_at, temp_location_days FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $u = $stmt->fetch();
 
     if (!$u) {
-        $loc = getOfficeLocationById(2) ?: ['id' => 2, 'name' => 'Innovation Hub - Kapoorthala, Aliganj', 'lat' => 26.884578, 'lng' => 80.938924, 'radius' => 150];
+        $loc = getOfficeLocationById(2) ?: ['id' => 2, 'name' => 'Sachan Complex, Krishna Nagar, Lucknow', 'lat' => 26.7897624, 'lng' => 80.8895117, 'radius' => 50];
         $loc['is_temporary'] = false;
         $loc['days_left'] = 0;
+        $locationCache[$userId] = $loc;
         return $loc;
     }
 
@@ -67,11 +73,10 @@ function getEffectiveUserLocation(int $userId): array {
             $targetId = (int)$u['id'];
         }
     } else {
-        // Employee inherits TL location
         $targetId = (int)($u['reporting_tl_id'] ?: 0);
     }
 
-    if ($targetId > 0) {
+    if ($targetId > 0 && $targetId !== (int)$u['id']) {
         $stmt2 = $db->prepare("SELECT id, name, assigned_office_location, temp_office_location, temp_location_expires_at, temp_location_days FROM users WHERE id = ?");
         $stmt2->execute([$targetId]);
         $leader = $stmt2->fetch();
@@ -83,11 +88,11 @@ function getEffectiveUserLocation(int $userId): array {
         $loc = getOfficeLocationById(2);
         $loc['is_temporary'] = false;
         $loc['days_left'] = 0;
+        $locationCache[$userId] = $loc;
         return $loc;
     }
 
     $today = date('Y-m-d');
-    // Check if Temporary Location is active (Max 5 days)
     if (!empty($leader['temp_office_location']) && !empty($leader['temp_location_expires_at']) && $leader['temp_location_expires_at'] >= $today) {
         $loc = getOfficeLocationById((int)$leader['temp_office_location']);
         if ($loc) {
@@ -97,16 +102,17 @@ function getEffectiveUserLocation(int $userId): array {
             $loc['expires_at'] = $leader['temp_location_expires_at'];
             $loc['permanent_location_id'] = (int)($leader['assigned_office_location'] ?: 2);
             $loc['leader_name'] = $leader['name'];
+            $locationCache[$userId] = $loc;
             return $loc;
         }
     }
 
-    // Permanent Location
     $permId = (int)($leader['assigned_office_location'] ?: 2);
     $loc = getOfficeLocationById($permId) ?: getOfficeLocationById(2);
     $loc['is_temporary'] = false;
     $loc['days_left'] = 0;
     $loc['leader_name'] = $leader['name'];
+    $locationCache[$userId] = $loc;
     return $loc;
 }
 
@@ -114,12 +120,7 @@ function getDBConnection(bool $forceNew = false): PDO {
     static $pdo = null;
     
     if ($pdo !== null && !$forceNew) {
-        try {
-            $pdo->query("SELECT 1");
-            return $pdo;
-        } catch (\Throwable $e) {
-            $pdo = null;
-        }
+        return $pdo;
     }
 
     if ($pdo === null) {
