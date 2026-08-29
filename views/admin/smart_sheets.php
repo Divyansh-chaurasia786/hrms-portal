@@ -29,16 +29,16 @@ $initialPayload = [
 ];
 ?>
 
-<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins -->
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' />
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' />
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' />
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/assets/iconfont/iconfont.css' />
+<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins (Multi-CDN High Speed) -->
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' onerror="this.href='https://unpkg.com/luckysheet/dist/plugins/css/pluginsCss.css'" />
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' onerror="this.href='https://unpkg.com/luckysheet/dist/plugins/plugins.css'" />
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' onerror="this.href='https://unpkg.com/luckysheet/dist/css/luckysheet.css'" />
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/assets/iconfont/iconfont.css' onerror="this.href='https://unpkg.com/luckysheet/dist/assets/iconfont/iconfont.css'" />
 
-<!-- Luckysheet & LuckyExcel Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js"></script>
+<!-- High-Speed Luckysheet Scripts with Auto-Fallback -->
+<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js" onerror="this.src='https://unpkg.com/luckysheet/dist/plugins/js/plugin.js'"></script>
+<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js" onerror="this.src='https://unpkg.com/luckysheet/dist/luckysheet.umd.js'"></script>
+<script src="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js" onerror="this.src='https://unpkg.com/luckyexcel/dist/luckyexcel.umd.js'"></script>
 
 <style>
 /* 100% Full-Width Clean Excel Studio Wrapper */
@@ -330,13 +330,16 @@ $initialPayload = [
     <!-- 📊 MICROSOFT EXCEL 2021 CANVAS CONTAINER -->
     <div id="luckysheet-wrapper" class="bg-white rounded-b-2xl shadow-2xl border-r border-l border-b border-slate-300 overflow-hidden relative w-full">
         <!-- High-Speed Loading Overlay -->
-        <div x-show="isFetchingSheet" class="absolute inset-0 bg-white/80 backdrop-blur-xs z-30 flex flex-col items-center justify-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-[#107c41] text-white flex items-center justify-center font-bold shadow-lg animate-bounce">
+        <div x-show="isFetchingSheet || isEngineLoading" class="absolute inset-0 bg-white/95 backdrop-blur-xs z-30 flex flex-col items-center justify-center gap-3 transition-opacity">
+            <div class="w-12 h-12 rounded-2xl bg-[#107c41] text-white flex items-center justify-center font-black text-xl shadow-xl shadow-emerald-700/20 animate-bounce">
                 X
             </div>
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
-                <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-[#107c41]"></i>
-                Loading Excel 2021 Workbook...
+            <div class="text-center">
+                <div class="flex items-center justify-center gap-2 text-xs font-extrabold text-slate-800">
+                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-[#107c41]"></i>
+                    <span x-text="isEngineLoading ? 'Initializing Excel 2021 Studio Engine...' : 'Syncing Sheet Data...'"></span>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1 font-medium">Preparing formulas, grid cells, and Ribbon tools...</p>
             </div>
         </div>
         <div id="luckysheet"></div>
@@ -397,6 +400,7 @@ document.addEventListener('alpine:init', () => {
         currentMatchIdx: 0,
         isSaving: false,
         isFetchingSheet: false,
+        isEngineLoading: true,
         syncSuccessBanner: false,
 
         initStudio(sheetList, initialData) {
@@ -684,11 +688,13 @@ document.addEventListener('alpine:init', () => {
 
         createLuckysheetInstance(sheetsData) {
             if (typeof luckysheet === 'undefined' || !luckysheet.create) {
-                setTimeout(() => this.createLuckysheetInstance(sheetsData), 60);
+                this.isEngineLoading = true;
+                setTimeout(() => this.createLuckysheetInstance(sheetsData), 50);
                 return;
             }
 
             try { luckysheet.destroy(); } catch(e) {}
+            
             luckysheet.create({
                 container: 'luckysheet',
                 title: this.currentSheetTitle,
@@ -715,10 +721,13 @@ document.addEventListener('alpine:init', () => {
                 data: sheetsData
             });
 
+            this.isEngineLoading = false;
+            this.isFetchingSheet = false;
+
             setTimeout(() => {
                 this.resizeLuckysheet();
                 if (typeof lucide !== 'undefined') lucide.createIcons();
-            }, 100);
+            }, 120);
         },
 
         async saveAndSyncExcel() {
