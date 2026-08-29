@@ -110,25 +110,39 @@ class SmartSheetController {
     public static function saveSheetData(): void {
         requireAuth('admin');
         requireActiveShift();
+        $user = authUser();
         $db = getDBConnection();
 
         $sheetId = (int)($_POST['sheet_id'] ?? 0);
+        $sheetTitle = trim($_POST['sheet_title'] ?? 'Excel Workbook');
         $columns = json_decode($_POST['columns_json'] ?? '[]', true);
         $rows = json_decode($_POST['rows_json'] ?? '[]', true);
 
         header('Content-Type: application/json');
-        if ($sheetId <= 0 || empty($columns)) {
-            echo json_encode(['success' => false, 'message' => 'Invalid sheet payload']);
+        if (empty($columns)) {
+            echo json_encode(['success' => false, 'message' => 'Empty columns payload']);
             exit;
         }
 
-        $stmt = $db->prepare("UPDATE smart_sheet_uploads SET columns_json = ?, rows_json = ? WHERE id = ?");
-        $stmt->execute([json_encode($columns, JSON_UNESCAPED_UNICODE), json_encode($rows, JSON_UNESCAPED_UNICODE), $sheetId]);
+        if ($sheetId > 0) {
+            $stmt = $db->prepare("UPDATE smart_sheet_uploads SET columns_json = ?, rows_json = ? WHERE id = ?");
+            $stmt->execute([json_encode($columns, JSON_UNESCAPED_UNICODE), json_encode($rows, JSON_UNESCAPED_UNICODE), $sheetId]);
+        } else {
+            // Create new entry
+            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (uploaded_by, title, category, columns_json, rows_json, created_at) VALUES (?, ?, 'Live Datasets', ?, ?, NOW())");
+            $stmt->execute([$user['id'], $sheetTitle, json_encode($columns, JSON_UNESCAPED_UNICODE), json_encode($rows, JSON_UNESCAPED_UNICODE)]);
+            $sheetId = (int)$db->lastInsertId();
+        }
 
-        // Auto-Sync edited data website-wide
-        self::syncDataWebsiteWide($db, $columns, $rows);
+        // Auto-Sync edited workforce/attendance data website-wide
+        $syncReport = self::syncDataWebsiteWide($db, $columns, $rows);
 
-        echo json_encode(['success' => true, 'message' => 'Workbook changes saved and synced website-wide!']);
+        echo json_encode([
+            'success' => true, 
+            'sheet_id' => $sheetId,
+            'sync_report' => $syncReport,
+            'message' => 'Changes saved to cloud database in real-time!'
+        ]);
         exit;
     }
 

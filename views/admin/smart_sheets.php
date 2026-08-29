@@ -135,7 +135,27 @@ $initialPayload = [
                         <span x-text="currentSheetTitle"></span>
                         <span class="text-[10px] font-normal text-emerald-200">.xlsx - Excel 2021 Enterprise (400+ Formulas • Charts • Conditional Formatting)</span>
                     </h1>
-                    <span class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-800 text-emerald-200 font-bold">Live Synced</span>
+                    <!-- ☁️ Google Sheets-Style Real-time Sync Indicator -->
+                    <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold transition" :class="syncStatusClass">
+                        <template x-if="syncStatus === 'saving'">
+                            <span class="flex items-center gap-1 text-emerald-200">
+                                <i data-lucide="cloud" class="w-3 h-3 animate-pulse"></i>
+                                <span>Saving to database...</span>
+                            </span>
+                        </template>
+                        <template x-if="syncStatus === 'saved'">
+                            <span class="flex items-center gap-1 text-emerald-100 font-bold">
+                                <i data-lucide="cloud-check" class="w-3 h-3 text-emerald-300"></i>
+                                <span>Saved to cloud</span>
+                            </span>
+                        </template>
+                        <template x-if="syncStatus === 'syncing'">
+                            <span class="flex items-center gap-1 text-amber-200">
+                                <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
+                                <span>Syncing portal...</span>
+                            </span>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -280,6 +300,80 @@ document.addEventListener('alpine:init', () => {
         isFetchingSheet: false,
         isEngineLoading: true,
         syncSuccessBanner: false,
+        syncStatus: 'saved', // 'saved' | 'saving' | 'syncing'
+        autoSaveTimeout: null,
+
+        get syncStatusClass() {
+            if (this.syncStatus === 'saving') return 'bg-emerald-900/90 text-emerald-200';
+            if (this.syncStatus === 'syncing') return 'bg-amber-900/80 text-amber-200';
+            return 'bg-emerald-800/80 text-emerald-100';
+        },
+
+        triggerRealtimeAutoSync() {
+            this.syncStatus = 'saving';
+            clearTimeout(this.autoSaveTimeout);
+            this.autoSaveTimeout = setTimeout(() => {
+                this.performBackgroundDatabaseSync();
+            }, 600);
+        },
+
+        async performBackgroundDatabaseSync() {
+            if (typeof luckysheet === 'undefined') return;
+
+            try {
+                const fullSheet = luckysheet.getSheetData();
+                if (!fullSheet || fullSheet.length === 0) {
+                    this.syncStatus = 'saved';
+                    return;
+                }
+
+                // Update local device vault immediately
+                const currentSheets = luckysheet.getAllSheets() || [];
+                if (window.HRMSCache && currentSheets.length > 0) {
+                    window.HRMSCache.set('excel_multi_sheets_vault', currentSheets);
+                }
+
+                const headerRow = fullSheet[0] || [];
+                const columns = [];
+                headerRow.forEach((cell, idx) => {
+                    let colName = (cell && (cell.m || cell.v)) ? String(cell.m || cell.v) : 'Column ' + (idx + 1);
+                    columns.push(colName);
+                });
+
+                const rows = [];
+                for (let r = 1; r < fullSheet.length; r++) {
+                    const rowData = [];
+                    let hasData = false;
+                    for (let c = 0; c < columns.length; c++) {
+                        const cell = fullSheet[r] ? fullSheet[r][c] : null;
+                        const val = cell ? (cell.m !== undefined ? cell.m : (cell.v !== undefined ? cell.v : '')) : '';
+                        rowData.push(val);
+                        if (String(val).trim() !== '') hasData = true;
+                    }
+                    if (hasData) rows.push(rowData);
+                }
+
+                const formData = new FormData();
+                formData.append('sheet_id', this.currentSheetId);
+                formData.append('sheet_title', this.currentSheetTitle);
+                formData.append('columns_json', JSON.stringify(columns));
+                formData.append('rows_json', JSON.stringify(rows));
+
+                const res = await fetch('?action=save-smart-sheet-data', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                if (result && result.success) {
+                    if (result.sheet_id) this.currentSheetId = result.sheet_id;
+                    this.syncStatus = 'saved';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            } catch(e) {
+                console.error('Auto-sync error:', e);
+                this.syncStatus = 'saved';
+            }
+        },
 
         initStudio(sheetList, initialData) {
             this.allSheets = sheetList || [];
@@ -635,7 +729,21 @@ document.addEventListener('alpine:init', () => {
                 defaultColWidth: 120,
                 enableAddRow: true,
                 enableAddBackTop: true,
-                data: sheetsData
+                data: sheetsData,
+                hook: {
+                    cellUpdated: (r, c, oldVal, newVal, isRefresh) => {
+                        this.triggerRealtimeAutoSync();
+                    },
+                    sheetActivate: (index, isPivotInitial, isNewSheet) => {
+                        this.triggerRealtimeAutoSync();
+                    },
+                    sheetDelete: (sheet) => {
+                        this.triggerRealtimeAutoSync();
+                    },
+                    updated: (operate) => {
+                        this.triggerRealtimeAutoSync();
+                    }
+                }
             });
 
             this.isEngineLoading = false;
