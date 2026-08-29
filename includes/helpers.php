@@ -697,19 +697,27 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
     $columns = [];
     $rows = [];
 
+    // Helper: Convert Excel Column Letters (e.g. "A" => 0, "B" => 1, "AA" => 26) to 0-based index
+    $colLetterToIndex = function(string $colStr): int {
+        $colStr = strtoupper(preg_replace('/[^A-Z]/', '', $colStr));
+        $idx = 0;
+        for ($i = 0; $i < strlen($colStr); $i++) {
+            $idx = $idx * 26 + (ord($colStr[$i]) - ord('A') + 1);
+        }
+        return max(0, $idx - 1);
+    };
+
     // --- 1. HANDLE URL / GOOGLE SHEETS ---
     if (!empty($url)) {
         $url = trim($url);
         $fetchUrls = [];
 
-        // Check if it's a Google Sheets link
         if (preg_match('/docs\.google\.com\/spreadsheets\/(?:d|u\/\d+\/d)\/([a-zA-Z0-9-_]+)/', $url, $matches)) {
             $docId = $matches[1];
             $gid = '';
             if (preg_match('/[#&?]gid=([0-9]+)/', $url, $gidMatch)) {
                 $gid = "&gid=" . $gidMatch[1];
             }
-            // Try GViz CSV export first (Most reliable, bypasses Google auth redirects)
             $fetchUrls[] = "https://docs.google.com/spreadsheets/d/{$docId}/gviz/tq?tqx=out:csv{$gid}";
             $fetchUrls[] = "https://docs.google.com/spreadsheets/d/{$docId}/export?format=csv{$gid}";
         } elseif (preg_match('/docs\.google\.com\/spreadsheets\/d\/e\/([a-zA-Z0-9-_]+)\/pub/', $url, $matches)) {
@@ -721,31 +729,27 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
 
         $csvContent = '';
         foreach ($fetchUrls as $fUrl) {
-            if (function_exists('curl_init')) {
-                $ch = curl_init($fUrl);
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 5,
-                    CURLOPT_TIMEOUT => 3,
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => false,
-                    CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    CURLOPT_HTTPHEADER => ['Accept: text/csv,text/plain,*/*']
-                ]);
-                $res = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
+            $ch = curl_init($fUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 5,
+                CURLOPT_TIMEOUT => 4,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ]);
+            $res = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
-                // If response is valid CSV and not HTML login page
-                if ($res && $httpCode >= 200 && $httpCode < 400 && !str_contains($res, '<!DOCTYPE') && !str_contains($res, '<html')) {
-                    $csvContent = $res;
-                    break;
-                }
+            if ($res && $httpCode >= 200 && $httpCode < 400 && !str_contains($res, '<!DOCTYPE') && !str_contains($res, '<html')) {
+                $csvContent = $res;
+                break;
             }
         }
 
-                // Check if response is GViz JSON format
+        // GViz JSON Fallback
         if (empty($csvContent)) {
             foreach ($fetchUrls as $fUrl) {
                 $jsonUrl = preg_replace('/out:csv/', 'out:json', $fUrl);
@@ -753,7 +757,7 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
                 curl_setopt_array($ch, [
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_TIMEOUT => 3,
+                    CURLOPT_TIMEOUT => 4,
                     CURLOPT_SSL_VERIFYPEER => false,
                     CURLOPT_USERAGENT => 'Mozilla/5.0'
                 ]);
@@ -786,193 +790,108 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
             }
         }
 
-        if (empty($csvContent)) {
-            foreach ($fetchUrls as $fUrl) {
-                $ctx = stream_context_create([
-                    'http' => ['timeout' => 3, 'user_agent' => 'Mozilla/5.0'],
-                    'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
-                ]);
-                $res = @file_get_contents($fUrl, false, $ctx);
-                if ($res && !str_contains($res, '<!DOCTYPE') && !str_contains($res, '<html')) {
-                    $csvContent = $res;
-                    break;
-                }
-            }
-        }
-
         if (!empty($csvContent)) {
-            // Strip BOM if present
             if (substr($csvContent, 0, 3) === "\xEF\xBB\xBF") {
                 $csvContent = substr($csvContent, 3);
             }
-            $lines = preg_split('/\r\n|\r|\n/', trim($csvContent));
-            if (!empty($lines)) {
-                $firstLine = array_shift($lines);
-                $columns = str_getcsv($firstLine);
-                foreach ($lines as $line) {
-                    if (trim($line) !== '') {
-                        $rows[] = str_getcsv($line);
-                    }
-                }
-            }
-        }
-            // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
-    if (!empty($columns) && !empty($rows)) {
-        // 1. Remove trailing completely empty rows
-        $cleanRows = [];
-        foreach ($rows as $r) {
-            $hasData = false;
-            foreach ($r as $c) {
-                if (!empty(trim((string)$c))) {
-                    $hasData = true;
-                    break;
-                }
-            }
-            if ($hasData) {
-                $cleanRows[] = $r;
-            }
-        }
-        $rows = $cleanRows;
+            $stream = fopen('php://memory', 'r+');
+            fwrite($stream, $csvContent);
+            rewind($stream);
 
-        // 2. Find valid columns that contain headers or data
-        $validColIndices = [];
-        foreach ($columns as $idx => $cName) {
-            $colHasData = !empty(trim((string)$cName));
-            if (!$colHasData) {
-                foreach ($rows as $r) {
-                    if (!empty(trim((string)($r[$idx] ?? '')))) {
-                        $colHasData = true;
-                        break;
-                    }
+            $rawCsvRows = [];
+            while (($data = fgetcsv($stream, 0, ",")) !== FALSE) {
+                if (!empty(array_filter($data, fn($c) => trim((string)$c) !== ''))) {
+                    $rawCsvRows[] = array_map('trim', $data);
                 }
             }
-            if ($colHasData) {
-                $validColIndices[] = $idx;
-            }
-        }
+            fclose($stream);
 
-        if (!empty($validColIndices)) {
-            $cleanColumns = [];
-            foreach ($validColIndices as $idx) {
-                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
+            if (!empty($rawCsvRows)) {
+                $columns = array_shift($rawCsvRows);
+                $rows = $rawCsvRows;
             }
-            $columns = $cleanColumns;
-
-            $trimmedRows = [];
-            foreach ($rows as $r) {
-                $rowCells = [];
-                foreach ($validColIndices as $idx) {
-                    $rowCells[] = trim((string)($r[$idx] ?? ''));
-                }
-                $trimmedRows[] = $rowCells;
-            }
-            $rows = $trimmedRows;
         }
     }
 
-    return ['columns' => $columns, 'rows' => $rows];
-    }
-
-    // --- 2. HANDLE UPLOADED FILE ---
+    // --- 2. HANDLE UPLOADED FILE (.xlsx / .csv / .tsv / .xls) ---
     if (!empty($filePath) && file_exists($filePath)) {
         $ext = strtolower(pathinfo($originalName ?: $filePath, PATHINFO_EXTENSION));
 
-        // 2A. XLSX Parser (Pure PHP with ZipArchive & SimpleXML)
+        // 2A. High-Accuracy XLSX Parser with Cell-Coordinate Mapping (r="A1", r="C1")
         if ($ext === 'xlsx' && class_exists('ZipArchive')) {
             $zip = new ZipArchive();
             if ($zip->open($filePath) === TRUE) {
-                // 1. Read Shared Strings
                 $sharedStrings = [];
                 $stringsXml = $zip->getFromName('xl/sharedStrings.xml');
                 if ($stringsXml) {
                     $xmlObj = @simplexml_load_string($stringsXml);
                     if ($xmlObj && isset($xmlObj->si)) {
                         foreach ($xmlObj->si as $si) {
-                            $sharedStrings[] = (string)($si->t ?? ($si->r->t ?? ''));
+                            if (isset($si->t)) {
+                                $sharedStrings[] = (string)$si->t;
+                            } elseif (isset($si->r)) {
+                                $str = '';
+                                foreach ($si->r as $r) {
+                                    $str .= (string)($r->t ?? '');
+                                }
+                                $sharedStrings[] = $str;
+                            } else {
+                                $sharedStrings[] = '';
+                            }
                         }
                     }
                 }
 
-                // 2. Read Sheet 1
+                // Read Sheet 1 (xl/worksheets/sheet1.xml)
                 $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+                if (!$sheetXml) {
+                    // Try alternative sheet paths
+                    for ($sIdx = 1; $sIdx <= 5; $sIdx++) {
+                        $sheetXml = $zip->getFromName("xl/worksheets/sheet{$sIdx}.xml");
+                        if ($sheetXml) break;
+                    }
+                }
+
                 if ($sheetXml) {
                     $sheetObj = @simplexml_load_string($sheetXml);
                     if ($sheetObj && isset($sheetObj->sheetData->row)) {
                         $parsedSheetRows = [];
+                        $maxColIdx = 0;
+
                         foreach ($sheetObj->sheetData->row as $row) {
                             $rowCells = [];
                             foreach ($row->c as $c) {
+                                $cellRef = (string)($c['r'] ?? 'A1');
+                                preg_match('/^([A-Z]+)/', $cellRef, $colMatch);
+                                $colLetters = $colMatch[1] ?? 'A';
+                                $targetIdx = $colLetterToIndex($colLetters);
+                                if ($targetIdx > $maxColIdx) $maxColIdx = $targetIdx;
+
                                 $val = (string)$c->v;
-                                $type = (string)$c['t'];
+                                $type = (string)($c['t'] ?? '');
+
                                 if ($type === 's' && isset($sharedStrings[(int)$val])) {
                                     $val = $sharedStrings[(int)$val];
+                                } elseif ($type === 'inlineStr' && isset($c->is->t)) {
+                                    $val = (string)$c->is->t;
                                 }
-                                $rowCells[] = $val;
+
+                                $rowCells[$targetIdx] = trim((string)$val);
                             }
-                            if (!empty($rowCells)) {
-                                $parsedSheetRows[] = $rowCells;
+
+                            if (!empty(array_filter($rowCells, fn($v) => $v !== ''))) {
+                                // Fill missing intermediate indices with empty strings
+                                $fullRow = [];
+                                for ($i = 0; $i <= $maxColIdx; $i++) {
+                                    $fullRow[$i] = $rowCells[$i] ?? '';
+                                }
+                                $parsedSheetRows[] = $fullRow;
                             }
                         }
 
                         if (!empty($parsedSheetRows)) {
                             $columns = array_shift($parsedSheetRows);
                             $rows = $parsedSheetRows;
-                            $zip->close();
-                                // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
-    if (!empty($columns) && !empty($rows)) {
-        // 1. Remove trailing completely empty rows
-        $cleanRows = [];
-        foreach ($rows as $r) {
-            $hasData = false;
-            foreach ($r as $c) {
-                if (!empty(trim((string)$c))) {
-                    $hasData = true;
-                    break;
-                }
-            }
-            if ($hasData) {
-                $cleanRows[] = $r;
-            }
-        }
-        $rows = $cleanRows;
-
-        // 2. Find valid columns that contain headers or data
-        $validColIndices = [];
-        foreach ($columns as $idx => $cName) {
-            $colHasData = !empty(trim((string)$cName));
-            if (!$colHasData) {
-                foreach ($rows as $r) {
-                    if (!empty(trim((string)($r[$idx] ?? '')))) {
-                        $colHasData = true;
-                        break;
-                    }
-                }
-            }
-            if ($colHasData) {
-                $validColIndices[] = $idx;
-            }
-        }
-
-        if (!empty($validColIndices)) {
-            $cleanColumns = [];
-            foreach ($validColIndices as $idx) {
-                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
-            }
-            $columns = $cleanColumns;
-
-            $trimmedRows = [];
-            foreach ($rows as $r) {
-                $rowCells = [];
-                foreach ($validColIndices as $idx) {
-                    $rowCells[] = trim((string)($r[$idx] ?? ''));
-                }
-                $trimmedRows[] = $rowCells;
-            }
-            $rows = $trimmedRows;
-        }
-    }
-
-    return ['columns' => $columns, 'rows' => $rows];
                         }
                     }
                 }
@@ -980,170 +899,72 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
             }
         }
 
-        // 2B. XML Spreadsheet 2003 Parser (.xml / .xls)
-        $rawContent = file_get_contents($filePath);
-        if (str_contains($rawContent, '<Workbook') && str_contains($rawContent, '<Worksheet')) {
-            $cleanXml = preg_replace('/xmlns[^=]*="[^"]*"/i', '', $rawContent);
-            $cleanXml = preg_replace('/[a-zA-Z0-9]+:([a-zA-Z0-9]+)/', '$1', $cleanXml);
-            $xmlObj = @simplexml_load_string($cleanXml);
-            if ($xmlObj && isset($xmlObj->Worksheet->Table->Row)) {
-                $xmlRows = [];
-                foreach ($xmlObj->Worksheet->Table->Row as $r) {
-                    $cellVals = [];
-                    if (isset($r->Cell)) {
-                        foreach ($r->Cell as $cell) {
-                            $cellVals[] = (string)($cell->Data ?? '');
-                        }
-                    }
-                    if (!empty($cellVals)) {
-                        $xmlRows[] = $cellVals;
-                    }
+        // 2B. CSV / TSV File Parser with Auto-Delimiter Detection
+        if (in_array($ext, ['csv', 'tsv', 'txt', 'xls']) || empty($columns)) {
+            $fileContent = file_get_contents($filePath);
+            if ($fileContent) {
+                if (substr($fileContent, 0, 3) === "\xEF\xBB\xBF") {
+                    $fileContent = substr($fileContent, 3);
                 }
-                if (!empty($xmlRows)) {
-                    $columns = array_shift($xmlRows);
-                    $rows = $xmlRows;
-                        // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
-    if (!empty($columns) && !empty($rows)) {
-        // 1. Remove trailing completely empty rows
-        $cleanRows = [];
-        foreach ($rows as $r) {
-            $hasData = false;
-            foreach ($r as $c) {
-                if (!empty(trim((string)$c))) {
-                    $hasData = true;
-                    break;
+                
+                // Detect delimiter (, or \t or ;)
+                $firstLine = strtok($fileContent, "\r\n");
+                $delimiter = ",";
+                if (substr_count($firstLine, "\t") > substr_count($firstLine, ",")) {
+                    $delimiter = "\t";
+                } elseif (substr_count($firstLine, ";") > substr_count($firstLine, ",")) {
+                    $delimiter = ";";
                 }
-            }
-            if ($hasData) {
-                $cleanRows[] = $r;
-            }
-        }
-        $rows = $cleanRows;
 
-        // 2. Find valid columns that contain headers or data
-        $validColIndices = [];
-        foreach ($columns as $idx => $cName) {
-            $colHasData = !empty(trim((string)$cName));
-            if (!$colHasData) {
-                foreach ($rows as $r) {
-                    if (!empty(trim((string)($r[$idx] ?? '')))) {
-                        $colHasData = true;
-                        break;
+                $stream = fopen('php://memory', 'r+');
+                fwrite($stream, $fileContent);
+                rewind($stream);
+
+                $rawCsvRows = [];
+                while (($data = fgetcsv($stream, 0, $delimiter)) !== FALSE) {
+                    if (!empty(array_filter($data, fn($c) => trim((string)$c) !== ''))) {
+                        $rawCsvRows[] = array_map('trim', $data);
                     }
                 }
-            }
-            if ($colHasData) {
-                $validColIndices[] = $idx;
-            }
-        }
+                fclose($stream);
 
-        if (!empty($validColIndices)) {
-            $cleanColumns = [];
-            foreach ($validColIndices as $idx) {
-                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
-            }
-            $columns = $cleanColumns;
-
-            $trimmedRows = [];
-            foreach ($rows as $r) {
-                $rowCells = [];
-                foreach ($validColIndices as $idx) {
-                    $rowCells[] = trim((string)($r[$idx] ?? ''));
+                if (!empty($rawCsvRows) && empty($columns)) {
+                    $columns = array_shift($rawCsvRows);
+                    $rows = $rawCsvRows;
                 }
-                $trimmedRows[] = $rowCells;
             }
-            $rows = $trimmedRows;
         }
     }
 
-    return ['columns' => $columns, 'rows' => $rows];
-                }
-            }
-        }
-
-        // 2C. CSV / TSV / Delimited Text Parser
-        $sample = substr($rawContent, 0, 4096);
-        $delimiters = [',', ';', "\t", '|'];
-        $bestDelim = ',';
-        $maxCount = 0;
-        foreach ($delimiters as $d) {
-            $cnt = substr_count($sample, $d);
-            if ($cnt > $maxCount) {
-                $maxCount = $cnt;
-                $bestDelim = $d;
-            }
-        }
-
-        if (($handle = fopen($filePath, "r")) !== FALSE) {
-            $bom = fread($handle, 3);
-            if ($bom !== "\xEF\xBB\xBF") {
-                rewind($handle);
-            }
-            $first = fgetcsv($handle, 4000, $bestDelim);
-            if ($first) {
-                $columns = array_map('trim', $first);
-                while (($data = fgetcsv($handle, 4000, $bestDelim)) !== FALSE) {
-                    if (array_filter($data)) {
-                        $rows[] = array_map('trim', $data);
-                    }
-                }
-            }
-            fclose($handle);
-        }
-    }
-
-        // --- 🧹 INTELLIGENT PRUNING OF EMPTY COLUMNS & EMPTY ROWS ---
-    if (!empty($columns) && !empty($rows)) {
-        // 1. Remove trailing completely empty rows
-        $cleanRows = [];
+    // --- 3. CLEAN UP & ALIGN COLUMNS AND ROWS ---
+    if (!empty($columns) || !empty($rows)) {
+        // Find total column count
+        $maxCols = count($columns);
         foreach ($rows as $r) {
-            $hasData = false;
-            foreach ($r as $c) {
-                if (!empty(trim((string)$c))) {
-                    $hasData = true;
-                    break;
-                }
-            }
-            if ($hasData) {
-                $cleanRows[] = $r;
-            }
+            if (count($r) > $maxCols) $maxCols = count($r);
         }
-        $rows = $cleanRows;
 
-        // 2. Find valid columns that contain headers or data
-        $validColIndices = [];
-        foreach ($columns as $idx => $cName) {
-            $colHasData = !empty(trim((string)$cName));
-            if (!$colHasData) {
-                foreach ($rows as $r) {
-                    if (!empty(trim((string)($r[$idx] ?? '')))) {
-                        $colHasData = true;
-                        break;
-                    }
-                }
-            }
-            if ($colHasData) {
-                $validColIndices[] = $idx;
+        // Ensure header row is complete
+        for ($i = 0; $i < $maxCols; $i++) {
+            if (!isset($columns[$i]) || trim((string)$columns[$i]) === '') {
+                $columns[$i] = 'Column ' . ($i + 1);
+            } else {
+                $columns[$i] = trim((string)$columns[$i]);
             }
         }
 
-        if (!empty($validColIndices)) {
-            $cleanColumns = [];
-            foreach ($validColIndices as $idx) {
-                $cleanColumns[] = !empty(trim((string)($columns[$idx] ?? ''))) ? trim((string)$columns[$idx]) : "Column " . ($idx + 1);
+        // Pad all rows to match exact column count
+        $alignedRows = [];
+        foreach ($rows as $r) {
+            $paddedRow = [];
+            for ($i = 0; $i < $maxCols; $i++) {
+                $paddedRow[$i] = isset($r[$i]) ? trim((string)$r[$i]) : '';
             }
-            $columns = $cleanColumns;
-
-            $trimmedRows = [];
-            foreach ($rows as $r) {
-                $rowCells = [];
-                foreach ($validColIndices as $idx) {
-                    $rowCells[] = trim((string)($r[$idx] ?? ''));
-                }
-                $trimmedRows[] = $rowCells;
+            if (!empty(array_filter($paddedRow, fn($c) => $c !== ''))) {
+                $alignedRows[] = $paddedRow;
             }
-            $rows = $trimmedRows;
         }
+        $rows = $alignedRows;
     }
 
     return ['columns' => $columns, 'rows' => $rows];

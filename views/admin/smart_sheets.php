@@ -22,25 +22,8 @@ $sheets = $db->query("
     openSheetViewer(s) {
         this.selectedSheet = s;
         try {
-            let rawCols = JSON.parse(s.columns_json || '[]');
-            let rawRows = JSON.parse(s.rows_json || '[]');
-
-            // Prune empty rows & empty columns in JS for crystal-clean display
-            this.parsedRows = rawRows.filter(row => row.some(cell => String(cell).trim() !== ''));
-
-            let validColIndices = [];
-            rawCols.forEach((col, idx) => {
-                let hasVal = String(col).trim() !== '';
-                if (!hasVal) {
-                    hasVal = this.parsedRows.some(row => row[idx] && String(row[idx]).trim() !== '');
-                }
-                if (hasVal) validColIndices.push(idx);
-            });
-
-            if (validColIndices.length === 0) validColIndices = [0, 1, 2];
-
-            this.parsedColumns = validColIndices.map(idx => rawCols[idx] && String(rawCols[idx]).trim() !== '' ? String(rawCols[idx]).trim() : 'Column ' + (idx + 1));
-            this.parsedRows = this.parsedRows.map(row => validColIndices.map(idx => row[idx] ? String(row[idx]).trim() : ''));
+            this.parsedColumns = JSON.parse(s.columns_json || '[]');
+            this.parsedRows = JSON.parse(s.rows_json || '[]');
         } catch(e) {
             this.parsedColumns = [];
             this.parsedRows = [];
@@ -182,25 +165,12 @@ $sheets = $db->query("
                             <tr class="hover:bg-emerald-50/40 transition">
                                 <td class="py-2.5 px-3 border-r border-slate-100 text-center font-mono text-[10px] text-slate-400 font-bold bg-slate-50" x-text="rowIdx + 1"></td>
                                 <template x-for="(cell, cellIdx) in row" :key="cellIdx">
-                                    <td class="py-2.5 px-4 border-r border-slate-100 text-slate-800 font-medium">
-                                        <!-- If Designation Column -->
-                                        <template x-if="cellIdx === 2 || String(parsedColumns[cellIdx]).toLowerCase().includes('designation')">
-                                            <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold" 
-                                                  :class="cell === 'FSM' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : (cell === 'BDA' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-slate-100 text-slate-700')" 
-                                                  x-text="cell"></span>
+                                    <td class="py-2.5 px-4 border-r border-slate-100 text-slate-800 font-medium whitespace-nowrap">
+                                        <template x-if="cell === 'FSM' || cell === 'BDA' || cell === 'active' || cell === 'Present'">
+                                            <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200" x-text="cell"></span>
                                         </template>
-
-                                        <!-- If Email Column -->
-                                        <template x-if="cellIdx === 1 || String(cell).includes('@')">
-                                            <span class="font-mono text-slate-600 flex items-center gap-1">
-                                                <i data-lucide="mail" class="w-3 h-3 text-slate-400 inline"></i>
-                                                <span x-text="cell"></span>
-                                            </span>
-                                        </template>
-
-                                        <!-- Default Text (Name, etc.) -->
-                                        <template x-if="cellIdx !== 2 && !String(parsedColumns[cellIdx]).toLowerCase().includes('designation') && cellIdx !== 1 && !String(cell).includes('@')">
-                                            <strong class="text-slate-900" x-text="cell"></strong>
+                                        <template x-if="cell !== 'FSM' && cell !== 'BDA' && cell !== 'active' && cell !== 'Present'">
+                                            <span :class="String(cell).includes('@') ? 'font-mono text-slate-600' : (cellIdx === 0 ? 'font-bold text-slate-900' : 'text-slate-700')" x-text="cell"></span>
                                         </template>
                                     </td>
                                 </template>
