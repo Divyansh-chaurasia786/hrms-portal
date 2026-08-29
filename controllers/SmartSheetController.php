@@ -37,22 +37,40 @@ class SmartSheetController {
                 exit;
             }
 
-            // Auto-Classification Intent Matcher
-            $headerStr = strtolower(implode(' ', array_map('strval', $columns)));
-            $category = 'custom';
-            if (str_contains($headerStr, 'punch') || str_contains($headerStr, 'attendance') || str_contains($headerStr, 'clock') || str_contains($headerStr, 'present') || str_contains($headerStr, 'absent') || str_contains($headerStr, 'status') || str_contains($headerStr, 'in time')) {
-                $category = 'attendance';
-            } elseif (str_contains($headerStr, 'salary') || str_contains($headerStr, 'payroll') || str_contains($headerStr, 'net pay') || str_contains($headerStr, 'basic pay')) {
-                $category = 'payroll';
-            } elseif (str_contains($headerStr, 'email') || str_contains($headerStr, 'designation') || str_contains($headerStr, 'name') || str_contains($headerStr, 'staff')) {
-                $category = 'employees';
-            } elseif (str_contains($headerStr, 'phone') || str_contains($headerStr, 'lead') || str_contains($headerStr, 'calling') || str_contains($headerStr, 'client')) {
-                $category = 'crm_leads';
+            // Dynamic Classification & Custom Section Matcher
+            $userCategory = trim($_POST['category'] ?? '');
+            $customCategory = trim($_POST['custom_category'] ?? '');
+
+            if (!empty($customCategory)) {
+                $category = ucwords(strtolower($customCategory));
+            } elseif (!empty($userCategory) && $userCategory !== 'auto') {
+                $category = $userCategory;
+            } else {
+                // Auto-Classification from Title and Header Columns
+                $combinedContext = strtolower($title . ' ' . implode(' ', array_map('strval', $columns)));
+                
+                if (str_contains($combinedContext, 'bda') || str_contains($combinedContext, 'fsm') || str_contains($combinedContext, 'sales')) {
+                    $category = 'BDA & Sales Team';
+                } elseif (str_contains($combinedContext, 'punch') || str_contains($combinedContext, 'attendance') || str_contains($combinedContext, 'clock') || str_contains($combinedContext, 'present') || str_contains($combinedContext, 'absent') || str_contains($combinedContext, 'status') || str_contains($combinedContext, 'in time')) {
+                    $category = 'Attendance Logs';
+                } elseif (str_contains($combinedContext, 'salary') || str_contains($combinedContext, 'payroll') || str_contains($combinedContext, 'net pay') || str_contains($combinedContext, 'basic pay') || str_contains($combinedContext, 'ctc')) {
+                    $category = 'Payroll & Salary';
+                } elseif (str_contains($combinedContext, 'lead') || str_contains($combinedContext, 'calling') || str_contains($combinedContext, 'client') || str_contains($combinedContext, 'prospect')) {
+                    $category = 'Lead CRM & Calling';
+                } elseif (str_contains($combinedContext, 'target') || str_contains($combinedContext, 'kpi') || str_contains($combinedContext, 'performance')) {
+                    $category = 'Targets & KPIs';
+                } elseif (str_contains($combinedContext, 'asset') || str_contains($combinedContext, 'inventory') || str_contains($combinedContext, 'hardware')) {
+                    $category = 'Assets & Hardware';
+                } elseif (str_contains($combinedContext, 'email') || str_contains($combinedContext, 'designation') || str_contains($combinedContext, 'name') || str_contains($combinedContext, 'staff') || str_contains($combinedContext, 'employee')) {
+                    $category = 'Workforce Directory';
+                } else {
+                    $category = !empty($title) ? ucwords(strtolower($title)) : 'General Datasets';
+                }
             }
 
             // --- ⚡ 1. AUTOMATIC EMPLOYEE REGISTRATION ENGINE ---
             $registeredEmpCount = 0;
-            if ($category === 'employees' && !empty($rows)) {
+            if (($category === 'employees' || $category === 'Workforce Directory' || $category === 'BDA & Sales Team' || str_contains(strtolower($category), 'bda') || str_contains(strtolower($category), 'employee')) && !empty($rows)) {
                 $existingEmails = $db->query("SELECT email FROM users")->fetchAll(PDO::FETCH_COLUMN) ?: [];
                 $existingEmails = array_map('strtolower', array_map('trim', $existingEmails));
 

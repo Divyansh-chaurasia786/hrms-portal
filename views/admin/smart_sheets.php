@@ -57,6 +57,27 @@ $sheets = $db->query("
         </button>
     </div>
 
+        <!-- Dynamic Category Filter Tabs -->
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" x-data="{ activeTab: 'all' }">
+        <button type="button" @click="activeTab = 'all'" :class="activeTab === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'" class="px-4 py-2 rounded-2xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="layers" class="w-3.5 h-3.5"></i> All Sections (<?= count($sheets) ?>)
+        </button>
+
+        <?php
+        $categoriesFound = [];
+        foreach ($sheets as $sh) {
+            $cat = $sh['category'] ?? 'General';
+            $categoriesFound[$cat] = ($categoriesFound[$cat] ?? 0) + 1;
+        }
+        foreach ($categoriesFound as $cName => $cCount):
+        ?>
+            <button type="button" @click="activeTab = '<?= htmlspecialchars(addslashes($cName)) ?>'" :class="activeTab === '<?= htmlspecialchars(addslashes($cName)) ?>' ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'" class="px-3.5 py-2 rounded-2xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 cursor-pointer">
+                <span><?= htmlspecialchars($cName) ?></span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold" :class="activeTab === '<?= htmlspecialchars(addslashes($cName)) ?>' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'"><?= $cCount ?></span>
+            </button>
+        <?php endforeach; ?>
+    </div>
+
     <!-- Sheets Grid -->
     <?php if (empty($sheets)): ?>
         <div class="bg-white p-12 rounded-3xl border border-slate-200 shadow-sm text-center">
@@ -74,7 +95,7 @@ $sheets = $db->query("
                 $rows = json_decode($s['rows_json'] ?? '[]', true) ?: [];
                 $cleanRowCnt = count(array_filter($rows, fn($r) => !empty(array_filter($r, fn($c) => !empty(trim((string)$c))))));
             ?>
-                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition group">
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition group" x-show="activeTab === 'all' || activeTab === '<?= htmlspecialchars(addslashes($s['category'] ?? 'General')) ?>'">
                     <div>
                         <div class="flex items-start justify-between gap-2">
                             <h3 class="font-extrabold text-slate-900 text-sm group-hover:text-emerald-700 transition truncate" title="<?= htmlspecialchars($sTitle) ?>"><?= htmlspecialchars($sTitle) ?></h3>
@@ -203,7 +224,26 @@ $sheets = $db->query("
             <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Sheet Title *</label>
-                    <input type="text" name="sheet_title" required placeholder="e.g. Employee Roster or BDA Team" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                    <input type="text" name="sheet_title" required placeholder="e.g. BDA Lucknow Team, Monthly Sales Targets, Attendance" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div x-data="{ selectedCat: 'auto' }">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Dataset Section / Category</label>
+                    <select name="category" x-model="selectedCat" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+                        <option value="auto">⚡ Auto-Create Section Based on Sheet Data</option>
+                        <option value="BDA & Sales Team">👥 BDA & Sales Team</option>
+                        <option value="Workforce Directory">👤 Employee & Staff Directory</option>
+                        <option value="Attendance Logs">⏱️ Attendance & Shift Records</option>
+                        <option value="Lead CRM & Calling">📞 BDA Calling & Leads</option>
+                        <option value="Payroll & Salary">💰 Payroll & Compensation</option>
+                        <option value="Targets & KPIs">🎯 Performance & Targets</option>
+                        <option value="Assets & Hardware">💻 Assets & Inventory</option>
+                        <option value="custom">+ Create New Custom Section...</option>
+                    </select>
+
+                    <div x-show="selectedCat === 'custom'" class="mt-2" style="display: none;">
+                        <input type="text" name="custom_category" placeholder="Enter New Section Name (e.g. Field Logistics, Vendor Roster)" class="w-full bg-emerald-50/60 border border-emerald-300 rounded-xl px-3 py-2 text-xs font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Link (Must be full public link)</label>
