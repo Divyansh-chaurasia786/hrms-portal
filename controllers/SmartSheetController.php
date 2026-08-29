@@ -6,7 +6,7 @@ class SmartSheetController {
         requireAuth('admin');
         $db = getDBConnection();
 
-        $sheets = $db->query("SELECT * FROM smart_sheet_uploads ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+        $sheets = $db->query("SELECT s.*, u.name as uploader_name FROM smart_sheet_uploads s JOIN users u ON s.uploaded_by = u.id ORDER BY s.created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
 
         require __DIR__ . '/../views/admin/smart_sheets.php';
     }
@@ -17,8 +17,8 @@ class SmartSheetController {
         $db = getDBConnection();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $title = trim($_POST['title'] ?? '');
-            $sheetUrl = trim($_POST['sheet_url'] ?? '');
+            $title = trim($_POST['sheet_title'] ?? ($_POST['title'] ?? ''));
+            $sheetUrl = trim($_POST['google_sheet_url'] ?? ($_POST['sheet_url'] ?? ''));
             $uploadedFile = $_FILES['sheet_file']['tmp_name'] ?? null;
             $originalName = $_FILES['sheet_file']['name'] ?? 'Spreadsheet';
 
@@ -44,19 +44,95 @@ class SmartSheetController {
                 $category = 'attendance';
             } elseif (str_contains($headerStr, 'salary') || str_contains($headerStr, 'payroll') || str_contains($headerStr, 'net pay') || str_contains($headerStr, 'basic pay')) {
                 $category = 'payroll';
-            } elseif (str_contains($headerStr, 'email') && (str_contains($headerStr, 'designation') || str_contains($headerStr, 'department') || str_contains($headerStr, 'emp'))) {
+            } elseif (str_contains($headerStr, 'email') || str_contains($headerStr, 'designation') || str_contains($headerStr, 'name') || str_contains($headerStr, 'staff')) {
                 $category = 'employees';
             } elseif (str_contains($headerStr, 'phone') || str_contains($headerStr, 'lead') || str_contains($headerStr, 'calling') || str_contains($headerStr, 'client')) {
                 $category = 'crm_leads';
             }
 
-            // --- ⚡ AUTOMATIC ATTENDANCE AUTO-SYNC (HANDLES PUNCH TIMES & PURE PRESENT/ABSENT) ---
+            // --- ⚡ 1. AUTOMATIC EMPLOYEE REGISTRATION ENGINE ---
+            $registeredEmpCount = 0;
+            if ($category === 'employees' && !empty($rows)) {
+                $existingEmails = $db->query("SELECT email FROM users")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+                $existingEmails = array_map('strtolower', array_map('trim', $existingEmails));
+
+                // Find max existing EMP ID
+                $maxEmpNum = 5;
+                $allEmpIds = $db->query("SELECT emp_id FROM users WHERE emp_id LIKE 'EMP%'")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+                foreach ($allEmpIds as $eid) {
+                    if (preg_match('/EMP(\d+)/', $eid, $m)) {
+                        $num = (int)$m[1];
+                        if ($num > $maxEmpNum) $maxEmpNum = $num;
+                    }
+                }
+
+                // Match column indices
+                $colNameIdx = -1;
+                $colEmailIdx = -1;
+                $colDesigIdx = -1;
+
+                foreach ($columns as $idx => $cName) {
+                    $cn = strtolower(trim((string)$cName));
+                    if ($colNameIdx === -1 && (str_contains($cn, 'name') || str_contains($cn, 'staff') || str_contains($cn, 'employee'))) $colNameIdx = $idx;
+                    if ($colEmailIdx === -1 && (str_contains($cn, 'email') || str_contains($cn, 'mail'))) $colEmailIdx = $idx;
+                    if ($colDesigIdx === -1 && (str_contains($cn, 'designation') || str_contains($cn, 'role') || str_contains($cn, 'position') || str_contains($cn, 'dept'))) $colDesigIdx = $idx;
+                }
+
+                if ($colNameIdx === -1) $colNameIdx = 0;
+                if ($colEmailIdx === -1 && count($columns) > 1) $colEmailIdx = 1;
+                if ($colDesigIdx === -1 && count($columns) > 2) $colDesigIdx = 2;
+
+                $stmtInsertEmp = $db->prepare("
+                    INSERT INTO users (emp_id, name, email, role, designation, work_mode, department_name, status, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+                ");
+
+                foreach ($rows as $row) {
+                    $eName = trim((string)($row[$colNameIdx] ?? ''));
+                    $eEmail = strtolower(trim((string)($row[$colEmailIdx] ?? '')));
+                    $eDesig = trim((string)($row[$colDesigIdx] ?? ''));
+
+                    if (empty($eName) || empty($eEmail) || !filter_var($eEmail, FILTER_VALIDATE_EMAIL)) {
+                        continue;
+                    }
+
+                    if (in_array($eEmail, $existingEmails)) {
+                        continue; // Already exists
+                    }
+
+                    $maxEmpNum++;
+                    $newEmpId = sprintf('EMP%03d', $maxEmpNum);
+
+                    $role = 'employee';
+                    $workMode = 'office';
+                    $departmentName = 'Operations';
+                    $designation = !empty($eDesig) ? $eDesig : 'Executive';
+
+                    $upperDesig = strtoupper($eDesig);
+                    if (str_contains($upperDesig, 'FSM') || str_contains($upperDesig, 'FIELD')) {
+                        $designation = 'Field Sales Manager (FSM)';
+                        $workMode = 'field';
+                        $departmentName = 'Field Operations';
+                    } elseif (str_contains($upperDesig, 'BDA') || str_contains($upperDesig, 'CALL')) {
+                        $designation = 'Business Development Associate (BDA)';
+                        $workMode = 'office';
+                        $departmentName = 'Business Development';
+                    } elseif (str_contains($upperDesig, 'TL') || str_contains($upperDesig, 'LEAD')) {
+                        $role = 'team_lead';
+                        $designation = 'Team Lead';
+                    }
+
+                    $stmtInsertEmp->execute([$newEmpId, $eName, $eEmail, $role, $designation, $workMode, $departmentName]);
+                    $existingEmails[] = $eEmail;
+                    $registeredEmpCount++;
+                }
+            }
+
+            // --- ⚡ 2. AUTOMATIC ATTENDANCE AUTO-SYNC ENGINE ---
             $syncedAttendanceCount = 0;
             if ($category === 'attendance' && !empty($rows)) {
-                // Load all existing users for fast matching
                 $allUsers = $db->query("SELECT id, emp_id, name, email FROM users")->fetchAll(PDO::FETCH_ASSOC);
 
-                // Helper to match user
                 $matchUser = function(string $empVal) use ($allUsers, $user): int {
                     $val = trim($empVal);
                     if (empty($val)) return $user['id'];
@@ -68,7 +144,6 @@ class SmartSheetController {
                     return $user['id'];
                 };
 
-                // Helper to normalize status & assign default hours/times when punch times are missing
                 $mapStatusAndTimes = function(string $rawStatus, ?string $rawIn, ?string $rawOut, ?float $rawHours): array {
                     $s = strtolower(trim($rawStatus));
                     $status = 'present';
@@ -92,7 +167,6 @@ class SmartSheetController {
                         $clockOut = null;
                         $totalHours = 0.0;
                     } else {
-                        // Present / P / 1
                         $status = 'present';
                         if (!empty($rawIn) && strtotime($rawIn)) {
                             $clockIn = date('H:i:s', strtotime($rawIn));
@@ -117,7 +191,7 @@ class SmartSheetController {
                     ];
                 };
 
-                // Check if this is a Monthly Matrix / Calendar Grid format (Columns are Day numbers 1..31)
+                // Monthly Matrix Check
                 $dayColumns = [];
                 foreach ($columns as $idx => $cName) {
                     $trimmed = trim((string)$cName);
@@ -127,9 +201,7 @@ class SmartSheetController {
                 }
 
                 if (count($dayColumns) >= 5) {
-                    // --- FORMAT A: MONTHLY MATRIX (Rows = Employees, Columns = Days 1..31) ---
-                    $currentYearMonth = date('Y-m'); // Default current month
-                    // Extract month from title if mentioned (e.g., 'July 2025' or '2026-08')
+                    $currentYearMonth = date('Y-m');
                     if (preg_match('/(202\d[-_\/]\d{1,2})/', $title . ' ' . $originalName, $ymMatch)) {
                         $currentYearMonth = date('Y-m', strtotime($ymMatch[1] . '-01'));
                     }
@@ -158,52 +230,30 @@ class SmartSheetController {
                         }
                     }
                 } else {
-                    // --- FORMAT B: STANDARD LIST FORMAT (Rows = Records) ---
-                    $colMap = ['emp' => -1, 'date' => -1, 'in' => -1, 'out' => -1, 'status' => -1, 'hours' => -1];
+                    $colMap = ['emp' => 0, 'date' => 1, 'in' => -1, 'out' => -1, 'status' => -1, 'hours' => -1];
                     foreach ($columns as $idx => $colName) {
                         $c = strtolower(trim((string)$colName));
-                        if ($colMap['emp'] === -1 && (str_contains($c, 'emp') || str_contains($c, 'name') || str_contains($c, 'staff') || str_contains($c, 'employee') || str_contains($c, 'user'))) {
-                            $colMap['emp'] = $idx;
-                        }
-                        if ($colMap['date'] === -1 && (str_contains($c, 'date') || str_contains($c, 'day') || str_contains($c, 'punch date'))) {
-                            $colMap['date'] = $idx;
-                        }
-                        if ($colMap['in'] === -1 && (str_contains($c, 'in') || str_contains($c, 'punch_in') || str_contains($c, 'clock_in') || str_contains($c, 'entry'))) {
-                            $colMap['in'] = $idx;
-                        }
-                        if ($colMap['out'] === -1 && (str_contains($c, 'out') || str_contains($c, 'punch_out') || str_contains($c, 'clock_out') || str_contains($c, 'exit'))) {
-                            $colMap['out'] = $idx;
-                        }
-                        if ($colMap['status'] === -1 && (str_contains($c, 'status') || str_contains($c, 'state') || str_contains($c, 'present') || str_contains($c, 'attendance') || str_contains($c, 'remark') || str_contains($c, 'p/a'))) {
-                            $colMap['status'] = $idx;
-                        }
-                        if ($colMap['hours'] === -1 && (str_contains($c, 'hour') || str_contains($c, 'duration') || str_contains($c, 'time spent'))) {
-                            $colMap['hours'] = $idx;
-                        }
+                        if ($colMap['emp'] === 0 && (str_contains($c, 'emp') || str_contains($c, 'name') || str_contains($c, 'staff'))) $colMap['emp'] = $idx;
+                        if ($colMap['date'] === 1 && (str_contains($c, 'date') || str_contains($c, 'day'))) $colMap['date'] = $idx;
+                        if (str_contains($c, 'in') || str_contains($c, 'punch_in')) $colMap['in'] = $idx;
+                        if (str_contains($c, 'out') || str_contains($c, 'punch_out')) $colMap['out'] = $idx;
+                        if (str_contains($c, 'status') || str_contains($c, 'present') || str_contains($c, 'attendance')) $colMap['status'] = $idx;
                     }
-
-                    if ($colMap['emp'] === -1) $colMap['emp'] = 0;
-                    if ($colMap['date'] === -1) $colMap['date'] = 1;
-                    if ($colMap['status'] === -1 && count($columns) > 2) $colMap['status'] = 2;
 
                     foreach ($rows as $row) {
                         $empVal = trim((string)($row[$colMap['emp']] ?? ''));
                         if (empty($empVal)) continue;
                         $matchedUserId = $matchUser($empVal);
 
-                        // Parse Date
                         $rawDate = trim((string)($row[$colMap['date']] ?? date('Y-m-d')));
                         $parsedDate = date('Y-m-d', strtotime($rawDate));
-                        if (!$parsedDate || $parsedDate === '1970-01-01') {
-                            $parsedDate = date('Y-m-d');
-                        }
+                        if (!$parsedDate || $parsedDate === '1970-01-01') $parsedDate = date('Y-m-d');
 
                         $rawIn = $colMap['in'] !== -1 ? trim((string)($row[$colMap['in']] ?? '')) : null;
                         $rawOut = $colMap['out'] !== -1 ? trim((string)($row[$colMap['out']] ?? '')) : null;
-                        $rawHours = $colMap['hours'] !== -1 ? (float)preg_replace('/[^\d.]/', '', (string)($row[$colMap['hours']] ?? '0')) : null;
                         $rawStatus = $colMap['status'] !== -1 ? trim((string)($row[$colMap['status']] ?? 'present')) : 'present';
 
-                        $eval = $mapStatusAndTimes($rawStatus, $rawIn, $rawOut, $rawHours);
+                        $eval = $mapStatusAndTimes($rawStatus, $rawIn, $rawOut, null);
 
                         $existing = $db->query("SELECT id FROM attendance WHERE user_id = {$matchedUserId} AND date = '{$parsedDate}'")->fetch(PDO::FETCH_ASSOC);
                         if ($existing) {
@@ -218,7 +268,7 @@ class SmartSheetController {
                 }
             }
 
-            // Calculate auto-formula aggregates (SUM of numeric columns)
+            // Calculate auto-formula aggregates
             $numericSums = [];
             foreach ($rows as $row) {
                 foreach ($row as $colIdx => $val) {
@@ -233,6 +283,7 @@ class SmartSheetController {
                 'total_rows' => count($rows),
                 'total_columns' => count($columns),
                 'column_sums' => $numericSums,
+                'registered_employees' => $registeredEmpCount,
                 'synced_attendance_records' => $syncedAttendanceCount
             ];
 
@@ -247,14 +298,29 @@ class SmartSheetController {
                 $user['id']
             ]);
 
-            $successMsg = "🎉 Smart Sheet '{$title}' parsed successfully (" . count($rows) . " rows)! Auto-classified as: " . strtoupper($category);
+            $successMsg = "🎉 Smart Sheet '{$title}' processed successfully (" . count($rows) . " rows)! Category: " . strtoupper($category);
+            if ($registeredEmpCount > 0) {
+                $successMsg .= " • 👤 {$registeredEmpCount} Employees automatically registered into Employee Directory!";
+            }
             if ($syncedAttendanceCount > 0) {
-                $successMsg .= " • ⚡ {$syncedAttendanceCount} Attendance records automatically arranged & synced into Attendance Section!";
+                $successMsg .= " • ⚡ {$syncedAttendanceCount} Attendance records synced!";
             }
 
             setFlash('success', $successMsg);
             header('Location: ?page=admin-smart-sheets');
             exit;
         }
+    }
+
+    public static function delete(): void {
+        requireAuth('admin');
+        $db = getDBConnection();
+        $sheetId = (int)($_POST['sheet_id'] ?? 0);
+        if ($sheetId > 0) {
+            $db->prepare("DELETE FROM smart_sheet_uploads WHERE id = ?")->execute([$sheetId]);
+            setFlash('success', 'Smart Sheet deleted successfully.');
+        }
+        header('Location: ?page=admin-smart-sheets');
+        exit;
     }
 }
