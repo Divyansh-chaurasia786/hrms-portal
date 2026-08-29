@@ -15,7 +15,7 @@ $sheets = $db->query("
 $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 ?>
 
-<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins -->
+<!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins (Scoped strictly) -->
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' />
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' />
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' />
@@ -53,9 +53,26 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 .luckysheet-workarea,
 .luckysheet-wa-calculate,
 .luckysheet-grid-window,
+.luckysheet-grid-window-holder,
+.luckysheet-cell-main,
 .luckysheet-sheet-area {
     width: 100% !important;
     max-width: 100% !important;
+}
+
+/* Formula Bar Full Width */
+.luckysheet-wa-calculate {
+    background: #ffffff !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.luckysheet-wa-calculate .luckysheet-formula-functionvalue {
+    flex: 1 !important;
+    width: 100% !important;
 }
 
 /* Hide default cramped toolbar in favor of our comprehensive MS Excel 2021 Ribbon */
@@ -68,13 +85,6 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 .luckysheet-filter-menu:not([style*="display: block"]),
 .luckysheet-sheet-magicMenu:not([style*="display: block"]) {
     display: none !important;
-}
-
-/* Formula Bar Styling */
-.luckysheet-wa-calculate {
-    background: #ffffff !important;
-    border-bottom: 1px solid #cbd5e1 !important;
-    font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
 }
 
 .luckysheet-wa-editor {
@@ -100,6 +110,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
     transition: all 0.15s ease;
     cursor: pointer;
     border: 1px solid transparent;
+    user-select: none;
 }
 .excel-ribbon-btn:hover {
     background-color: #e2e8f0;
@@ -108,6 +119,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
 }
 .excel-ribbon-btn:active {
     background-color: #cbd5e1;
+    transform: scale(0.97);
 }
 .excel-ribbon-divider {
     height: 22px;
@@ -145,7 +157,7 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                    x-model="searchQuery" 
                    @input.debounce.200ms="searchInExcel()" 
                    @keydown.enter="searchNextInExcel()"
-                   placeholder="Search anything in sheet..." 
+                   placeholder="Search in sheet (e.g. name, date, value)..." 
                    class="w-full bg-emerald-900/90 hover:bg-emerald-900 focus:bg-emerald-950 text-white placeholder-emerald-200/60 border border-emerald-600 focus:border-white rounded-xl pl-8 pr-16 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-white transition shadow-inner">
             
             <div class="absolute right-2 top-1 flex items-center gap-1" x-show="searchQuery.trim()">
@@ -287,14 +299,6 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
                     <i data-lucide="snowflake" class="w-3.5 h-3.5 text-blue-600"></i>
                     <span class="ml-1">Freeze</span>
                 </button>
-                <button type="button" @click="executeExcelFormat('chart')" class="excel-ribbon-btn" title="Insert Chart">
-                    <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-indigo-600"></i>
-                    <span class="ml-1">Chart</span>
-                </button>
-                <button type="button" @click="executeExcelFormat('conditionalFormat')" class="excel-ribbon-btn" title="Conditional Formatting">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
-                    <span class="ml-1">Rules</span>
-                </button>
             </div>
 
         </div>
@@ -401,7 +405,6 @@ document.addEventListener('alpine:init', () => {
 
         executeExcelCommand(cmd) {
             if (typeof luckysheet === 'undefined') return;
-            // Native Excel Commands
             if (cmd === 'undo') luckysheet.undo();
             else if (cmd === 'redo') luckysheet.redo();
         },
@@ -409,46 +412,51 @@ document.addEventListener('alpine:init', () => {
         executeExcelFormat(type, value) {
             if (typeof luckysheet === 'undefined') return;
 
+            // Direct Luckysheet Core Range & Cell Formatter
             if (type === 'bold') {
-                luckysheet.setFontBold(!luckysheet.getFontBold());
+                luckysheet.setRangeFormat("bl", 1);
             } else if (type === 'italic') {
-                luckysheet.setFontItalic(!luckysheet.getFontItalic());
+                luckysheet.setRangeFormat("it", 1);
             } else if (type === 'underline') {
-                luckysheet.setFontUnderline(!luckysheet.getFontUnderline());
+                luckysheet.setRangeFormat("un", 1);
             } else if (type === 'strikethrough') {
-                luckysheet.setFontStrikethrough(!luckysheet.getFontStrikethrough());
+                luckysheet.setRangeFormat("cl", 1);
             } else if (type === 'font') {
-                luckysheet.setFontFamily(value);
+                luckysheet.setRangeFormat("ff", value);
             } else if (type === 'fontSize') {
-                luckysheet.setFontSize(parseInt(value));
+                luckysheet.setRangeFormat("fs", parseInt(value));
             } else if (type === 'bgColor') {
-                luckysheet.setBackground(value);
+                luckysheet.setRangeFormat("bg", value);
             } else if (type === 'align') {
-                luckysheet.setHorizontalAlign(value);
+                const alignCode = value === 'left' ? 0 : (value === 'center' ? 1 : 2);
+                luckysheet.setRangeFormat("ht", alignCode);
             } else if (type === 'textWrap') {
-                luckysheet.setTextWrap('wrap');
+                luckysheet.setRangeFormat("tb", 1);
             } else if (type === 'merge') {
-                luckysheet.setMerge('merge-all');
+                luckysheet.setMerge("merge-all");
             } else if (type === 'border') {
                 if (value === 'all') {
-                    luckysheet.setBorder('all', { rangeType: 'all', borderType: 'border-all', color: '#000000', style: '1' });
+                    luckysheet.setBorder("all", { rangeType: "all", borderType: "border-all", color: "#000000", style: "1" });
                 } else {
-                    luckysheet.setBorder('none');
+                    luckysheet.setBorder("none");
                 }
             } else if (type === 'currency') {
-                luckysheet.setCellValue(luckysheet.getCellValue(), { ct: { fa: value === 'INR' ? '₹#,##0.00' : '$#,##0.00', t: 'n' } });
+                const fmt = value === 'INR' ? '₹#,##0.00' : '$#,##0.00';
+                luckysheet.setRangeFormat("ct", { fa: fmt, t: "n" });
             } else if (type === 'percent') {
-                luckysheet.setCellValue(luckysheet.getCellValue(), { ct: { fa: '0.00%', t: 'n' } });
+                luckysheet.setRangeFormat("ct", { fa: "0.00%", t: "n" });
             } else if (type === 'comma') {
-                luckysheet.setCellValue(luckysheet.getCellValue(), { ct: { fa: '#,##0', t: 'n' } });
+                luckysheet.setRangeFormat("ct", { fa: "#,##0", t: "n" });
+            } else if (type === 'decimalIncrease') {
+                luckysheet.setRangeFormat("ct", { fa: "#,##0.000", t: "n" });
+            } else if (type === 'decimalDecrease') {
+                luckysheet.setRangeFormat("ct", { fa: "#,##0", t: "n" });
             } else if (type === 'freeze') {
                 luckysheet.setFrozenRow(1);
             } else if (type === 'filter') {
                 luckysheet.setFilter();
             } else if (type === 'autoSum') {
-                luckysheet.insertFunction('SUM');
-            } else if (type === 'chart') {
-                alert('Select cell range to generate Microsoft Excel chart.');
+                luckysheet.insertFunction("SUM");
             }
         },
 
@@ -514,8 +522,9 @@ document.addEventListener('alpine:init', () => {
         renderLuckysheetFromData(sheetName, columns, rows) {
             const celldata = [];
             const customColLen = {};
-            const rowCount = Math.max(rows.length + 30, 80);
-            const colCount = Math.max(columns.length + 12, 28);
+            const rowCount = Math.max(rows.length + 50, 100);
+            // Render 52 columns (A to AZ) so grid spans full screen without blank right gap
+            const colCount = Math.max(columns.length + 30, 52);
 
             columns.forEach((colName, cIdx) => {
                 let maxLen = String(colName).length;
@@ -607,8 +616,8 @@ document.addEventListener('alpine:init', () => {
                 config: {},
                 index: 0,
                 celldata: [],
-                row: 84,
-                column: 26
+                row: 100,
+                column: 52
             }];
             this.createLuckysheetInstance(sheetConfig);
         },
@@ -622,7 +631,7 @@ document.addEventListener('alpine:init', () => {
                 title: this.currentSheetTitle,
                 lang: 'en',
                 showinfobar: false,
-                showtoolbar: false, // Replaced by our 100% full-width comprehensive MS Excel 2021 Ribbon
+                showtoolbar: false,
                 showsheetbar: true,
                 showsheetbarConfig: {
                     add: true,
@@ -637,6 +646,7 @@ document.addEventListener('alpine:init', () => {
                 },
                 defaultFontSize: 11,
                 defaultFont: 'Segoe UI',
+                defaultColWidth: 120,
                 enableAddRow: true,
                 enableAddBackTop: true,
                 data: sheetsData
