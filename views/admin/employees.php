@@ -57,14 +57,15 @@ if (!empty($filterRole)) {
     }
 }
 
+$params = [];
 if (!empty($searchQuery)) {
-    $sql .= " AND (u.name LIKE :search OR u.emp_id LIKE :search OR u.designation LIKE :search OR u.email LIKE :search)";
+    $sql .= " AND (u.name LIKE ? OR u.emp_id LIKE ? OR u.designation LIKE ? OR u.email LIKE ?)";
+    $term = "%{$searchQuery}%";
+    $params = [$term, $term, $term, $term];
 }
 
 $sql .= " ORDER BY CASE WHEN u.role = 'admin' THEN 1 WHEN u.role = 'team_lead' THEN 2 ELSE 3 END, u.created_at ASC";
 $stmt = $db->prepare($sql);
-$params = [];
-if (!empty($searchQuery)) $params[':search'] = "%{$searchQuery}%";
 $stmt->execute($params);
 $employees = $stmt->fetchAll();
 
