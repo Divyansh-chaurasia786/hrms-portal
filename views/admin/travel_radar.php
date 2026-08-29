@@ -30,7 +30,7 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     window.fieldEmployeesRadarData = <?= json_encode($fieldEmployees, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 </script>
 
-<div class="space-y-6" x-data="{ 
+<div class="space-y-5" x-data="{ 
     selectedUserId: <?= $selectedUserId ?>,
     selectedDate: '<?= htmlspecialchars($selectedDate) ?>',
     fieldEmployees: window.fieldEmployeesRadarData || [],
@@ -51,6 +51,7 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     waypoints: [],
     isLoading: false,
     searchTerm: '',
+    mapLayerType: 'roadmap', // roadmap or satellite
     liveTimer: null,
 
     get filteredEmployees() {
@@ -65,7 +66,7 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             this.loadStaffRoute(this.selectedUserId, this.selectedDate);
         });
 
-        // Auto-Polling every 10 seconds for real-time live staff
+        // 10s silent polling for live staff
         this.liveTimer = setInterval(() => {
             if (this.selectedUserId && this.analytics.is_active_now) {
                 this.loadStaffRoute(this.selectedUserId, this.selectedDate, true);
@@ -96,9 +97,8 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                 this.stops = data.stops || [];
                 this.waypoints = data.waypoints || [];
 
-                // Render Map Route
-                if (window.renderRadarMapEngine) {
-                    window.renderRadarMapEngine(this.selectedEmp, this.waypoints, this.stops, isSilent);
+                if (window.renderCleanGoogleMap) {
+                    window.renderCleanGoogleMap(this.selectedEmp, this.waypoints, this.stops, isSilent);
                 }
             }
             this.isLoading = false;
@@ -114,114 +114,121 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
         window.location.href = `?page=admin-travel-radar&date=${newDate}&user_id=${this.selectedUserId}`;
     },
 
-    focusStopOnMap(stop) {
-        if (window.focusMapOnCoordinate) {
-            window.focusMapOnCoordinate(stop.lat, stop.lng, stop.title + ' (' + stop.duration + ')');
+    toggleMapLayer(type) {
+        this.mapLayerType = type;
+        if (window.switchMapLayer) {
+            window.switchMapLayer(type);
         }
     },
 
-    openGoogleMaps() {
+    focusStop(st) {
+        if (window.focusMapStop) {
+            window.focusMapStop(st.lat, st.lng, `🛑 Stop #${st.stop_number} (${st.duration})<br>Time: ${st.arrival_time} - ${st.departure_time}`);
+        }
+    },
+
+    openGoogleMapsApp() {
         if (!this.startLocation) {
-            alert('No coordinates recorded for this staff on this date.');
+            alert('No coordinates recorded for this date.');
             return;
         }
         const sLat = this.startLocation.lat;
         const sLng = this.startLocation.lng;
         const eLat = this.endLocation ? this.endLocation.lat : sLat;
         const eLng = this.endLocation ? this.endLocation.lng : sLng;
-        const gUrl = `https://www.google.com/maps/dir/?api=1&origin=${sLat},${sLng}&destination=${eLat},${eLng}&travelmode=driving`;
-        window.open(gUrl, '_blank');
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${sLat},${sLng}&destination=${eLat},${eLng}&travelmode=driving`;
+        window.open(url, '_blank');
     }
 }">
-    <!-- 🧭 TOP COMMAND BAR & DATE CONTROLS -->
-    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-600/25 shrink-0">
-                <i data-lucide="map-pin" class="w-6 h-6"></i>
+    <!-- 🧭 TOP HEADER BAR -->
+    <div class="bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-extrabold shadow-md shadow-blue-600/30 shrink-0">
+                <i data-lucide="map" class="w-5 h-5"></i>
             </div>
             <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Field Travel Radar & GPS Journey Inspector</h1>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-lg font-extrabold text-slate-900 tracking-tight">Field Staff GPS Route Radar</h1>
                     <template x-if="analytics.is_active_now">
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                            Live Duty Active
+                            Live Active
                         </span>
                     </template>
                     <template x-if="!analytics.is_active_now">
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                            Historical Route Replay
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            History Replay
                         </span>
                     </template>
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">Audit complete field routes, login/logout places, stoppage duration, and real-time live tracking.</p>
+                <p class="text-xs text-slate-500">Real-time GPS journey routes, stoppages, and shift audit on Google Maps.</p>
             </div>
         </div>
 
-        <!-- Date & Google Maps Actions -->
-        <div class="flex items-center gap-2.5 flex-wrap">
-            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-2xl px-3 py-1.5 shadow-2xs">
-                <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
-                <input type="date" :value="selectedDate" @change="changeDate($event.target.value)" class="bg-transparent text-xs font-extrabold text-slate-800 border-none outline-hidden cursor-pointer">
+        <!-- Controls & Date Picker -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 shadow-2xs">
+                <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i>
+                <input type="date" :value="selectedDate" @change="changeDate($event.target.value)" class="bg-transparent text-xs font-bold text-slate-800 border-none outline-hidden cursor-pointer">
             </div>
 
-            <button type="button" @click="changeDate('<?= date('Y-m-d') ?>')" class="px-3.5 py-2 text-xs font-extrabold rounded-xl transition cursor-pointer" :class="selectedDate === '<?= date('Y-m-d') ?>' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+            <button type="button" @click="changeDate('<?= date('Y-m-d') ?>')" class="px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer" :class="selectedDate === '<?= date('Y-m-d') ?>' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
                 Today
             </button>
-            <button type="button" @click="changeDate('<?= date('Y-m-d', strtotime('-1 day')) ?>')" class="px-3.5 py-2 text-xs font-extrabold rounded-xl transition cursor-pointer" :class="selectedDate === '<?= date('Y-m-d', strtotime('-1 day')) ?>' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+            <button type="button" @click="changeDate('<?= date('Y-m-d', strtotime('-1 day')) ?>')" class="px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer" :class="selectedDate === '<?= date('Y-m-d', strtotime('-1 day')) ?>' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
                 Yesterday
             </button>
 
-            <button type="button" @click="openGoogleMaps()" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
+            <button type="button" @click="openGoogleMapsApp()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
                 <i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-600"></i> Open in Google Maps
             </button>
 
-            <button type="button" @click="loadStaffRoute(selectedUserId, selectedDate)" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+            <button type="button" @click="loadStaffRoute(selectedUserId, selectedDate)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="isLoading ? 'animate-spin' : ''"></i>
             </button>
         </div>
     </div>
 
-    <!-- 🗺️ MAIN RADAR GRID: ROSTER ON LEFT, MAP & TIMELINE ON RIGHT -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- 🗺️ MAIN RADAR CONTAINER: 2-COLUMN BALANCED VIEW -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
-        <!-- Left: Field Staff Roster & Selector (4 Cols) -->
-        <div class="lg:col-span-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <span class="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i>
-                    Field Staff Roster (<span x-text="fieldEmployees.length"></span>)
+        <!-- Left: Field Staff Selector (4 Cols) -->
+        <div class="lg:col-span-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="users" class="w-4 h-4 text-blue-600"></i>
+                    Field Workforce (<span x-text="fieldEmployees.length"></span>)
                 </span>
                 <span class="text-[10px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg"><?= date('d M Y', strtotime($selectedDate)) ?></span>
             </div>
 
-            <!-- Search Filter -->
+            <!-- Search -->
             <div class="relative">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3"></i>
-                <input type="text" x-model="searchTerm" placeholder="Search staff by name or EMP ID..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" x-model="searchTerm" placeholder="Search staff name or EMP ID..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
-            <!-- Staff List Cards -->
-            <div class="space-y-2.5 max-h-[580px] overflow-y-auto no-scrollbar pr-1">
+            <!-- Staff Cards -->
+            <div class="space-y-2 max-h-[620px] overflow-y-auto no-scrollbar pr-1">
                 <template x-for="emp in filteredEmployees" :key="emp.id">
                     <div @click="selectEmployee(emp)" 
-                         class="p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 relative overflow-hidden group"
-                         :class="Number(selectedUserId) === Number(emp.id) ? 'bg-indigo-50/95 border-indigo-500 ring-2 ring-indigo-500/25 shadow-md' : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/90'">
+                         class="p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 relative overflow-hidden group"
+                         :class="Number(selectedUserId) === Number(emp.id) ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/20 shadow-sm' : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/90'">
                         
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-10 h-10 rounded-2xl font-bold text-xs flex items-center justify-center shrink-0 shadow-sm"
-                                     :class="Number(selectedUserId) === Number(emp.id) ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white' : 'bg-indigo-100 text-indigo-700'">
+                                <div class="w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-xs"
+                                     :class="Number(selectedUserId) === Number(emp.id) ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'">
                                     <span x-text="emp.name.substring(0, 2).toUpperCase()"></span>
                                 </div>
                                 <div class="min-w-0">
-                                    <h4 class="font-bold text-xs text-slate-900 truncate group-hover:text-indigo-600 transition" x-text="emp.name"></h4>
+                                    <h4 class="font-bold text-xs text-slate-900 truncate group-hover:text-blue-600 transition" x-text="emp.name"></h4>
                                     <p class="text-[10px] text-slate-500 truncate" x-text="(emp.designation || 'Field Executive') + ' • ' + (emp.emp_id || 'EMP')"></p>
                                 </div>
                             </div>
                             <div class="shrink-0 text-right">
                                 <template x-if="emp.clock_in && !emp.clock_out">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                                         On Field
                                     </span>
@@ -232,17 +239,17 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                             </div>
                         </div>
 
-                        <!-- Distance, Speed & Waypoints Mini Strip -->
+                        <!-- Mini Traveled Stats -->
                         <div class="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-200/60 text-center text-[10px]">
-                            <div class="bg-white p-1 rounded-lg border border-slate-100 shadow-2xs">
+                            <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Distance</span>
                                 <strong class="text-slate-800 font-mono" x-text="(Number(emp.total_distance_meters || 0) / 1000).toFixed(1) + ' km'"></strong>
                             </div>
-                            <div class="bg-white p-1 rounded-lg border border-slate-100 shadow-2xs">
+                            <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Speed</span>
-                                <strong class="text-indigo-600 font-mono" x-text="(Number(emp.current_speed || 0)).toFixed(0) + ' km/h'"></strong>
+                                <strong class="text-blue-600 font-mono" x-text="(Number(emp.current_speed || 0)).toFixed(0) + ' km/h'"></strong>
                             </div>
-                            <div class="bg-white p-1 rounded-lg border border-slate-100 shadow-2xs">
+                            <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Waypoints</span>
                                 <strong class="text-slate-800 font-mono" x-text="emp.waypoints_count || 0"></strong>
                             </div>
@@ -252,111 +259,57 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             </div>
         </div>
 
-        <!-- Right: Real-Time Route Map & Stoppage Breakdown (8 Cols) -->
+        <!-- Right: Real Google Maps Canvas & Clean Journey Trail (8 Cols) -->
         <div class="lg:col-span-8 space-y-4">
             
-            <!-- Map Card -->
-            <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="compass" class="w-4 h-4 text-indigo-600"></i>
-                        <span class="font-extrabold text-xs text-slate-800 uppercase tracking-wider">Live Route Map View</span>
-                    </div>
+            <!-- Map Container with Clean Floating Controls -->
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2.5 relative">
+                
+                <!-- Map Top Bar: Selected Staff Summary & Map Style Switcher -->
+                <div class="flex items-center justify-between flex-wrap gap-2 px-1">
+                    <template x-if="selectedEmp">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-xs text-slate-900" x-text="selectedEmp.name"></span>
+                            <span class="text-[10px] text-slate-500 font-mono" x-text="'(' + (selectedEmp.emp_id || '') + ')'"></span>
+                            <span class="text-xs text-slate-400">•</span>
+                            <span class="text-xs font-bold text-blue-700 font-mono" x-text="analytics.total_distance_km + ' KM traveled'"></span>
+                            <span class="text-xs text-slate-400">•</span>
+                            <span class="text-xs font-semibold text-slate-600" x-text="analytics.total_stops + ' stops'"></span>
+                        </div>
+                    </template>
 
-                    <!-- Map Legend Badges -->
-                    <div class="flex items-center gap-2.5 text-[11px] font-semibold flex-wrap">
-                        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 🚩 Start
-                        </span>
-                        <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200">
-                            <span class="w-2 h-2 rounded-full bg-indigo-600"></span> 🚗 Live Head
-                        </span>
-                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
-                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> 🛑 Stoppages
-                        </span>
-                        <span class="inline-flex items-center gap-1 bg-rose-50 text-rose-800 px-2 py-0.5 rounded-full border border-rose-200">
-                            <span class="w-2 h-2 rounded-full bg-rose-500"></span> 🏁 Shift End
-                        </span>
+                    <!-- Clean Google Map Style Switcher -->
+                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold">
+                        <button type="button" @click="toggleMapLayer('roadmap')" class="px-2.5 py-1 rounded-lg transition cursor-pointer" :class="mapLayerType === 'roadmap' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'">
+                            Map
+                        </button>
+                        <button type="button" @click="toggleMapLayer('satellite')" class="px-2.5 py-1 rounded-lg transition cursor-pointer" :class="mapLayerType === 'satellite' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'">
+                            Satellite
+                        </button>
                     </div>
                 </div>
 
-                <!-- Leaflet Map Canvas -->
-                <div id="radarMap" class="w-full h-[480px] rounded-2xl border border-slate-200 z-10 shadow-inner"></div>
-            </div>
+                <!-- Google Maps Canvas -->
+                <div id="radarMap" class="w-full h-[500px] rounded-xl border border-slate-200 z-10 shadow-inner"></div>
 
-            <!-- Stoppages & Journey Timeline Inspector Card -->
-            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div class="flex items-center gap-2">
-                        <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                            <i data-lucide="list-ordered" class="w-4 h-4"></i>
+                <!-- Clean Bottom Stoppages / Timeline Bar (Only shows when stops exist) -->
+                <template x-if="stops.length > 0">
+                    <div class="pt-2 border-t border-slate-100">
+                        <div class="flex items-center justify-between mb-1.5 px-1">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stoppage Stops (Click to focus on Map):</span>
+                            <span class="text-[10px] text-slate-400" x-text="stops.length + ' stops detected'"></span>
                         </div>
-                        <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">Chronological Journey & Stoppage Timeline</h3>
-                    </div>
-                    <span class="text-[11px] text-slate-400 font-bold" x-text="stops.length + ' Stoppage(s) Detected'"></span>
-                </div>
-
-                <!-- Empty State -->
-                <template x-if="waypoints.length === 0">
-                    <div class="text-center py-8 text-slate-400 text-xs space-y-1.5">
-                        <i data-lucide="map-pin-off" class="w-8 h-8 mx-auto text-slate-300"></i>
-                        <p class="font-bold">No GPS waypoints recorded for this staff on <?= date('d M Y', strtotime($selectedDate)) ?>.</p>
-                        <p class="text-[11px] text-slate-400">Pings are automatically recorded every 30 seconds when the employee is clocked in on duty.</p>
-                    </div>
-                </template>
-
-                <!-- Journey Timeline Flow -->
-                <template x-if="waypoints.length > 0">
-                    <div class="space-y-3">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <!-- 1. Start Card -->
-                            <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-1">
-                                <div class="flex items-center justify-between text-[10px] font-bold text-emerald-800 uppercase">
-                                    <span>🚩 1. Shift Started</span>
-                                    <span class="font-mono text-emerald-900" x-text="analytics.shift_start_time"></span>
+                        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                            <template x-for="st in stops" :key="st.stop_number">
+                                <div @click="focusStop(st)" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer shrink-0 flex items-center gap-2 text-xs shadow-2xs">
+                                    <span class="w-5 h-5 rounded-full bg-amber-500 text-white font-black text-[10px] flex items-center justify-center shrink-0" x-text="st.stop_number"></span>
+                                    <div class="text-[11px] leading-tight">
+                                        <strong class="text-slate-800" x-text="st.duration"></strong>
+                                        <span class="text-slate-400 text-[10px] block font-mono" x-text="st.arrival_time"></span>
+                                    </div>
                                 </div>
-                                <p class="text-xs font-semibold text-slate-700 truncate" x-text="startLocation ? (startLocation.lat.toFixed(5) + ', ' + startLocation.lng.toFixed(5)) : 'Punch In Point'"></p>
-                            </div>
-
-                            <!-- 2. Stoppages Summary Card -->
-                            <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1">
-                                <div class="flex items-center justify-between text-[10px] font-bold text-amber-800 uppercase">
-                                    <span>🛑 2. Total Stoppages</span>
-                                    <span class="font-mono text-amber-900" x-text="stops.length + ' Stops'"></span>
-                                </div>
-                                <p class="text-xs font-semibold text-slate-700" x-text="stops.length > 0 ? (stops.map(s => s.duration).join(', ')) : 'Continuous Motion (No long halts)'"></p>
-                            </div>
-
-                            <!-- 3. Final Head / End Card -->
-                            <div class="p-3 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-1">
-                                <div class="flex items-center justify-between text-[10px] font-bold text-indigo-800 uppercase">
-                                    <span>🏁 3. Latest / End Point</span>
-                                    <span class="font-mono text-indigo-900" x-text="analytics.shift_end_time"></span>
-                                </div>
-                                <p class="text-xs font-semibold text-slate-700 truncate" x-text="endLocation ? (endLocation.lat.toFixed(5) + ', ' + endLocation.lng.toFixed(5)) : 'Last Recorded Position'"></p>
-                            </div>
+                            </template>
                         </div>
-
-                        <!-- Stoppage Detail Pill Grid -->
-                        <template x-if="stops.length > 0">
-                            <div class="space-y-2 pt-2">
-                                <span class="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">Click any Stoppage to Focus Map:</span>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                                    <template x-for="st in stops" :key="st.stop_number">
-                                        <div @click="focusStopOnMap(st)" class="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 transition cursor-pointer flex items-center justify-between gap-2 shadow-2xs">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-6 h-6 rounded-full bg-amber-500 text-white font-black text-[10px] flex items-center justify-center shrink-0" x-text="st.stop_number"></div>
-                                                <div class="min-w-0">
-                                                    <h5 class="text-xs font-bold text-slate-800 truncate" x-text="'Stop #' + st.stop_number"></h5>
-                                                    <span class="text-[10px] text-slate-500 font-mono" x-text="st.arrival_time + ' - ' + st.departure_time"></span>
-                                                </div>
-                                            </div>
-                                            <span class="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 text-amber-900 rounded-lg" x-text="st.duration"></span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
                     </div>
                 </template>
             </div>
@@ -364,13 +317,17 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     </div>
 </div>
 
-<!-- Leaflet Map Engine Controller -->
+<!-- Clean Google Maps / Leaflet Engine -->
 <script>
-(function initRadarMapController() {
+(function() {
     let map = null;
-    let layerGroup = null;
+    let currentLayerGroup = null;
+    let baseTileLayer = null;
 
-    function getMapInstance() {
+    const ROADMAP_URL = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+    const SATELLITE_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+    function initMap() {
         const container = document.getElementById('radarMap');
         if (!container || typeof L === 'undefined') return null;
 
@@ -381,26 +338,34 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
         try {
             if (map) map.remove();
+            // Real Google Maps Streets Tiles
             map = L.map('radarMap', { zoomControl: true }).setView([26.8467, 80.9462], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
+            
+            baseTileLayer = L.tileLayer(ROADMAP_URL, {
+                attribution: '© Google Maps',
+                maxZoom: 20
             }).addTo(map);
 
-            layerGroup = L.layerGroup().addTo(map);
+            currentLayerGroup = L.layerGroup().addTo(map);
             setTimeout(() => map.invalidateSize(), 150);
             return map;
         } catch(e) {
-            console.error('Leaflet Map creation error:', e);
+            console.error('Map init error:', e);
             return null;
         }
     }
 
-    window.renderRadarMapEngine = function(emp, waypoints, stops, isSilent) {
-        const m = getMapInstance();
-        if (!m || !layerGroup) return;
+    window.switchMapLayer = function(type) {
+        if (!map || !baseTileLayer) return;
+        const newUrl = type === 'satellite' ? SATELLITE_URL : ROADMAP_URL;
+        baseTileLayer.setUrl(newUrl);
+    };
 
-        layerGroup.clearLayers();
+    window.renderCleanGoogleMap = function(emp, waypoints, stops, isSilent) {
+        const m = initMap();
+        if (!m || !currentLayerGroup) return;
+
+        currentLayerGroup.clearLayers();
         m.invalidateSize();
 
         if (!waypoints || waypoints.length === 0) {
@@ -410,28 +375,25 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
         const latLngs = waypoints.map(wp => [wp.lat, wp.lng]);
 
-        // 1. Draw High-Visibility Polyline Route Trail
+        // 1. Draw Clean Crisp Polyline (Google Maps Blue)
         if (latLngs.length > 1) {
-            const polyline = L.polyline(latLngs, {
-                color: '#4f46e5',
+            // Shadow under polyline for depth
+            L.polyline(latLngs, {
+                color: '#1d4ed8',
                 weight: 6,
-                opacity: 0.9,
-                dashArray: '6, 6',
+                opacity: 0.85,
+                lineCap: 'round',
                 lineJoin: 'round'
-            }).addTo(layerGroup);
+            }).addTo(currentLayerGroup);
 
-            // Intermediate Waypoint dots along the route
-            latLngs.forEach((pt, idx) => {
-                if (idx > 0 && idx < latLngs.length - 1) {
-                    L.circleMarker(pt, {
-                        radius: 4,
-                        color: '#4338ca',
-                        fillColor: '#818cf8',
-                        fillOpacity: 0.8,
-                        weight: 2
-                    }).addTo(layerGroup).bindPopup(`<strong>📍 Waypoint #${idx + 1}</strong><br>Time: ${waypoints[idx].time}<br>Speed: ${waypoints[idx].speed} km/h`);
-                }
-            });
+            // Core Blue Line
+            const polyline = L.polyline(latLngs, {
+                color: '#3b82f6',
+                weight: 4,
+                opacity: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(currentLayerGroup);
 
             if (!isSilent) {
                 try {
@@ -449,56 +411,61 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             if (!isSilent) m.setView(latLngs[0], 16);
         }
 
-        // 2. Start Marker 🚩 (Punch In)
+        // 2. Start Pin 🟢 (Clean Google Style Origin Dot with Pulse)
         const startPoint = latLngs[0];
-        const startIcon = L.divIcon({
-            html: '<div style="background:#10b981;color:#fff;font-weight:900;font-size:11px;padding:6px 12px;border-radius:16px;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.35);white-space:nowrap;cursor:pointer;">🚩 Start (Punch In)</div>',
-            className: 'custom-start-marker',
-            iconAnchor: [45, 20]
+        const startPin = L.divIcon({
+            html: `<div style="position:relative;width:24px;height:24px;background:#10b981;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:10px;">A</div>`,
+            className: 'clean-start-pin',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
         });
-        L.marker(startPoint, { icon: startIcon }).addTo(layerGroup)
-         .bindPopup(`<strong>${emp ? emp.name : 'Staff'}</strong><br>🚩 Shift Started: ${emp && emp.clock_in ? emp.clock_in : 'Logged'}`);
+        L.marker(startPoint, { icon: startPin }).addTo(currentLayerGroup)
+         .bindPopup(`<strong>🚩 Start Point (Punch In)</strong><br>${emp ? emp.name : 'Staff'}<br>Time: ${emp && emp.clock_in ? emp.clock_in : 'Logged'}`);
 
-        // 3. Stoppage Markers 🛑 (Client Visits / Halts)
+        // 3. Stoppage Pins 🛑 (Clean Numbered Badges - No big text boxes!)
         if (stops && stops.length > 0) {
             stops.forEach(st => {
-                const stopIcon = L.divIcon({
-                    html: `<div style="background:#f59e0b;color:#fff;font-weight:900;font-size:10px;padding:4px 8px;border-radius:12px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);white-space:nowrap;cursor:pointer;">🛑 Stop #${st.stop_number} (${st.duration})</div>`,
-                    className: 'custom-stop-marker',
-                    iconAnchor: [35, 15]
+                const stopPin = L.divIcon({
+                    html: `<div style="width:20px;height:20px;background:#f59e0b;border:2px solid #ffffff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:10px;">${st.stop_number}</div>`,
+                    className: 'clean-stop-pin',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
                 });
-                L.marker([st.lat, st.lng], { icon: stopIcon }).addTo(layerGroup)
-                 .bindPopup(`<strong>🛑 Stoppage #${st.stop_number}</strong><br>⏰ Time: ${st.arrival_time} - ${st.departure_time}<br>⏱️ Duration: <strong>${st.duration}</strong>`);
+                L.marker([st.lat, st.lng], { icon: stopPin }).addTo(currentLayerGroup)
+                 .bindPopup(`<strong>🛑 Stoppage #${st.stop_number}</strong><br>Duration: <strong>${st.duration}</strong><br>Time: ${st.arrival_time} - ${st.departure_time}`);
             });
         }
 
-        // 4. Live / Latest Position Pin 🚗
+        // 4. Live / Latest Head Marker 🚗 (Clean Google Navigation Arrow)
         const latestPoint = latLngs[latLngs.length - 1];
-        const speedKmh = Number(emp ? emp.current_speed || 0 : 0).toFixed(0);
-        const liveIcon = L.divIcon({
-            html: `<div style="background:#4f46e5;color:#fff;font-weight:900;font-size:11px;padding:6px 12px;border-radius:16px;border:2.5px solid #fff;box-shadow:0 3px 12px rgba(79,70,229,0.6);white-space:nowrap;cursor:pointer;">🚗 ${emp ? emp.name : 'Staff'} (${speedKmh} km/h)</div>`,
-            className: 'custom-live-marker',
-            iconAnchor: [45, 20]
+        const speedVal = Number(emp ? emp.current_speed || 0 : 0).toFixed(0);
+        const livePin = L.divIcon({
+            html: `<div style="position:relative;width:28px;height:28px;background:#2563eb;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 10px rgba(37,99,235,0.6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🚗</div>`,
+            className: 'clean-live-pin',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
         });
-        L.marker(latestPoint, { icon: liveIcon }).addTo(layerGroup)
-         .bindPopup(`<strong>🚗 Live Position: ${emp ? emp.name : 'Staff'}</strong><br>⚡ Current Speed: ${Number(emp ? emp.current_speed || 0 : 0).toFixed(1)} km/h<br>📍 Status: ${emp && emp.clock_in && !emp.clock_out ? '🟢 Active On Field Duty' : 'Shift Concluded'}`);
+        L.marker(latestPoint, { icon: livePin }).addTo(currentLayerGroup)
+         .bindPopup(`<strong>🚗 ${emp ? emp.name : 'Staff'}</strong><br>Speed: <strong>${speedVal} km/h</strong><br>Status: ${emp && emp.clock_in && !emp.clock_out ? '🟢 Active On Duty' : 'Shift Concluded'}`);
 
-        // 5. Punch Out Marker 🏁 if shift ended
+        // 5. Punch Out Marker 🏁 if shift concluded
         if (emp && emp.clock_out && latLngs.length > 1) {
-            const endIcon = L.divIcon({
-                html: '<div style="background:#ef4444;color:#fff;font-weight:900;font-size:11px;padding:6px 12px;border-radius:16px;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.35);white-space:nowrap;cursor:pointer;">🏁 Shift Ended</div>',
-                className: 'custom-end-marker',
-                iconAnchor: [45, 20]
+            const endPin = L.divIcon({
+                html: `<div style="position:relative;width:24px;height:24px;background:#ef4444;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:10px;">B</div>`,
+                className: 'clean-end-pin',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
             });
-            L.marker(latestPoint, { icon: endIcon }).addTo(layerGroup);
+            L.marker(latestPoint, { icon: endPin }).addTo(currentLayerGroup)
+             .bindPopup(`<strong>🏁 Shift Concluded (Punch Out)</strong><br>Time: ${emp.clock_out}`);
         }
     };
 
-    window.focusMapOnCoordinate = function(lat, lng, popupText) {
-        const m = getMapInstance();
+    window.focusMapStop = function(lat, lng, popupHtml) {
+        const m = initMap();
         if (!m) return;
-        m.setView([lat, lng], 17, { animate: true });
-        L.popup().setLatLng([lat, lng]).setContent(`<strong>${popupText}</strong>`).openOn(m);
+        m.setView([lat, lng], 18, { animate: true });
+        L.popup().setLatLng([lat, lng]).setContent(popupHtml).openOn(m);
     };
 })();
 </script>
