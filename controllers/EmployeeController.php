@@ -232,6 +232,12 @@ class EmployeeController {
             exit;
         }
 
+        // If email was changed, invalidate all existing device sessions to force re-login with new email
+        $origUser = $db->query("SELECT email FROM users WHERE id = {$userId}")->fetch();
+        if ($origUser && strtolower($origUser['email']) !== strtolower($email)) {
+            $db->prepare("UPDATE users SET current_session_token = NULL, force_logout_at = NOW() WHERE id = ?")->execute([$userId]);
+        }
+
         $stmt = $db->prepare("
             UPDATE users 
             SET name = ?, email = ?, role = ?, designation = ?, phone = ?, whatsapp_number = ?, 
@@ -249,7 +255,7 @@ class EmployeeController {
             $_SESSION['user']['designation'] = $designation;
             $_SESSION['user']['work_mode'] = $workMode;
             $_SESSION['user']['department_name'] = $deptName;
-            setAuthCookie($_SESSION['user']);
+            setAuthCookie($_SESSION['user'], $_SESSION['user_session_token'] ?? '');
         }
 
         setFlash('success', "Profile details for {$name} updated successfully!");

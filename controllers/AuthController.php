@@ -157,8 +157,32 @@ class AuthController {
                 @session_regenerate_id(true);
             }
 
-            // Clear OTP, reset resend limit counter, clear pending state, and reset force logout state upon successful login
-            $db->prepare("UPDATE users SET login_otp = NULL, login_otp_expires_at = NULL, otp_sent_count_today = 0, is_otp_blocked_today = 0, force_logout_at = NULL WHERE id = ?")->execute([$userId]);
+                        // Single-Device Lock & Auto Punch-Out of Previous Device Shift
+            $sessionToken = bin2hex(random_bytes(32));
+            $today = date('Y-m-d');
+            $nowTime = date('H:i:s');
+
+            // Auto clock-out previous active shift upon switching devices
+            $db->prepare("
+                UPDATE attendance 
+                SET clock_out = ?, notes = CONCAT(COALESCE(notes, ''), ' [Auto Punch-Out: Logged in on another device]') 
+                WHERE user_id = ? AND date = ? AND clock_out IS NULL
+            ")->execute([$nowTime, $userId, $today]);
+
+            $db->prepare("
+                UPDATE attendance_sessions 
+                SET clock_out = ?, ended_by = 'device_switch', ended_by_user_id = ? 
+                WHERE user_id = ? AND date = ? AND clock_out IS NULL
+            ")->execute([$nowTime, $userId, $userId, $today]);
+
+            // Save new exclusive device session token
+            $db->prepare("
+                UPDATE users 
+                SET current_session_token = ?, login_otp = NULL, login_otp_expires_at = NULL, 
+                    otp_sent_count_today = 0, is_otp_blocked_today = 0, force_logout_at = NULL 
+                WHERE id = ?
+            ")->execute([$sessionToken, $userId]);
+
             unset($_SESSION['pending_otp_user_id']);
             unset($_SESSION['pending_otp_email']);
             unset($_SESSION['otp_resend_count']);
@@ -167,7 +191,8 @@ class AuthController {
             unset($user['login_otp']);
             $user['logged_in_at'] = time();
             $_SESSION['user'] = $user;
-            setAuthCookie($user); // Signed Persistent Token Cookie for instant serverless resilience
+            $_SESSION['user_session_token'] = $sessionToken;
+            setAuthCookie($user, $sessionToken);
 
             // If there's an active HR warning message
             if (!empty($user['hr_warning_message'])) {

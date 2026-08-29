@@ -3,7 +3,7 @@
 
 if (session_status() === PHP_SESSION_NONE) {
     if (!headers_sent()) {
-        // High-Security Ephemeral Session (Automatically logs out when browser is closed)
+        // High-Security Ephemeral Session (Strictly destroyed when browser is closed)
         @ini_set('session.cookie_lifetime', 0);
         @session_set_cookie_params([
             'lifetime' => 0, // 0 = Strict Session Cookie (Destroyed on browser close)
@@ -17,11 +17,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 define('AUTH_SECRET_KEY', 'hrms_v5_session_only_sec_key_20260826_ephemeral');
 
-function generateAuthToken(array $user): string {
+function generateAuthToken(array $user, string $sessionToken): string {
     $data = [
         'id' => $user['id'],
         'email' => $user['email'],
         'role' => $user['role'],
+        'token' => $sessionToken,
         'time' => time()
     ];
     $json = json_encode($data);
@@ -42,8 +43,8 @@ function verifyAuthToken(string $token): ?array {
     return $data;
 }
 
-function setAuthCookie(array $user): void {
-    $token = generateAuthToken($user);
+function setAuthCookie(array $user, string $sessionToken): void {
+    $token = generateAuthToken($user, $sessionToken);
     $expire = 0; // 0 = Browser Session Only (Auto-logout on browser close)
     $secure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     setcookie('hrms_auth_token', $token, [
@@ -69,19 +70,10 @@ function clearAuthCookie(): void {
 
 function authUser(): ?array {
     if (!empty($_SESSION['user']) && is_array($_SESSION['user'])) {
-        if (empty($_SESSION['user']['department_name']) || empty($_SESSION['user']['designation'])) {
-            try {
-                $db = getDBConnection();
-                $fresh = $db->query("SELECT * FROM users WHERE id = " . (int)$_SESSION['user']['id'])->fetch(PDO::FETCH_ASSOC);
-                if ($fresh) {
-                    $_SESSION['user'] = array_merge($_SESSION['user'], $fresh);
-                }
-            } catch (Throwable $e) {}
-        }
         return $_SESSION['user'];
     }
 
-    // Seamless auto-recovery from signed persistent auth token cookie (for Vercel serverless lambdas)
+    // Seamless auto-recovery from signed auth token (Single-Device check enforced)
     if (!empty($_COOKIE['hrms_auth_token'])) {
         $data = verifyAuthToken($_COOKIE['hrms_auth_token']);
         if ($data && !empty($data['id'])) {
@@ -91,26 +83,21 @@ function authUser(): ?array {
                 $stmt->execute([(int)$data['id']]);
                 $user = $stmt->fetch();
                 if ($user && empty($user['is_dismissed']) && $user['status'] === 'active') {
-                    unset($user['password']);
-                    unset($user['login_otp']);
-                    $user['logged_in_at'] = time();
-                    $_SESSION['user'] = $user;
-                    return $user;
-                } else {
-                    clearAuthCookie();
+                    // Check if session token still matches
+                    $dbToken = $user['current_session_token'] ?? '';
+                    $cookieToken = $data['token'] ?? '';
+
+                    if (!empty($dbToken) && hash_equals($dbToken, $cookieToken)) {
+                        unset($user['password']);
+                        unset($user['login_otp']);
+                        $user['logged_in_at'] = time();
+                        $_SESSION['user'] = $user;
+                        $_SESSION['user_session_token'] = $dbToken;
+                        return $user;
+                    }
                 }
-            } catch (Throwable $e) {
-                // If DB has temporary latency, construct verified user from signed token
-                $user = [
-                    'id' => (int)$data['id'],
-                    'email' => $data['email'] ?? '',
-                    'role' => $data['role'] ?? 'employee',
-                    'name' => $data['email'] ?? 'User',
-                    'status' => 'active'
-                ];
-                $_SESSION['user'] = $user;
-                return $user;
-            }
+                clearAuthCookie();
+            } catch (Throwable $e) {}
         }
     }
 
@@ -121,21 +108,25 @@ function isLoggedIn(): bool {
     return authUser() !== null;
 }
 
-function getRole(): ?string {
-    $u = authUser();
-    return $u['role'] ?? null;
-}
-
 function isAdmin(): bool {
-    return getRole() === 'admin';
+    $u = authUser();
+    return $u && $u['role'] === 'admin';
 }
 
-function isTL(): bool {
-    return getRole() === 'team_lead';
+function isTeamLead(): bool {
+    $u = authUser();
+    return $u && ($u['role'] === 'team_lead' || $u['role'] === 'admin');
 }
 
-function isEmployee(): bool {
-    return getRole() === 'employee';
+function requireRole($roles): void {
+    requireAuth();
+    $u = authUser();
+    if (is_string($roles)) $roles = [$roles];
+    if (!$u || !in_array($u['role'], $roles)) {
+        setFlash('error', 'Unauthorized access.');
+        header('Location: ?page=dashboard');
+        exit;
+    }
 }
 
 // 🔒 Workspace Lock Policy (Enforces active shift punch-in to unlock operations)
@@ -143,7 +134,7 @@ define('WORKSPACE_LOCK_ENFORCED', true);
 
 function isInActiveShift(?int $userId = null): bool {
     if (!WORKSPACE_LOCK_ENFORCED) {
-        return true; // Fully unlocked for testing
+        return true;
     }
     $uid = $userId ?: (authUser()['id'] ?? 0);
     if (!$uid) return false;
@@ -157,7 +148,7 @@ function isInActiveShift(?int $userId = null): bool {
 function requireActiveShift(): void {
     requireAuth();
     if (!WORKSPACE_LOCK_ENFORCED) {
-        return; // Fully unlocked for testing
+        return;
     }
     if (!isInActiveShift()) {
         setFlash('error', '🔒 Punch-In Required: Your account is in Read-Only mode. Please click [Punch In (Office Login)] in the top right header to edit, create records, or perform actions.');
@@ -166,23 +157,24 @@ function requireActiveShift(): void {
     }
 }
 
-function requireAuth(): void {
+function requireAuth(?string $allowedRole = null): void {
     if (!isLoggedIn()) {
         header('Location: ?page=login');
         exit;
     }
 
-    // Check if user was dismissed by HR or forced logout
     $user = authUser();
     if (!empty($user['id'])) {
         $db = getDBConnection();
-        $stmt = $db->prepare("SELECT status, is_dismissed, dismissal_reason, force_logout_at FROM users WHERE id = ?");
+        $stmt = $db->prepare("SELECT id, name, role, email, status, is_dismissed, dismissal_reason, force_logout_at, current_session_token FROM users WHERE id = ?");
         $stmt->execute([$user['id']]);
         $row = $stmt->fetch();
         if ($row) {
-            // If dismissed by HR
+            // 1. Check if dismissed / inactive
             if (!empty($row['is_dismissed']) || $row['status'] === 'inactive') {
                 unset($_SESSION['user']);
+                unset($_SESSION['user_session_token']);
+                clearAuthCookie();
                 session_destroy();
                 session_start();
                 $reason = !empty($row['dismissal_reason']) ? ' (' . htmlspecialchars($row['dismissal_reason']) . ')' : '';
@@ -191,28 +183,55 @@ function requireAuth(): void {
                 exit;
             }
 
-            // If forced logout (Applies only to non-admins)
+            // 2. Check Single-Device Conflict (Another device logged in with this account)
+            $dbToken = $row['current_session_token'] ?? null;
+            $localToken = $_SESSION['user_session_token'] ?? null;
+
+            if (!empty($dbToken) && !empty($localToken) && !hash_equals($dbToken, $localToken)) {
+                unset($_SESSION['user']);
+                unset($_SESSION['user_session_token']);
+                clearAuthCookie();
+                session_destroy();
+                session_start();
+                setFlash('error', "🚨 Logged Out from Previous Device: Your account was just logged in on another device. Your previous shift was auto-punched out for security. Please log in and punch in again on this device if needed.");
+                header('Location: ?page=login');
+                exit;
+            }
+
+            // 3. Check if email was changed
+            if (strtolower($row['email']) !== strtolower($user['email'])) {
+                unset($_SESSION['user']);
+                unset($_SESSION['user_session_token']);
+                clearAuthCookie();
+                session_destroy();
+                session_start();
+                setFlash('warning', "🔒 Security Notice: Your work email address was updated. Please sign in with your new email ({$row['email']}).");
+                header('Location: ?page=login');
+                exit;
+            }
+
+            // 4. If forced logout by Admin
             if ($user['role'] !== 'admin' && !empty($row['force_logout_at'])) {
                 $forceLogoutTime = strtotime($row['force_logout_at']);
                 $loginTime = (int)($user['logged_in_at'] ?? 0);
                 if ($forceLogoutTime > $loginTime) {
                     $db->prepare("UPDATE users SET force_logout_at = NULL WHERE id = ?")->execute([$user['id']]);
                     unset($_SESSION['user']);
+                    unset($_SESSION['user_session_token']);
+                    clearAuthCookie();
                     session_destroy();
                     session_start();
-                    setFlash('error', '⚠️ Warning: Your session was forcefully terminated by your Team Lead. Remember from next time to punch out on time.');
+                    setFlash('error', '⚠️ Session Terminated: Your session has been revoked by HR Administration. Please sign in again.');
                     header('Location: ?page=login');
                     exit;
                 }
             }
         }
     }
-}
 
-function requireRole(array $roles): void {
-    requireAuth();
-    if (!in_array(getRole(), $roles, true)) {
-        header('Location: ?page=dashboard&error=unauthorized');
+    if ($allowedRole !== null && $user['role'] !== $allowedRole && $user['role'] !== 'admin') {
+        setFlash('error', 'Unauthorized access.');
+        header('Location: ?page=dashboard');
         exit;
     }
 }
