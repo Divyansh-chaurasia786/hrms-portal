@@ -727,7 +727,7 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_FOLLOWLOCATION => true,
                     CURLOPT_MAXREDIRS => 5,
-                    CURLOPT_TIMEOUT => 15,
+                    CURLOPT_TIMEOUT => 3,
                     CURLOPT_SSL_VERIFYPEER => false,
                     CURLOPT_SSL_VERIFYHOST => false,
                     CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -753,7 +753,7 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
                 curl_setopt_array($ch, [
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_TIMEOUT => 15,
+                    CURLOPT_TIMEOUT => 3,
                     CURLOPT_SSL_VERIFYPEER => false,
                     CURLOPT_USERAGENT => 'Mozilla/5.0'
                 ]);
@@ -789,7 +789,7 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
         if (empty($csvContent)) {
             foreach ($fetchUrls as $fUrl) {
                 $ctx = stream_context_create([
-                    'http' => ['timeout' => 10, 'user_agent' => 'Mozilla/5.0'],
+                    'http' => ['timeout' => 3, 'user_agent' => 'Mozilla/5.0'],
                     'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
                 ]);
                 $res = @file_get_contents($fUrl, false, $ctx);

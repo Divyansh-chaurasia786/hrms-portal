@@ -230,30 +230,35 @@ $sheets = $db->query("
                 <h3 class="font-extrabold text-sm text-slate-900">Import Google Sheet / CSV</h3>
                 <button type="button" @click="uploadModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2">
+            <form action="?action=upload-smart-sheet" method="POST" enctype="multipart/form-data" class="space-y-4 pt-2" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Sheet Title *</label>
-                    <input type="text" name="sheet_title" required placeholder="e.g. Employee Roster or Attendance Register" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
+                    <input type="text" name="sheet_title" required placeholder="e.g. Employee Roster or BDA Team" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Public Link (Optional)</label>
-                    <input type="url" name="google_sheet_url" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Google Sheets Link (Must be full public link)</label>
+                    <input type="url" name="google_sheet_url" placeholder="https://docs.google.com/spreadsheets/d/1.../edit" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Or Upload CSV / Excel (.xlsx) File</label>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Or Upload File (Recommended .xlsx / .csv)</label>
                     <input type="file" name="sheet_file" accept=".csv, .xlsx, .xls, .tsv" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                 </div>
-                                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-[11px] space-y-1">
+                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-[11px] space-y-1">
                     <div class="font-bold flex items-center gap-1.5">
                         <i data-lucide="info" class="w-4 h-4 text-amber-600"></i> Google Sheets Sharing Tip:
                     </div>
                     <p class="text-[10px] text-amber-800 leading-relaxed">
-                        Make sure your Google Sheet is set to <strong>"Anyone with the link can view"</strong> (Click Share button in top-right of your Google Sheet &rarr; General Access &rarr; Anyone with link).
+                        Agar Google Sheets link use kar rahe hain toh ensure karein link <strong>Full Copy</strong> ho aur Sharing <strong>"Anyone with the link can view"</strong> ho. Ya sabse aasan tareeqa: Sheet ko <strong>Download &rarr; Microsoft Excel (.xlsx)</strong> karke yahan <strong>Choose file</strong> se upload karein!
                     </p>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="uploadModalOpen = false" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition">Process & Ingest</button>
+                    <button type="button" @click="uploadModalOpen = false" :disabled="isSubmitting" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
+                    <button type="submit" :disabled="isSubmitting" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                        <span x-show="!isSubmitting">Process & Ingest</span>
+                        <span x-show="isSubmitting" class="flex items-center gap-1.5" style="display: none;">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Processing Data...
+                        </span>
+                    </button>
                 </div>
             </form>
         </div>
