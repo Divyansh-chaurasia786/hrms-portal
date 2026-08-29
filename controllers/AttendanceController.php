@@ -385,12 +385,44 @@ class AttendanceController {
     }
 
     public static function getTravelLogs(): void {
-        requireAuth(['admin', 'team_lead']);
+        requireAuth();
+        $userId = (int)($_GET['user_id'] ?? 0);
+        $date = !empty($_GET['date']) ? trim($_GET['date']) : date('Y-m-d');
         $attendanceId = (int)($_GET['attendance_id'] ?? 0);
         $db = getDBConnection();
-        $logs = $db->query("SELECT latitude, longitude, speed, distance_meters, recorded_at FROM employee_travel_logs WHERE attendance_id = {$attendanceId} ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
-        header('Content-Type: application/json');
-        echo json_encode($logs);
+
+        if ($userId > 0) {
+            $logs = $db->query("
+                SELECT id, user_id, latitude, longitude, speed, distance_meters, recorded_at 
+                FROM employee_travel_logs 
+                WHERE user_id = {$userId} AND DATE(recorded_at) = '{$date}' 
+                ORDER BY id ASC
+            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $emp = $db->query("
+                SELECT u.id, u.name, u.emp_id, u.designation, u.work_mode, u.department_name,
+                       tl.name as tl_name,
+                       a.id as attendance_id, a.clock_in, a.clock_out, a.punch_in_lat, a.punch_in_lng, a.punch_out_lat, a.punch_out_lng,
+                       (SELECT COUNT(*) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}') as waypoints_count,
+                       (SELECT COALESCE(SUM(l.distance_meters), 0) FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}') as total_distance_meters,
+                       (SELECT l.speed FROM employee_travel_logs l WHERE l.user_id = u.id AND DATE(l.recorded_at) = '{$date}' ORDER BY l.id DESC LIMIT 1) as current_speed
+                FROM users u
+                LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$date}'
+                LEFT JOIN users tl ON u.reporting_tl_id = tl.id
+                WHERE u.id = {$userId}
+            ")->fetch(PDO::FETCH_ASSOC);
+
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'employee' => $emp, 'waypoints' => $logs]);
+            exit;
+        } elseif ($attendanceId > 0) {
+            $logs = $db->query("SELECT latitude, longitude, speed, distance_meters, recorded_at FROM employee_travel_logs WHERE attendance_id = {$attendanceId} ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'waypoints' => $logs]);
+            exit;
+        }
+
+        echo json_encode(['success' => false, 'message' => 'Missing user_id or attendance_id']);
         exit;
     }
 
