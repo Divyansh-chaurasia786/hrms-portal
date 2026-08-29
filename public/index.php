@@ -333,6 +333,9 @@ if ($action) {
     case 'login':
             AuthController::login();
             exit;
+        case 'confirm-device-switch':
+            AuthController::confirmDeviceSwitch();
+            exit;
         case 'logout':
             AuthController::logout();
             exit;

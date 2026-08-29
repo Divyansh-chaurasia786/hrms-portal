@@ -2,6 +2,25 @@
 // controllers/AuthController.php
 
 class AuthController {
+    private static function getDeviceName(): string {
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $os = 'Unknown OS';
+        if (stripos($ua, 'Windows NT 10.0') !== false) $os = 'Windows 10/11 PC';
+        elseif (stripos($ua, 'Windows') !== false) $os = 'Windows PC';
+        elseif (stripos($ua, 'Android') !== false) $os = 'Android Mobile';
+        elseif (stripos($ua, 'iPhone') !== false) $os = 'iPhone';
+        elseif (stripos($ua, 'iPad') !== false) $os = 'iPad';
+        elseif (stripos($ua, 'Macintosh') !== false || stripos($ua, 'Mac OS X') !== false) $os = 'MacBook / macOS';
+        elseif (stripos($ua, 'Linux') !== false) $os = 'Linux PC';
+
+        $browser = 'Browser';
+        if (stripos($ua, 'Edg') !== false) $browser = 'Microsoft Edge';
+        elseif (stripos($ua, 'Chrome') !== false) $browser = 'Google Chrome';
+        elseif (stripos($ua, 'Safari') !== false) $browser = 'Safari';
+        elseif (stripos($ua, 'Firefox') !== false) $browser = 'Mozilla Firefox';
+
+        return "{$os} ({$browser})";
+    }
     public static function login(): void {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = strtolower(trim($_POST['email'] ?? ''));
@@ -377,4 +396,88 @@ class AuthController {
         exit;
     }
 
+    public static function confirmDeviceSwitch(): void {
+        if (empty($_SESSION['pending_device_switch_user_id'])) {
+            header('Location: ?page=login');
+            exit;
+        }
+
+        $userId = (int)$_SESSION['pending_device_switch_user_id'];
+        $db = getDBConnection();
+        $stmt = $db->prepare("SELECT u.*, d.name as department_name FROM users u LEFT JOIN departments d ON u.department_id = d.id WHERE u.id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            unset($_SESSION['pending_device_switch_user_id']);
+            header('Location: ?page=login');
+            exit;
+        }
+
+        $today = date('Y-m-d');
+        $nowDateTime = date('Y-m-d H:i:s');
+
+        // 1. Auto clock-out previous active shift on old device
+        $db->prepare("
+            UPDATE attendance 
+            SET clock_out = ?, notes = CONCAT(COALESCE(notes, ''), ' [Auto Punch-Out: Logged in on new device]') 
+            WHERE user_id = ? AND date = ? AND clock_out IS NULL
+        ")->execute([$nowDateTime, $userId, $today]);
+
+        $db->prepare("
+            UPDATE attendance_sessions 
+            SET clock_out = ?, ended_by = 'device_switch', ended_by_user_id = ? 
+            WHERE user_id = ? AND clock_out IS NULL
+        ")->execute([$nowDateTime, $userId, $userId]);
+
+        unset($_SESSION['pending_device_switch_user_id']);
+        self::completeUserLogin($user);
+    }
+
+    private static function completeUserLogin(array $user): void {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            @session_regenerate_id(true);
+        }
+
+        $db = getDBConnection();
+        $userId = (int)$user['id'];
+        $sessionToken = bin2hex(random_bytes(32));
+        $nowDateTime = date('Y-m-d H:i:s');
+        $deviceName = self::getDeviceName();
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+        $db->prepare("
+            UPDATE users 
+            SET current_session_token = ?, current_device_info = ?, current_login_at = ?, current_ip_address = ?,
+                login_otp = NULL, login_otp_expires_at = NULL, otp_sent_count_today = 0, is_otp_blocked_today = 0, force_logout_at = NULL 
+            WHERE id = ?
+        ")->execute([$sessionToken, $deviceName, $nowDateTime, $ip, $userId]);
+
+        unset($_SESSION['pending_otp_user_id']);
+        unset($_SESSION['pending_otp_email']);
+        unset($_SESSION['otp_resend_count']);
+        unset($_SESSION['pending_device_switch_user_id']);
+
+        unset($user['password']);
+        unset($user['login_otp']);
+        $user['logged_in_at'] = time();
+        $_SESSION['user'] = $user;
+        $_SESSION['user_session_token'] = $sessionToken;
+        setAuthCookie($user, $sessionToken);
+
+        if (!empty($user['hr_warning_message'])) {
+            setFlash('warning', "⚠️ HR Notice: " . $user['hr_warning_message']);
+        } else {
+            setFlash('success', "Welcome back, <strong>{$user['name']}</strong>! Signed in on {$deviceName}.");
+        }
+
+        if ($user['role'] === 'admin') {
+            header('Location: ?page=admin-dashboard');
+        } elseif ($user['role'] === 'team_lead') {
+            header('Location: ?page=tl-dashboard');
+        } else {
+            header('Location: ?page=employee-dashboard');
+        }
+        exit;
+    }
 }
