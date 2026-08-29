@@ -44,7 +44,13 @@ $initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
             </div>
 
             <!-- Right: Search & Actions -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+                <!-- Fullscreen Toggle Button -->
+                <button type="button" @click="sidebarCollapsed = !sidebarCollapsed" class="px-2.5 py-1 bg-emerald-800/90 hover:bg-emerald-900 text-white rounded-lg font-bold text-[11px] border border-emerald-600 transition flex items-center gap-1.5 cursor-pointer" :title="sidebarCollapsed ? 'Show Sidebar' : 'View Fullscreen Excel'">
+                    <i data-lucide="maximize-2" class="w-3.5 h-3.5" x-show="!sidebarCollapsed"></i>
+                    <i data-lucide="minimize-2" class="w-3.5 h-3.5" x-show="sidebarCollapsed" style="display: none;"></i>
+                    <span x-text="sidebarCollapsed ? 'Exit Fullscreen' : 'Fullscreen Excel'"></span>
+                </button>
                 <button type="button" @click="uploadModalOpen = true" class="px-3 py-1 bg-white hover:bg-emerald-50 text-[#107c41] rounded-lg font-black text-[11px] shadow-sm transition flex items-center gap-1.5 cursor-pointer">
                     <i data-lucide="upload" class="w-3.5 h-3.5"></i> Ingest New Sheet
                 </button>

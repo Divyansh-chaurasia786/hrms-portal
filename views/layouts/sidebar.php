@@ -18,7 +18,7 @@ $page = $_GET['page'] ?? 'dashboard';
      x-cloak></div>
 
 <!-- Sidebar -->
-<aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out no-scrollbar shadow-2xl lg:shadow-none">
+<aside :class="[ sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', sidebarCollapsed ? 'lg:-translate-x-full lg:opacity-0 lg:pointer-events-none' : 'lg:translate-x-0 lg:opacity-100 lg:w-64' ]" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 ease-in-out no-scrollbar shadow-2xl lg:shadow-none">
     <!-- Brand Logo & Mobile Close -->
     <div class="h-16 flex items-center justify-between px-5 bg-slate-950/40 border-b border-slate-800 shrink-0">
         <div class="flex items-center gap-3">
@@ -208,14 +208,23 @@ $page = $_GET['page'] ?? 'dashboard';
 </aside>
 
 <!-- Main Wrapper -->
-<div class="flex-1 flex flex-col min-w-0 lg:pl-64">
+<div class="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out" :class="sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'">
     <!-- Top Navbar -->
     <header id="top-header-navbar" class="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div class="flex items-center gap-3">
-            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+            <!-- Mobile Menu Toggle -->
+            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer">
                 <i data-lucide="menu" class="w-5 h-5"></i>
             </button>
-            <div class="hidden sm:block">
+
+            <!-- Desktop Fullscreen / Collapse Sidebar Button -->
+            <button @click="sidebarCollapsed = !sidebarCollapsed" class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer shadow-2xs" :title="sidebarCollapsed ? 'Show Sidebar Menu' : 'Collapse Sidebar (Full Width View)'">
+                <i data-lucide="panel-left-close" class="w-4 h-4 text-slate-600" x-show="!sidebarCollapsed"></i>
+                <i data-lucide="panel-left-open" class="w-4 h-4 text-emerald-600" x-show="sidebarCollapsed" style="display: none;"></i>
+                <span x-text="sidebarCollapsed ? 'Show Sidebar' : 'Full Screen'"></span>
+            </button>
+
+            <div class="hidden sm:block pl-2 border-l border-slate-200">
                 <span class="text-xs font-medium text-slate-500">Today: </span>
                 <span class="text-xs font-semibold text-slate-700"><?= date('l, d F Y') ?></span>
             </div>

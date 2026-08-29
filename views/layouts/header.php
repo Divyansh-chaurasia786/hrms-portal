@@ -64,7 +64,7 @@
         }
     </style>
 </head>
-<body class="h-full antialiased text-slate-800 flex" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false }">
+<body class="h-full antialiased text-slate-800 flex" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
 <script>
 function handlePunchOutGeo(form) {
