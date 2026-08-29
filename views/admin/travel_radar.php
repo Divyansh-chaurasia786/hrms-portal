@@ -240,24 +240,25 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     let currentLayerGroup = null;
 
     function ensureMapInitialized() {
-        if (!radarMap) {
-            const mapContainer = document.getElementById('radarMap');
-            if (!mapContainer) return null;
+        const mapContainer = document.getElementById('radarMap');
+        if (!mapContainer) return null;
 
-            radarMap = L.map('radarMap').setView([26.8467, 80.9462], 13);
+        if (!radarMap) {
+            radarMap = L.map('radarMap', { zoomControl: true }).setView([26.8467, 80.9462], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
             }).addTo(radarMap);
 
             currentLayerGroup = L.layerGroup().addTo(radarMap);
         }
-        setTimeout(() => radarMap.invalidateSize(), 200);
+        radarMap.invalidateSize();
         return radarMap;
     }
 
     window.fetchAndRenderStaffLogs = function(userId, date, isSilent = false, callback = null) {
         if (!userId) return;
-        ensureMapInitialized();
+        const map = ensureMapInitialized();
 
         fetch(`?action=get-travel-logs&user_id=${userId}&date=${date}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -274,7 +275,6 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                     const ctx = alpineEl._x_dataStack[0];
                     if (emp) {
                         ctx.selectedEmp = emp;
-                        // Also update left list item
                         const item = ctx.fieldEmployees.find(e => Number(e.id) === Number(userId));
                         if (item) {
                             item.total_distance_meters = emp.total_distance_meters;
@@ -299,6 +299,7 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     function renderCoordinatesOnMap(emp, waypoints, isSilent) {
         if (!currentLayerGroup || !radarMap) return;
         currentLayerGroup.clearLayers();
+        radarMap.invalidateSize();
 
         const coords = [];
 
@@ -310,13 +311,19 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
         // 2. Add All Travel Waypoints
         waypoints.forEach(wp => {
             if (wp.latitude && wp.longitude) {
-                coords.push([parseFloat(wp.latitude), parseFloat(wp.longitude)]);
+                const lat = parseFloat(wp.latitude);
+                const lng = parseFloat(wp.longitude);
+                if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                    coords.push([lat, lng]);
+                }
             }
         });
 
         // 3. Add Punch Out Coordinate if closed
         if (emp && emp.punch_out_lat && emp.punch_out_lng) {
-            coords.push([parseFloat(emp.punch_out_lat), parseFloat(emp.punch_out_lng)]);
+            const outLat = parseFloat(emp.punch_out_lat);
+            const outLng = parseFloat(emp.punch_out_lng);
+            if (outLat && outLng) coords.push([outLat, outLng]);
         }
 
         if (coords.length > 0) {
@@ -324,26 +331,42 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             if (coords.length > 1) {
                 const polyline = L.polyline(coords, {
                     color: '#4f46e5',
-                    weight: 5,
-                    opacity: 0.85,
+                    weight: 6,
+                    opacity: 0.9,
                     dashArray: '8, 8',
                     lineJoin: 'round'
                 }).addTo(currentLayerGroup);
 
+                // Add intermediate waypoint dots along route
+                coords.slice(1, -1).forEach((pt, i) => {
+                    L.circleMarker(pt, {
+                        radius: 4,
+                        color: '#6366f1',
+                        fillColor: '#818cf8',
+                        fillOpacity: 0.8,
+                        weight: 2
+                    }).addTo(currentLayerGroup).bindPopup(`<strong>Stop / Waypoint #${i + 1}</strong>`);
+                });
+
                 if (!isSilent) {
-                    radarMap.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+                    const bounds = polyline.getBounds();
+                    if (bounds.isValid()) {
+                        radarMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+                    } else {
+                        radarMap.setView(coords[coords.length - 1], 16);
+                    }
                 }
             } else {
                 if (!isSilent) {
-                    radarMap.setView(coords[0], 15);
+                    radarMap.setView(coords[0], 16);
                 }
             }
 
             // 1. Start Marker (Punch In Point)
             const startIcon = L.divIcon({
-                html: '<div style="background:#10b981;color:#fff;font-weight:bold;font-size:10px;padding:4px 8px;border-radius:12px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;">🚩 Start (Punch In)</div>',
+                html: '<div style="background:#10b981;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;border-radius:14px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);white-space:nowrap;">🚩 Start (Punch In)</div>',
                 className: 'custom-map-pin',
-                iconAnchor: [30, 20]
+                iconAnchor: [35, 20]
             });
             L.marker(coords[0], { icon: startIcon }).addTo(currentLayerGroup)
              .bindPopup(`<strong>${emp ? emp.name : 'Staff'}</strong><br>🚩 Shift Started: ${emp && emp.clock_in ? emp.clock_in : 'Logged'}`);
@@ -351,9 +374,9 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             // 2. Latest Location Marker (Current Head)
             const latestCoord = coords[coords.length - 1];
             const liveIcon = L.divIcon({
-                html: `<div style="background:#4f46e5;color:#fff;font-weight:bold;font-size:10px;padding:4px 8px;border-radius:12px;border:2px solid #fff;box-shadow:0 2px 8px rgba(79,70,229,0.5);white-space:nowrap;">🚗 ${emp ? emp.name : 'Staff'} (${Number(emp ? emp.current_speed || 0 : 0).toFixed(0)} km/h)</div>`,
+                html: `<div style="background:#4f46e5;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;border-radius:14px;border:2px solid #fff;box-shadow:0 2px 10px rgba(79,70,229,0.6);white-space:nowrap;">🚗 ${emp ? emp.name : 'Staff'} (${Number(emp ? emp.current_speed || 0 : 0).toFixed(0)} km/h)</div>`,
                 className: 'custom-live-pin',
-                iconAnchor: [30, 20]
+                iconAnchor: [35, 20]
             });
             L.marker(latestCoord, { icon: liveIcon }).addTo(currentLayerGroup)
              .bindPopup(`<strong>🚗 Location: ${emp ? emp.name : 'Staff'}</strong><br>⚡ Speed: ${Number(emp ? emp.current_speed || 0 : 0).toFixed(1)} km/h<br>📍 Status: ${emp && emp.clock_in && !emp.clock_out ? 'On Field Duty' : 'Shift Concluded'}`);
@@ -361,9 +384,9 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             // 3. Stop Marker if Shift Concluded
             if (emp && emp.clock_out && coords.length > 1) {
                 const stopIcon = L.divIcon({
-                    html: '<div style="background:#ef4444;color:#fff;font-weight:bold;font-size:10px;padding:4px 8px;border-radius:12px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;">🛑 Shift Ended</div>',
+                    html: '<div style="background:#ef4444;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;border-radius:14px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);white-space:nowrap;">🛑 Shift Concluded</div>',
                     className: 'custom-stop-pin',
-                    iconAnchor: [30, 20]
+                    iconAnchor: [35, 20]
                 });
                 L.marker(latestCoord, { icon: stopIcon }).addTo(currentLayerGroup);
             }
@@ -383,19 +406,19 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
         }
     };
 
-    // Auto-run on direct load
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    // Auto-run on direct load and tab changes
+    function triggerInitialMap() {
+        const initUser = <?= $selectedUserId ?>;
+        const initDate = '<?= htmlspecialchars($selectedDate) ?>';
         setTimeout(() => {
-            const initUser = <?= $selectedUserId ?>;
-            const initDate = '<?= htmlspecialchars($selectedDate) ?>';
             if (initUser) window.initRadarMapAndRender(initUser, initDate);
-        }, 300);
+        }, 150);
+    }
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        triggerInitialMap();
     } else {
-        document.addEventListener('DOMContentLoaded', () => {
-            const initUser = <?= $selectedUserId ?>;
-            const initDate = '<?= htmlspecialchars($selectedDate) ?>';
-            if (initUser) window.initRadarMapAndRender(initUser, initDate);
-        });
+        document.addEventListener('DOMContentLoaded', triggerInitialMap);
     }
 })();
 </script>
