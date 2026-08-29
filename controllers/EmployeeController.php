@@ -179,6 +179,7 @@ class EmployeeController {
         public static function update(): void {
         requireRole(['admin']);
         requireActiveShift();
+        $db = getDBConnection();
         $userId = (int)($_POST['user_id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
         $email = strtolower(trim($_POST['email'] ?? ''));
