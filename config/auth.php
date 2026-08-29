@@ -69,11 +69,55 @@ function clearAuthCookie(): void {
 }
 
 function authUser(): ?array {
-    if (!empty($_SESSION['user']) && is_array($_SESSION['user'])) {
-        return $_SESSION['user'];
+    $sessionUser = $_SESSION['user'] ?? null;
+    $sessionToken = $_SESSION['user_session_token'] ?? null;
+
+    if (!empty($sessionUser) && is_array($sessionUser) && !empty($sessionUser['id'])) {
+        // Enforce Single-Device & Active Status check on every single request
+        try {
+            $db = getDBConnection();
+            $stmt = $db->prepare("SELECT id, name, role, email, status, is_dismissed, dismissal_reason, force_logout_at, current_session_token FROM users WHERE id = ?");
+            $stmt->execute([(int)$sessionUser['id']]);
+            $dbUser = $stmt->fetch();
+
+            if ($dbUser) {
+                // 1. Check if dismissed or inactive
+                if (!empty($dbUser['is_dismissed']) || $dbUser['status'] === 'inactive') {
+                    unset($_SESSION['user'], $_SESSION['user_session_token']);
+                    clearAuthCookie();
+                    return null;
+                }
+
+                // 2. Check Single-Device Conflict: If another device logged in and generated a new session token
+                $dbToken = $dbUser['current_session_token'] ?? '';
+                if (!empty($dbToken) && !empty($sessionToken) && !hash_equals($dbToken, $sessionToken)) {
+                    // Previous device session terminated
+                    unset($_SESSION['user'], $_SESSION['user_session_token']);
+                    clearAuthCookie();
+                    setFlash('error', '🚨 Logged Out from Previous Device: Your account was just logged in on another device or browser. Only one active device is allowed at a time.');
+                    return null;
+                }
+
+                // 3. Forced logout by Admin
+                if ($sessionUser['role'] !== 'admin' && !empty($dbUser['force_logout_at'])) {
+                    $forceLogoutTime = strtotime($dbUser['force_logout_at']);
+                    $loginTime = (int)($sessionUser['logged_in_at'] ?? 0);
+                    if ($forceLogoutTime > $loginTime) {
+                        unset($_SESSION['user'], $_SESSION['user_session_token']);
+                        clearAuthCookie();
+                        setFlash('error', '⚠️ Session Terminated: Your session has been revoked by HR Administration.');
+                        return null;
+                    }
+                }
+
+                return $sessionUser;
+            }
+        } catch (\Throwable $e) {
+            return $sessionUser;
+        }
     }
 
-    // Seamless auto-recovery from signed auth token (Single-Device check enforced)
+    // Auto-recovery from Signed Cookie if session expired
     if (!empty($_COOKIE['hrms_auth_token'])) {
         $data = verifyAuthToken($_COOKIE['hrms_auth_token']);
         if ($data && !empty($data['id'])) {
@@ -83,13 +127,11 @@ function authUser(): ?array {
                 $stmt->execute([(int)$data['id']]);
                 $user = $stmt->fetch();
                 if ($user && empty($user['is_dismissed']) && $user['status'] === 'active') {
-                    // Check if session token still matches
                     $dbToken = $user['current_session_token'] ?? '';
                     $cookieToken = $data['token'] ?? '';
 
                     if (!empty($dbToken) && hash_equals($dbToken, $cookieToken)) {
-                        unset($user['password']);
-                        unset($user['login_otp']);
+                        unset($user['password'], $user['login_otp']);
                         $user['logged_in_at'] = time();
                         $_SESSION['user'] = $user;
                         $_SESSION['user_session_token'] = $dbToken;
@@ -97,7 +139,7 @@ function authUser(): ?array {
                     }
                 }
                 clearAuthCookie();
-            } catch (Throwable $e) {}
+            } catch (\Throwable $e) {}
         }
     }
 
