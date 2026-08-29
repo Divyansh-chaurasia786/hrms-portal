@@ -51,6 +51,8 @@
             }
         }
     </script>
+    <!-- Client-Side Instant Cache Vault -->
+    <script src="/js/hrms_offline_cache.js"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->

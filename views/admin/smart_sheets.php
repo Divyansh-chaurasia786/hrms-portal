@@ -406,10 +406,22 @@ document.addEventListener('alpine:init', () => {
                 this.resizeLuckysheet();
             });
 
+            // ⚡ Check Local Device Cache First (0ms instant render)
+            let activeData = null;
             if (initialData && initialData.id > 0) {
-                this.currentSheetId = initialData.id;
-                this.currentSheetTitle = initialData.title || 'Excel Workbook';
-                this.renderLuckysheetFromData(initialData.title || 'Sheet1', initialData.columns || [], initialData.rows || []);
+                activeData = initialData;
+                if (window.HRMSCache) {
+                    window.HRMSCache.set('excel_sheet_' + initialData.id, initialData);
+                }
+            } else if (window.HRMSCache) {
+                activeData = window.HRMSCache.get('excel_last_active_sheet');
+            }
+
+            if (activeData && activeData.id > 0) {
+                this.currentSheetId = activeData.id;
+                this.currentSheetTitle = activeData.title || 'Excel Workbook';
+                this.renderLuckysheetFromData(activeData.title || 'Sheet1', activeData.columns || [], activeData.rows || []);
+                if (window.HRMSCache) window.HRMSCache.set('excel_last_active_sheet', activeData);
             } else {
                 this.renderBlankLuckysheet('Sheet1');
             }
@@ -533,15 +545,36 @@ document.addEventListener('alpine:init', () => {
 
         async loadAndRenderSheet(sheetId) {
             this.currentSheetId = sheetId;
-            this.isFetchingSheet = true;
+            const cacheKey = 'excel_sheet_' + sheetId;
+
+            // 1. Instant Cache Hit (0ms)
+            if (window.HRMSCache) {
+                const cached = window.HRMSCache.get(cacheKey);
+                if (cached && cached.columns) {
+                    this.currentSheetTitle = cached.title || 'Workbook';
+                    this.renderLuckysheetFromData(cached.title || 'Sheet1', cached.columns || [], cached.rows || []);
+                    window.HRMSCache.set('excel_last_active_sheet', cached);
+                } else {
+                    this.isFetchingSheet = true;
+                }
+            } else {
+                this.isFetchingSheet = true;
+            }
+
+            // 2. Background Revalidation (1-2s)
             try {
                 const res = await fetch('?action=get-smart-sheet-data&sheet_id=' + sheetId);
                 const data = await res.json();
-                this.currentSheetTitle = data.title || 'Workbook';
-                this.renderLuckysheetFromData(data.title || 'Sheet1', data.columns || [], data.rows || []);
+                if (data && data.columns) {
+                    if (window.HRMSCache) {
+                        window.HRMSCache.set(cacheKey, data);
+                        window.HRMSCache.set('excel_last_active_sheet', data);
+                    }
+                    this.currentSheetTitle = data.title || 'Workbook';
+                    this.renderLuckysheetFromData(data.title || 'Sheet1', data.columns || [], data.rows || []);
+                }
             } catch(e) {
                 console.error(e);
-                this.renderBlankLuckysheet('Sheet1');
             } finally {
                 this.isFetchingSheet = false;
             }
