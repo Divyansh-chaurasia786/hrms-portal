@@ -114,17 +114,76 @@
             pwaInstallPrompt.prompt();
             pwaInstallPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') {
-                    const installBtns = document.querySelectorAll('.pwa-install-btn');
-                    installBtns.forEach(btn => btn.style.display = 'none');
+                    const modal = document.getElementById('pwaInstallModal');
+                    if (modal) modal.classList.add('hidden');
                 }
                 pwaInstallPrompt = null;
             });
         } else {
-            alert('📲 How to Install App on Mobile / PC:\n\n• On Chrome/Brave/Edge: Click the (⋮) menu on top right and tap "Install App" or "Add to Home screen".\n• On iPhone Safari: Tap the Share icon (↑) and tap "Add to Home Screen".');
+            const modal = document.getElementById('pwaInstallModal');
+            if (modal) modal.classList.remove('hidden');
         }
+    }
+
+    function closePwaModal() {
+        const modal = document.getElementById('pwaInstallModal');
+        if (modal) modal.classList.add('hidden');
     }
     </script>
 </head>
+<!-- 📲 PWA INSTALLATION WIZARD MODAL -->
+<div id="pwaInstallModal" class="hidden fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Ambient Header Background -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-600/30">
+                    <i data-lucide="download-cloud" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-base text-slate-900">Install Ecofone HRMS App</h3>
+                    <p class="text-[11px] text-slate-400 font-medium">Standalone Native App for Desktop & Mobile</p>
+                </div>
+            </div>
+            <button type="button" onclick="closePwaModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Browser Specific Step-by-Step Instructions -->
+        <div class="space-y-3">
+            <!-- Brave / Chrome Desktop Guide -->
+            <div class="p-4 rounded-2xl bg-gradient-to-r from-orange-50/80 to-amber-50/80 border border-orange-200/80 flex items-start gap-3.5">
+                <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                    1
+                </div>
+                <div class="text-xs text-slate-700">
+                    <div class="font-bold text-slate-900 mb-0.5">For Brave / Chrome Browser:</div>
+                    Look at your browser's **top-right menu button (≡ or ⋮)** next to the address bar, then click <strong class="text-orange-950 bg-orange-100 px-1.5 py-0.5 rounded">"Install Ecofone HRMS..."</strong>.
+                </div>
+            </div>
+
+            <!-- Mobile Phone Guide -->
+            <div class="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/80 to-teal-50/80 border border-emerald-200/80 flex items-start gap-3.5">
+                <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                    2
+                </div>
+                <div class="text-xs text-slate-700">
+                    <div class="font-bold text-slate-900 mb-0.5">For Android & iOS Mobile:</div>
+                    Tap the <strong>(⋮) menu</strong> in Chrome or <strong>Share (↑)</strong> in Safari, then tap <strong class="text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">"Add to Home screen"</strong>.
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between pt-2">
+            <span class="text-[11px] text-slate-400 font-medium">No Play Store download needed</span>
+            <button type="button" onclick="closePwaModal()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer">
+                Got It, Let Me Install!
+            </button>
+        </div>
+    </div>
+</div>
 <body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
 <script>
