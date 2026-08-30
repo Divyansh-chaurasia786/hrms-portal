@@ -61,6 +61,7 @@ foreach ($leads as $l) {
             </div>
 
             <!-- View Switcher & Quick Direct Dial -->
+                <button type="button" onclick="triggerPwaInstall()" class="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl backdrop-blur-md border border-white/15 transition flex items-center gap-1.5 cursor-pointer"><i data-lucide="download-cloud" class="w-3.5 h-3.5 text-indigo-300"></i><span>Download App</span></button>
             <div class="flex items-center gap-2 flex-wrap">
                 <div class="bg-white/10 p-1 rounded-xl flex items-center border border-white/10 backdrop-blur-md">
                     <button type="button" @click="viewMode = 'kanban'" :class="viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
