@@ -548,13 +548,18 @@ document.addEventListener('alpine:init', () => {
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             });
 
-            // Optional direct tel trigger
+            // 📞 Trigger Native SIM Phone Dialer on Mobile/PC
             if (lead && lead.phone) {
+                const cleanPhone = String(lead.phone).replace(/[^0-9+]/g, '');
                 const telLink = document.createElement('a');
-                telLink.href = 'tel:' + lead.phone;
+                telLink.href = 'tel:' + cleanPhone;
+                telLink.target = '_self';
                 telLink.style.display = 'none';
                 document.body.appendChild(telLink);
-                // telLink.click();
+                telLink.click();
+                setTimeout(() => {
+                    try { document.body.removeChild(telLink); } catch(e) {}
+                }, 500);
             }
         },
 
