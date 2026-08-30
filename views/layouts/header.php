@@ -89,17 +89,13 @@
             scrollbar-width: none !important;
         }
     </style>
-        <!-- 📲 PWA Service Worker & Global Install Prompt Trigger -->
+            <!-- 📲 Instant 1-Click Direct App Downloader (Zero Popups) -->
     <script>
     window.pwaInstallPrompt = null;
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').then((reg) => {
-                console.log('PWA ServiceWorker active:', reg.scope);
-            }).catch((err) => {
-                console.log('PWA ServiceWorker error:', err);
-            });
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
         });
     }
 
@@ -108,49 +104,33 @@
         window.pwaInstallPrompt = e;
     });
 
-    window.addEventListener('appinstalled', () => {
-        window.pwaInstallPrompt = null;
-    });
-
     function triggerPwaInstall() {
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
-            window.pwaInstallPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User installed the PWA app');
-                }
+            window.pwaInstallPrompt.userChoice.then(() => {
                 window.pwaInstallPrompt = null;
             });
-        } else {
-            // Direct 1-Click Desktop Shortcut Generator (Zero Menu Required!)
-            const shortcutContent = `[InternetShortcut]\nURL=${window.location.origin}/?source=desktop_app\nIconIndex=0\nIconFile=${window.location.origin}/icon-192.png\n`;
-            const blob = new Blob([shortcutContent], { type: 'application/octet-stream' });
-            const downloadUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = 'Ecofone HRMS.url';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(downloadUrl);
+            return;
         }
+
+        // Direct Instant Desktop Application Shortcut Download
+        const origin = window.location.origin;
+        const shortcut = `[InternetShortcut]\nURL=${origin}/?source=desktop_app\nIconIndex=0\nIconFile=${origin}/icon-192.png\nIDList=\nHotKey=0\n[{000214A0-0000-0000-C000-000000000046}]\nProp3=19,0\n`;
+        const blob = new Blob([shortcut], { type: 'application/internet-shortcut' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Ecofone HRMS.url';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 300);
     }
     </script>
 </head>
-<!-- 📲 PWA INSTALLATION WIZARD MODAL -->
-<div id="pwaInstallModal" class="hidden fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <!-- Ambient Header Background -->
-        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-600/30">
-                    <i data-lucide="download-cloud" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h3 class="font-extrabold text-base text-slate-900">Install Ecofone HRMS App</h3>
-                    <p class="text-[11px] text-slate-400 font-medium">Standalone Native App for Desktop & Mobile</p>
-                </div>
-            </div>
+
             <button type="button" onclick="closePwaModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
