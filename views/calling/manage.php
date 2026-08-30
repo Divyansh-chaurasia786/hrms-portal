@@ -5,309 +5,326 @@ $db = getDBConnection();
 $today = date('Y-m-d');
 $isTLOrAdmin = in_array($user['role'] ?? '', ['admin', 'team_lead']);
 
-// If variables are not pre-passed by controller, query them directly
-if (!isset($callers)) {
-    $callers = $db->query("
-        SELECT id, name, emp_id, designation, role 
-        FROM users 
-        WHERE status = 'active' AND role = 'employee' AND (department_name = 'Calling / BDA Team' OR department_name = 'Calling / Sales' OR designation LIKE '%BDA%' OR designation LIKE '%Caller%' OR designation LIKE '%Telecaller%')
-        ORDER BY name ASC
-    ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
+// 1. Fetch active BDA Callers
+$callers = $db->query("
+    SELECT id, name, emp_id, designation, role 
+    FROM users 
+    WHERE status = 'active' AND role = 'employee' 
+      AND (department_name = 'Business Development' OR department_name LIKE '%Calling%' OR designation LIKE '%BDA%')
+    ORDER BY name ASC
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-if (!isset($stats)) {
-    $stats = $db->query("
-        SELECT 
-            COUNT(*) as total_leads,
-            COUNT(CASE WHEN status = 'new' THEN 1 END) as new_leads,
-            COUNT(CASE WHEN status = 'interested' THEN 1 END) as interested_leads,
-            COUNT(CASE WHEN status = 'call_later' THEN 1 END) as followup_leads,
-            COUNT(CASE WHEN status = 'converted' THEN 1 END) as converted_leads,
-            COUNT(CASE WHEN status = 'not_interested' THEN 1 END) as lost_leads
-        FROM calling_leads
-    ")->fetch(PDO::FETCH_ASSOC) ?: [];
-}
+// 2. Comprehensive Pipeline Metrics
+$stats = $db->query("
+    SELECT 
+        COUNT(*) as total_leads,
+        COUNT(CASE WHEN status = 'new' THEN 1 END) as new_leads,
+        COUNT(CASE WHEN status = 'interested' THEN 1 END) as interested_leads,
+        COUNT(CASE WHEN status = 'call_later' THEN 1 END) as followup_leads,
+        COUNT(CASE WHEN status = 'converted' THEN 1 END) as converted_leads,
+        COUNT(CASE WHEN status = 'not_interested' THEN 1 END) as lost_leads,
+        COUNT(CASE WHEN assigned_to IS NULL THEN 1 END) as unassigned_leads,
+        COALESCE(SUM(deal_value), 0) as total_pipeline_revenue
+    FROM calling_leads
+")->fetch(PDO::FETCH_ASSOC) ?: [];
 
-if (!isset($todayCallingStats)) {
-    $todayCallingStats = $db->query("
-        SELECT 
-            u.id, u.name, u.emp_id, u.designation,
-            COUNT(cl.id) as today_calls,
-            COUNT(CASE WHEN cl.disposition = 'converted' THEN 1 END) as today_converted,
-            COUNT(CASE WHEN cl.disposition = 'interested' THEN 1 END) as today_interested,
-            COUNT(CASE WHEN cl.disposition = 'call_later' THEN 1 END) as today_followup,
-            (SELECT COUNT(*) FROM calling_leads WHERE assigned_to = u.id) as total_assigned_leads
-        FROM users u
-        LEFT JOIN call_logs cl ON cl.caller_id = u.id AND cl.call_date = '{$today}'
-        WHERE u.status = 'active' AND u.role = 'employee' AND (u.department_name = 'Calling / BDA Team' OR u.department_name = 'Calling / Sales' OR u.designation LIKE '%BDA%' OR u.designation LIKE '%Caller%' OR u.designation LIKE '%Telecaller%')
-        GROUP BY u.id, u.name, u.emp_id, u.designation
-        ORDER BY today_calls DESC, today_converted DESC
-    ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
+// 3. Today's BDA Caller Performance Leaderboard
+$todayCallingStats = $db->query("
+    SELECT 
+        u.id, u.name, u.emp_id, u.designation,
+        COUNT(cl.id) as today_calls,
+        COALESCE(SUM(cl.call_duration_seconds), 0) as total_talk_time,
+        COUNT(CASE WHEN cl.disposition = 'converted' THEN 1 END) as today_converted,
+        COUNT(CASE WHEN cl.disposition = 'interested' THEN 1 END) as today_interested,
+        COUNT(CASE WHEN cl.disposition = 'call_later' THEN 1 END) as today_followup,
+        (SELECT COUNT(*) FROM calling_leads WHERE assigned_to = u.id) as total_assigned_leads
+    FROM users u
+    LEFT JOIN call_logs cl ON cl.caller_id = u.id AND cl.call_date = '{$today}'
+    WHERE u.status = 'active' AND u.role = 'employee' 
+      AND (u.department_name = 'Business Development' OR u.department_name LIKE '%Calling%' OR u.designation LIKE '%BDA%')
+    GROUP BY u.id, u.name, u.emp_id, u.designation
+    ORDER BY today_converted DESC, today_calls DESC
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-if (!isset($recentCallLogs)) {
-    $recentCallLogs = $db->query("
-        SELECT cl.*, u.name as caller_name, u.emp_id as caller_emp_id
-        FROM call_logs cl
-        JOIN users u ON cl.caller_id = u.id
-        ORDER BY cl.id DESC
-        LIMIT 100
-    ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
+// 4. Recent Call Logs Audit
+$recentCallLogs = $db->query("
+    SELECT cl.*, u.name as caller_name, u.emp_id as caller_emp_id, l.course_service, l.city
+    FROM call_logs cl
+    JOIN users u ON cl.caller_id = u.id
+    LEFT JOIN calling_leads l ON cl.lead_id = l.id
+    ORDER BY cl.id DESC
+    LIMIT 100
+")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 ?>
 
-<div class="space-y-6" x-data="{ uploadModalOpen: false, filterCaller: '', filterDate: '<?= date('Y-m-d') ?>' }">
+<div class="space-y-6" x-data="{ uploadModalOpen: <?= (isset($_GET['modal']) && $_GET['modal'] === 'upload') ? 'true' : 'false' ?>, allocateModalOpen: false, filterCaller: '', filterDate: '<?= date('Y-m-d') ?>' }">
     
-    <!-- Header Banner -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
-                <i data-lucide="phone-forwarded" class="w-5 h-5"></i>
-            </div>
+    <!-- 🌟 TOP EXECUTIVE COMMAND BANNER -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-7 border border-indigo-500/20 shadow-xl">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div>
-                <h1 class="text-xl font-bold text-slate-900 tracking-tight">BDA Telecalling CRM & Live History</h1>
-                <?php if ($user['role'] === 'admin'): ?>
-                <p class="text-xs text-slate-500 mt-0.5">HR Audit View: Monitor live telecalling performance, call logs history, and export data records to Excel.</p>
-            <?php else: ?>
-                <p class="text-xs text-slate-500 mt-0.5">TL Operations Hub: Upload lead sheets, auto-distribute numbers across callers, and monitor daily conversions.</p>
-            <?php endif; ?>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> BDA Lead CRM & Allocation
+                    </span>
+                    <span class="text-xs text-slate-400">•</span>
+                    <span class="text-xs font-semibold text-slate-300">Sales Intelligence & Telecalling Hub</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
+                    BDA Operations Command Center
+                </h1>
+                <p class="text-xs text-slate-300 mt-1">
+                    Bulk lead ingestion, intelligent Round-Robin auto-distribution, caller velocity monitoring, and revenue conversions.
+                </p>
             </div>
-        </div>
 
-        <div class="flex items-center gap-2 flex-wrap">
-            <!-- EXCEL EXPORT BUTTON (Only TL and Admin) -->
-            <a href="?action=export-calling-history" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="download" class="w-4 h-4"></i> Export Call History (Excel)
-            </a>
-
-            <?php if ($user['role'] === 'team_lead'): ?>
-                <!-- UPLOAD SHEET BUTTON (Strictly for Team Lead) -->
-                <button type="button" @click="uploadModalOpen = true" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-                    <i data-lucide="upload" class="w-4 h-4"></i> Upload & Distribute Numbers
+            <!-- Fast Action Group -->
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <button type="button" @click="uploadModalOpen = true" class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 cursor-pointer border border-indigo-400/30">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                    <span>Ingest Lead Sheet (.csv / .xlsx)</span>
                 </button>
-            <?php endif; ?>
+
+                <form action="?action=allocate-leads-round-robin" method="POST" class="m-0">
+                    <button type="submit" onclick="return confirm('Distribute all unassigned leads equally across active BDA callers?');" class="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl backdrop-blur-md border border-white/15 transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="scale" class="w-4 h-4 text-emerald-300"></i>
+                        <span>Auto Allocate (Round-Robin)</span>
+                    </button>
+                </form>
+
+                <a href="?action=export-calling-history" class="px-3.5 py-2.5 bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer border border-emerald-400/30">
+                    <i data-lucide="download" class="w-4 h-4 text-emerald-200"></i>
+                    <span>Export Excel</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 4 Key Pipeline Metric Cards -->
+        <div class="mt-6 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">Total Master Leads</span>
+                <div class="text-2xl font-black text-white mt-1"><?= number_format((int)$stats['total_leads']) ?></div>
+                <span class="text-[10px] text-amber-300 font-semibold mt-0.5 block"><?= (int)$stats['unassigned_leads'] ?> unassigned in pool</span>
+            </div>
+
+            <div class="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">Active / In Progress</span>
+                <div class="text-2xl font-black text-blue-300 mt-1"><?= number_format((int)$stats['interested_leads'] + (int)$stats['followup_leads']) ?></div>
+                <span class="text-[10px] text-blue-200 font-semibold mt-0.5 block"><?= (int)$stats['interested_leads'] ?> hot prospects</span>
+            </div>
+
+            <div class="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">Total Deals Won 🏆</span>
+                <div class="text-2xl font-black text-emerald-300 mt-1"><?= number_format((int)$stats['converted_leads']) ?></div>
+                <span class="text-[10px] text-emerald-200 font-semibold mt-0.5 block"><?= $stats['total_leads'] > 0 ? round(($stats['converted_leads'] / $stats['total_leads']) * 100, 1) : 0 ?>% conversion rate</span>
+            </div>
+
+            <div class="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">Won Deal Revenue</span>
+                <div class="text-2xl font-black text-emerald-400 mt-1">₹<?= number_format((float)$stats['total_pipeline_revenue']) ?></div>
+                <span class="text-[10px] text-slate-400 font-semibold mt-0.5 block">Pipeline value generated</span>
+            </div>
         </div>
     </div>
 
-    <!-- 4 Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Leads Pool</span>
-                <div class="text-2xl font-extrabold text-slate-900 mt-0.5"><?= (int)($stats['total_leads'] ?? 0) ?></div>
+    <!-- 🏆 LIVE BDA CALLER PERFORMANCE LEADERBOARD -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                    <i data-lucide="trophy" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-sm">BDA Caller Daily Velocity & Conversion Leaderboard</h3>
+                    <p class="text-[11px] text-slate-400">Live call counts, talk time, and deal closures for today (<?= date('d M Y') ?>)</p>
+                </div>
             </div>
-            <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                <i data-lucide="database" class="w-4 h-4"></i>
-            </div>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fresh / New</span>
-                <div class="text-2xl font-extrabold text-amber-600 mt-0.5"><?= (int)($stats['new_leads'] ?? 0) ?></div>
-            </div>
-            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <i data-lucide="phone-missed" class="w-4 h-4"></i>
-            </div>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Interested / Follow-up</span>
-                <div class="text-2xl font-extrabold text-blue-600 mt-0.5"><?= (int)($stats['interested_leads'] ?? 0) + (int)($stats['followup_leads'] ?? 0) ?></div>
-            </div>
-            <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <i data-lucide="phone-call" class="w-4 h-4"></i>
-            </div>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Closed / Converted</span>
-                <div class="text-2xl font-extrabold text-emerald-600 mt-0.5"><?= (int)($stats['converted_leads'] ?? 0) ?></div>
-            </div>
-            <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <i data-lucide="check-circle" class="w-4 h-4"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Today's Live Caller Productivity Table -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Today's Calling Leaderboard & Performance (<?= date('d M Y') ?>)
-                </h3>
-                <p class="text-xs text-slate-400">Live count of how many calls each employee has done today with their conversions.</p>
-            </div>
-            <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
-                <?= count($todayCallingStats) ?> Active BDA Agents
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live Tracking Active
             </span>
         </div>
 
-        <?php if (empty($todayCallingStats)): ?>
-            <div class="text-center py-8 text-slate-400 text-xs">
-                No active callers found in BDA Team.
-            </div>
-        <?php else: ?>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                    <tr>
+                        <th class="p-3.5">Rank & Executive</th>
+                        <th class="p-3.5 text-center">Assigned Leads</th>
+                        <th class="p-3.5 text-center">Calls Made Today</th>
+                        <th class="p-3.5 text-center">Total Talk Time</th>
+                        <th class="p-3.5 text-center">Interested Leads</th>
+                        <th class="p-3.5 text-center">Won Deals 🏆</th>
+                        <th class="p-3.5 text-right">Conversion Ratio</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (empty($todayCallingStats)): ?>
                         <tr>
-                            <th class="py-2.5 px-3">Employee / Caller</th>
-                            <th class="py-2.5 px-3 text-center">Total Assigned</th>
-                            <th class="py-2.5 px-3 text-center bg-indigo-50/60 text-indigo-900 font-extrabold">Calls Done Today</th>
-                            <th class="py-2.5 px-3 text-center">Interested</th>
-                            <th class="py-2.5 px-3 text-center">Follow-ups</th>
-                            <th class="py-2.5 px-3 text-center text-emerald-700 font-bold">Conversions</th>
-                            <th class="py-2.5 px-3 text-right">Today's Conversion %</th>
+                            <td colspan="7" class="p-8 text-center text-slate-400">No active BDA telecalling executives found in directory.</td>
                         </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php foreach ($todayCallingStats as $c): 
-                            $calls = (int)$c['today_calls'];
-                            $conv = (int)$c['today_converted'];
-                            $cRate = ($calls > 0) ? round(($conv / $calls) * 100, 1) : 0;
-                        ?>
+                    <?php else: ?>
+                        <?php foreach ($todayCallingStats as $idx => $caller): ?>
+                            <?php
+                            $talkMins = round($caller['total_talk_time'] / 60, 1);
+                            $convRate = $caller['today_calls'] > 0 ? round(($caller['today_converted'] / $caller['today_calls']) * 100, 1) : 0;
+                            ?>
                             <tr class="hover:bg-slate-50/80 transition">
-                                <td class="py-3 px-3">
-                                    <div class="font-bold text-slate-900"><?= htmlspecialchars($c['name']) ?></div>
-                                    <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($c['emp_id']) ?> • <?= htmlspecialchars($c['designation'] ?: 'Caller') ?></div>
+                                <td class="p-3.5 flex items-center gap-3">
+                                    <span class="w-6 h-6 rounded-full font-black text-xs flex items-center justify-center <?= $idx === 0 ? 'bg-amber-400 text-slate-950 shadow-xs' : ($idx === 1 ? 'bg-slate-200 text-slate-800' : 'bg-slate-100 text-slate-600') ?>">
+                                        <?= $idx + 1 ?>
+                                    </span>
+                                    <div>
+                                        <div class="font-bold text-slate-900 text-xs"><?= htmlspecialchars($caller['name']) ?></div>
+                                        <div class="text-[10px] text-slate-400"><?= htmlspecialchars($caller['emp_id'] ?? '') ?> • <?= htmlspecialchars($caller['designation']) ?></div>
+                                    </div>
                                 </td>
-                                <td class="py-3 px-3 text-center font-semibold text-slate-700"><?= (int)$c['total_assigned_leads'] ?></td>
-                                <td class="py-3 px-3 text-center font-extrabold text-indigo-700 bg-indigo-50/40 text-sm">
-                                    <?= $calls ?>
+                                <td class="p-3.5 text-center font-bold text-slate-700">
+                                    <?= (int)$caller['total_assigned_leads'] ?>
                                 </td>
-                                <td class="py-3 px-3 text-center font-bold text-blue-600"><?= (int)$c['today_interested'] ?></td>
-                                <td class="py-3 px-3 text-center font-bold text-amber-600"><?= (int)$c['today_followup'] ?></td>
-                                <td class="py-3 px-3 text-center font-extrabold text-emerald-700"><?= $conv ?></td>
-                                <td class="py-3 px-3 text-right font-extrabold text-slate-900"><?= $cRate ?>%</td>
+                                <td class="p-3.5 text-center">
+                                    <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-xs border border-indigo-100">
+                                        <?= (int)$caller['today_calls'] ?> calls
+                                    </span>
+                                </td>
+                                <td class="p-3.5 text-center font-mono font-semibold text-slate-600">
+                                    <?= $talkMins ?> mins
+                                </td>
+                                <td class="p-3.5 text-center">
+                                    <span class="font-bold text-amber-600"><?= (int)$caller['today_interested'] ?></span>
+                                </td>
+                                <td class="p-3.5 text-center">
+                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                        <?= (int)$caller['today_converted'] ?> Won
+                                    </span>
+                                </td>
+                                <td class="p-3.5 text-right font-black text-slate-900">
+                                    <?= $convRate ?>%
+                                </td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- Live Call History Log (Who called whom with numbers) -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-                <h3 class="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <i data-lucide="history" class="w-4 h-4 text-indigo-600"></i>
-                    Live Call History & Number Log (Saved Every Call)
-                </h3>
-                <p class="text-xs text-slate-400">Complete record of every call attempt: employee name, customer name, phone number, and feedback.</p>
+    <!-- 📜 CALL LOGS & INTERACTION AUDIT -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                    <i data-lucide="history" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-sm">Live Call History & Disposition Audit</h3>
+                    <p class="text-[11px] text-slate-400">Detailed logs of recent client interactions</p>
+                </div>
             </div>
-            <a href="?action=export-calling-history" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5">
-                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Download CSV/Excel
+            <a href="?action=export-calling-history" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Export All to Excel
             </a>
         </div>
 
-        <?php if (empty($recentCallLogs)): ?>
-            <div class="text-center py-10 bg-slate-50 rounded-2xl text-slate-400 text-xs">
-                No call history logs recorded yet. Start calling from the Live Calling Queue to see real-time history logs.
-            </div>
-        <?php else: ?>
-            <div class="overflow-x-auto max-h-96 overflow-y-auto">
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold sticky top-0 border-b border-slate-200 shadow-2xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                    <tr>
+                        <th class="p-3.5">Time</th>
+                        <th class="p-3.5">Caller / BDA</th>
+                        <th class="p-3.5">Customer & City</th>
+                        <th class="p-3.5">Phone Number</th>
+                        <th class="p-3.5">Outcome / Disposition</th>
+                        <th class="p-3.5">Duration</th>
+                        <th class="p-3.5">Call Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (empty($recentCallLogs)): ?>
                         <tr>
-                            <th class="py-2.5 px-3">Call Time</th>
-                            <th class="py-2.5 px-3">Caller (Employee)</th>
-                            <th class="py-2.5 px-3">Customer / Lead</th>
-                            <th class="py-2.5 px-3">Phone Number</th>
-                            <th class="py-2.5 px-3 text-center">Disposition</th>
-                            <th class="py-2.5 px-3">Notes / Feedback</th>
+                            <td colspan="7" class="p-8 text-center text-slate-400">No telecalling interactions logged yet today.</td>
                         </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <?php else: ?>
                         <?php foreach ($recentCallLogs as $log): ?>
                             <tr class="hover:bg-slate-50/80 transition">
-                                <td class="py-2.5 px-3 whitespace-nowrap text-slate-500 font-mono text-[11px]">
-                                    <?= date('d M, h:i A', strtotime($log['call_time'])) ?>
+                                <td class="p-3.5 text-slate-500 font-mono text-[11px]">
+                                    <?= date('h:i A', strtotime($log['call_time'])) ?>
                                 </td>
-                                <td class="py-2.5 px-3 whitespace-nowrap">
-                                    <span class="font-bold text-slate-900"><?= htmlspecialchars($log['caller_name']) ?></span>
-                                    <span class="text-[10px] text-slate-400 font-mono block"><?= htmlspecialchars($log['caller_emp_id']) ?></span>
+                                <td class="p-3.5 font-bold text-slate-900">
+                                    <?= htmlspecialchars($log['caller_name']) ?>
                                 </td>
-                                <td class="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">
-                                    <?= htmlspecialchars($log['customer_name'] ?: 'Prospect') ?>
+                                <td class="p-3.5 font-medium text-slate-800">
+                                    <div><?= htmlspecialchars($log['customer_name']) ?></div>
+                                    <div class="text-[10px] text-slate-400"><?= htmlspecialchars($log['city'] ?: 'General') ?></div>
                                 </td>
-                                <td class="py-2.5 px-3 font-mono font-bold text-indigo-700 whitespace-nowrap">
+                                <td class="p-3.5 font-mono text-slate-700">
                                     <?= htmlspecialchars($log['phone']) ?>
                                 </td>
-                                <td class="py-2.5 px-3 text-center whitespace-nowrap">
-                                    <?php 
-                                    $disp = $log['disposition'];
-                                    if ($disp === 'converted'): ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">✓ Converted</span>
-                                    <?php elseif ($disp === 'interested'): ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">Interested</span>
-                                    <?php elseif ($disp === 'call_later'): ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Follow-up</span>
-                                    <?php else: ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600"><?= ucfirst(str_replace('_', ' ', $disp)) ?></span>
-                                    <?php endif; ?>
+                                <td class="p-3.5">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase <?= $log['disposition'] === 'converted' ? 'bg-emerald-100 text-emerald-800' : ($log['disposition'] === 'interested' ? 'bg-blue-100 text-blue-800' : ($log['disposition'] === 'call_later' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700')) ?>">
+                                        <?= str_replace('_', ' ', strtoupper($log['disposition'])) ?>
+                                    </span>
                                 </td>
-                                <td class="py-2.5 px-3 text-slate-600 max-w-xs truncate">
+                                <td class="p-3.5 font-mono text-slate-600 text-center">
+                                    <?= gmdate('i:s', (int)$log['call_duration_seconds']) ?>
+                                </td>
+                                <td class="p-3.5 text-slate-600 max-w-xs truncate text-[11px]">
                                     <?= htmlspecialchars($log['notes'] ?: '-') ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- Upload Excel/CSV Modal -->
-    <div x-show="uploadModalOpen" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="uploadModalOpen = false"></div>
-        <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                        <i data-lucide="upload-cloud" class="w-4 h-4 text-indigo-600"></i>
-                        Upload & Auto-Distribute Lead Numbers Sheet
-                    </h3>
-                    <button type="button" @click="uploadModalOpen = false" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
-                </div>
-
-                <form action="?action=upload-calling-leads" method="POST" enctype="multipart/form-data" class="space-y-4 pt-4">
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select Excel / CSV File with Numbers *</label>
-                        <input type="file" name="lead_file" accept=".csv,.txt" required class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-slate-300 rounded-xl p-1 bg-slate-50">
-                        <p class="text-[10px] text-slate-400 mt-1">Columns format: <code>Column 1: Customer Name, Column 2: Phone Number, Column 3: City (optional)</code></p>
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">Distribute Leads To Callers (Check All Applicable):</label>
-                        <div class="max-h-40 overflow-y-auto space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                            <?php foreach ($callers as $clr): ?>
-                                <label class="flex items-center justify-between p-1.5 hover:bg-white rounded-lg cursor-pointer text-xs transition">
-                                    <div class="flex items-center gap-2">
-                                        <input type="checkbox" name="callers[]" value="<?= $clr['id'] ?>" checked class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
-                                        <span class="font-bold text-slate-800"><?= htmlspecialchars($clr['name']) ?></span>
-                                    </div>
-                                    <span class="text-[10px] font-mono text-slate-400"><?= htmlspecialchars($clr['emp_id']) ?></span>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-
-                    <div class="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl text-xs text-indigo-900 leading-relaxed">
-                        💡 <strong>Auto-Round-Robin:</strong> Uploaded phone numbers will be divided equally and instantly assigned to the checked callers.
-                    </div>
-
-                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                        <button type="button" @click="uploadModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer">Cancel</button>
-                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition cursor-pointer">Upload & Allocate Leads</button>
-                    </div>
-                </form>
-            </div>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
+
+    <!-- 📤 BULK LEAD INGESTION MODAL -->
+    <div x-show="uploadModalOpen" x-cloak class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="uploadModalOpen = false" class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-900">Ingest & Auto-Allocate Lead Sheet</h3>
+                        <p class="text-[11px] text-slate-400">Supports .csv and .xlsx files (e.g. from D:\ drive)</p>
+                    </div>
+                </div>
+                <button type="button" @click="uploadModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+
+            <form action="?action=upload-bda-leads" method="POST" enctype="multipart/form-data" class="space-y-4 pt-1" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Campaign Title *</label>
+                    <input type="text" name="campaign_title" required placeholder="e.g. Q3 Meta Ads Webinar Leads" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Upload Lead File (.csv / .xlsx)</label>
+                    <input type="file" name="lead_file" required accept=".csv, .xlsx, .xls" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                </div>
+
+                <!-- Auto Allocation Options -->
+                <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100 space-y-2">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" name="auto_allocate" value="1" id="auto_alloc" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <label for="auto_alloc" class="text-xs font-bold text-indigo-950 cursor-pointer">Auto-Distribute Equally (Round-Robin)</label>
+                    </div>
+                    <p class="text-[10px] text-indigo-800/80 leading-relaxed">
+                        Leads will be distributed equally across all <?= count($callers) ?> active BDA callers.
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" @click="uploadModalOpen = false" :disabled="isSubmitting" class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">Cancel</button>
+                    <button type="submit" :disabled="isSubmitting" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                        <span x-show="!isSubmitting" class="flex items-center gap-1.5"><i data-lucide="upload" class="w-3.5 h-3.5"></i> Ingest & Distribute</span>
+                        <span x-show="isSubmitting" class="flex items-center gap-1.5" style="display: none;"><i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Ingesting...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>

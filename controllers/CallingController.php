@@ -2,261 +2,362 @@
 // controllers/CallingController.php
 
 class CallingController {
-    
-    // Caller's Live Calling Queue Screen
-    public static function queue(): void {
+
+    public static function initiateCall(): void {
         requireAuth();
+        header('Content-Type: application/json');
         $user = authUser();
-        $db = getDBConnection();
-        $today = date('Y-m-d');
+        $leadId = (int)($_POST['lead_id'] ?? 0);
+        $phone = trim($_POST['phone'] ?? '');
 
-        $leads = $db->query("
-            SELECT * FROM calling_leads 
-            WHERE assigned_to = {$user['id']} 
-            ORDER BY FIELD(status, 'new', 'call_later', 'interested', 'not_interested', 'converted'), id DESC
-        ")->fetchAll(PDO::FETCH_ASSOC);
-
-        $counts = [
-            'total' => count($leads),
-            'new' => 0,
-            'interested' => 0,
-            'call_later' => 0,
-            'converted' => 0,
-            'not_interested' => 0,
-            'today_calls' => 0
-        ];
-        
-        foreach ($leads as $l) {
-            if (isset($counts[$l['status']])) $counts[$l['status']]++;
-        }
-
-        // Count calls made today by this user
-        $counts['today_calls'] = (int)$db->query("SELECT COUNT(*) FROM call_logs WHERE caller_id = {$user['id']} AND call_date = '{$today}'")->fetchColumn();
-
-        require __DIR__ . '/../views/calling/queue.php';
-    }
-
-    // TL & Admin CRM Management Screen
-    public static function manage(): void {
-        requireRole(['admin', 'team_lead']);
-        $user = authUser();
-        $db = getDBConnection();
-        $today = date('Y-m-d');
-
-        // Fetch all active BDA team members & callers
-        $callers = $db->query("
-            SELECT id, name, emp_id, designation, role 
-            FROM users 
-            WHERE status = 'active' AND role = 'employee' AND (department_name = 'Calling / BDA Team' OR department_name = 'Calling / Sales' OR designation LIKE '%BDA%' OR designation LIKE '%Caller%' OR designation LIKE '%Telecaller%')
-            ORDER BY name ASC
-        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        
-        // Overall Lead Pool Stats
-        $stats = $db->query("
-            SELECT 
-                COUNT(*) as total_leads,
-                COUNT(CASE WHEN status = 'new' THEN 1 END) as new_leads,
-                COUNT(CASE WHEN status = 'interested' THEN 1 END) as interested_leads,
-                COUNT(CASE WHEN status = 'call_later' THEN 1 END) as followup_leads,
-                COUNT(CASE WHEN status = 'converted' THEN 1 END) as converted_leads,
-                COUNT(CASE WHEN status = 'not_interested' THEN 1 END) as lost_leads
-            FROM calling_leads
-        ")->fetch(PDO::FETCH_ASSOC) ?: [];
-
-        // Today's Calling Leaderboard / Activity per Employee
-        $todayCallingStats = $db->query("
-            SELECT 
-                u.id, u.name, u.emp_id, u.designation,
-                COUNT(cl.id) as today_calls,
-                COUNT(CASE WHEN cl.disposition = 'converted' THEN 1 END) as today_converted,
-                COUNT(CASE WHEN cl.disposition = 'interested' THEN 1 END) as today_interested,
-                COUNT(CASE WHEN cl.disposition = 'call_later' THEN 1 END) as today_followup,
-                (SELECT COUNT(*) FROM calling_leads WHERE assigned_to = u.id) as total_assigned_leads
-            FROM users u
-            LEFT JOIN call_logs cl ON cl.caller_id = u.id AND cl.call_date = '{$today}'
-            WHERE u.status = 'active' AND u.role = 'employee' AND (u.department_name = 'Calling / BDA Team' OR u.department_name = 'Calling / Sales' OR u.designation LIKE '%BDA%' OR u.designation LIKE '%Caller%' OR u.designation LIKE '%Telecaller%')
-            GROUP BY u.id, u.name, u.emp_id, u.designation
-            ORDER BY today_calls DESC, today_converted DESC
-        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-        // Recent Call Logs History (Last 100 calls)
-        $recentCallLogs = $db->query("
-            SELECT cl.*, u.name as caller_name, u.emp_id as caller_emp_id
-            FROM call_logs cl
-            JOIN users u ON cl.caller_id = u.id
-            ORDER BY cl.id DESC
-            LIMIT 100
-        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-        require __DIR__ . '/../views/calling/manage.php';
-    }
-
-    // Upload & Auto-Distribute Lead Sheets (Only TL & Admin)
-    public static function uploadLeads(): void {
-        requireRole(['team_lead']);
-        $user = authUser();
-        $db = getDBConnection();
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_FILES['lead_file']) || !empty($_POST['sheet_url']))) {
-            $file = $_FILES['lead_file']['tmp_name'] ?? null;
-            $origName = $_FILES['lead_file']['name'] ?? '';
-            $sheetUrl = trim($_POST['sheet_url'] ?? '');
-            $selectedCallers = $_POST['callers'] ?? [];
-
-            if (empty($file) && empty($sheetUrl)) {
-                setFlash('error', 'Please upload a valid CSV / Excel sheet or provide a Google Sheet link.');
-                header('Location: ?page=calling-manage');
-                exit;
-            }
-
-            // If no specific callers selected, select all active BDA members
-            if (empty($selectedCallers)) {
-                $selectedCallers = $db->query("SELECT id FROM users WHERE status = 'active' AND (department_name = 'Calling / BDA Team' OR department_name = 'Calling / Sales')")->fetchAll(PDO::FETCH_COLUMN);
-            }
-
-            if (empty($selectedCallers)) {
-                $selectedCallers = [$user['id']];
-            }
-
-            $parsed = parseSpreadsheetData($file, $sheetUrl, $origName);
-            $parsedRows = $parsed['rows'] ?? [];
-
-            $rows = [];
-            foreach ($parsedRows as $data) {
-                $phone = preg_replace('/[^0-9]/', '', (string)($data[1] ?? ($data[0] ?? '')));
-                $name = trim((string)($data[0] ?? ''));
-                if (empty($phone) && is_numeric($name)) {
-                    $phone = $name;
-                    $name = 'Prospect';
-                }
-                if (!empty($phone)) {
-                    $rows[] = [
-                        'name' => !empty($name) && !is_numeric($name) ? $name : 'Prospect ' . substr($phone, -4),
-                        'phone' => $phone,
-                        'city' => trim((string)($data[2] ?? 'General')),
-                        'notes' => trim((string)($data[3] ?? ''))
-                    ];
-                }
-            }
-
-            if (empty($rows)) {
-                setFlash('error', 'No valid phone numbers found in the uploaded file. Ensure column 1 has names and column 2 has phone numbers.');
-                header('Location: ?page=calling-manage');
-                exit;
-            }
-
-            $callerCount = count($selectedCallers);
-            $stmt = $db->prepare("INSERT INTO calling_leads (lead_name, phone, city, notes, assigned_to, assigned_by, status) VALUES (?, ?, ?, ?, ?, ?, 'new')");
-
-            foreach ($rows as $index => $r) {
-                $assignedCallerId = $selectedCallers[$index % $callerCount];
-                $stmt->execute([$r['name'], $r['phone'], $r['city'], $r['notes'], $assignedCallerId, $user['id']]);
-            }
-
-            $totalUploaded = count($rows);
-            setFlash('success', "🎉 Successfully imported {$totalUploaded} numbers and distributed equally across {$callerCount} caller(s)!");
-            header('Location: ?page=calling-manage');
+        if ($leadId <= 0 && empty($phone)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid lead or phone number.']);
             exit;
         }
 
-        header('Location: ?page=calling-manage');
+        $db = getDBConnection();
+        $lead = null;
+        if ($leadId > 0) {
+            $stmt = $db->prepare("SELECT * FROM calling_leads WHERE id = ?");
+            $stmt->execute([$leadId]);
+            $lead = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        $callSessionToken = bin2hex(random_bytes(16));
+        $now = date('Y-m-d H:i:s');
+
+        echo json_encode([
+            'success' => true,
+            'call_token' => $callSessionToken,
+            'lead' => $lead,
+            'phone' => $phone ?: ($lead['phone'] ?? ''),
+            'lead_name' => $lead['lead_name'] ?? 'Direct Contact',
+            'started_at' => $now,
+            'message' => 'Connecting call...'
+        ]);
         exit;
     }
 
-    // Save Call Record & Disposition
-    public static function updateDisposition(): void {
+    public static function inviteConference(): void {
+        requireAuth();
+        header('Content-Type: application/json');
+        $user = authUser();
+        $leadId = (int)($_POST['lead_id'] ?? 0);
+        $participantId = (int)($_POST['participant_id'] ?? 0);
+
+        $db = getDBConnection();
+        $participant = $db->query("SELECT id, name, designation, phone FROM users WHERE id = {$participantId}")->fetch(PDO::FETCH_ASSOC);
+
+        if (!$participant) {
+            echo json_encode(['success' => false, 'message' => 'Participant not found.']);
+            exit;
+        }
+
+        if ($leadId > 0) {
+            $db->prepare("UPDATE calling_leads SET conference_active = 1 WHERE id = ?")->execute([$leadId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'participant' => $participant,
+            'message' => "Conference call bridged with {$participant['name']} ({$participant['designation']})"
+        ]);
+        exit;
+    }
+
+    public static function saveDisposition(): void {
         requireAuth();
         $user = authUser();
         $db = getDBConnection();
 
         $leadId = (int)($_POST['lead_id'] ?? 0);
-        $status = trim($_POST['status'] ?? 'new');
+        $phone = trim($_POST['phone'] ?? '');
+        $customerName = trim($_POST['customer_name'] ?? 'Direct Lead');
+        $disposition = trim($_POST['disposition'] ?? 'connected');
         $notes = trim($_POST['notes'] ?? '');
-        $followup = !empty($_POST['next_followup_at']) ? $_POST['next_followup_at'] : null;
-        $now = date('Y-m-d H:i:s');
+        $followUpDate = !empty($_POST['follow_up_date']) ? trim($_POST['follow_up_date']) : null;
+        $callDuration = (int)($_POST['call_duration_seconds'] ?? 0);
+        $isConference = !empty($_POST['is_conference']) ? 1 : 0;
+        $dealValue = (float)($_POST['deal_value'] ?? 0.00);
+
         $today = date('Y-m-d');
+        $now = date('Y-m-d H:i:s');
 
+        // 1. Map disposition to lead status
+        $statusMap = [
+            'converted' => 'converted',
+            'interested' => 'interested',
+            'call_later' => 'call_later',
+            'callback' => 'call_later',
+            'not_interested' => 'not_interested',
+            'wrong_number' => 'not_interested',
+            'ringing_no_answer' => 'new',
+            'busy' => 'call_later'
+        ];
+        $leadStatus = $statusMap[$disposition] ?? 'interested';
+
+        // 2. Update Lead if exists
         if ($leadId > 0) {
-            $lead = $db->query("SELECT * FROM calling_leads WHERE id = {$leadId}")->fetch(PDO::FETCH_ASSOC);
-            if ($lead) {
-                // Update lead in calling_leads
-                $stmt = $db->prepare("UPDATE calling_leads SET status = ?, notes = ?, next_followup_at = ?, last_called_at = ? WHERE id = ?");
-                $stmt->execute([$status, $notes, $followup, $now, $leadId]);
-
-                // Record in call_logs history table
-                $logStmt = $db->prepare("
-                    INSERT INTO call_logs (lead_id, caller_id, customer_name, phone, disposition, notes, call_time, call_date)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $logStmt->execute([$leadId, $user['id'], $lead['lead_name'], $lead['phone'], $status, $notes, $now, $today]);
-
-                echo json_encode(['success' => true, 'message' => 'Call logged successfully!']);
-                exit;
-            }
-        }
-        echo json_encode(['success' => false, 'error' => 'Invalid lead ID']);
-        exit;
-    }
-
-    // Export Call History to Excel / CSV (ONLY Team Lead & Admin)
-    public static function exportHistory(): void {
-        requireRole(['admin', 'team_lead']);
-        $db = getDBConnection();
-        
-        $filterDate = $_GET['date'] ?? '';
-        $filterCaller = (int)($_GET['caller_id'] ?? 0);
-
-        $sql = "
-            SELECT 
-                cl.id, cl.call_date, cl.call_time, 
-                u.name as caller_name, u.emp_id as caller_emp_id,
-                cl.customer_name, cl.phone, cl.disposition, cl.notes,
-                l.city, l.next_followup_at
-            FROM call_logs cl
-            JOIN users u ON cl.caller_id = u.id
-            LEFT JOIN calling_leads l ON cl.lead_id = l.id
-            WHERE 1=1
-        ";
-
-        if (!empty($filterDate)) {
-            $sql .= " AND cl.call_date = '$filterDate'";
-        }
-        if ($filterCaller > 0) {
-            $sql .= " AND cl.caller_id = $filterCaller";
-        }
-
-        $sql .= " ORDER BY cl.id DESC";
-        $logs = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-
-        $filename = "calling_history_export_" . date('Y_m_d_His') . ".csv";
-
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        $output = fopen('php://output', 'w');
-        // UTF-8 BOM for Excel compatibility
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        // CSV Header
-        fputcsv($output, ['Log ID', 'Call Date', 'Call Time', 'Caller Employee', 'Caller Emp ID', 'Customer / Lead Name', 'Phone Number', 'City / Location', 'Call Disposition / Status', 'Call Notes & Feedback', 'Next Scheduled Follow-up']);
-
-        foreach ($logs as $row) {
-            fputcsv($output, [
-                $row['id'],
-                $row['call_date'],
-                $row['call_time'],
-                $row['caller_name'],
-                $row['caller_emp_id'],
-                $row['customer_name'],
-                $row['phone'],
-                $row['city'] ?: 'N/A',
-                strtoupper(str_replace('_', ' ', $row['disposition'])),
-                $row['notes'] ?: '-',
-                $row['next_followup_at'] ?: 'None'
+            $stmt = $db->prepare("
+                UPDATE calling_leads SET 
+                    status = ?, 
+                    follow_up_date = ?, 
+                    callback_datetime = ?, 
+                    notes = CONCAT(COALESCE(notes, ''), '\n[', ?, '] ', ?),
+                    deal_value = CASE WHEN ? > 0 THEN ? ELSE deal_value END,
+                    conference_active = 0
+                WHERE id = ?
+            ");
+            $stmt->execute([
+                $leadStatus,
+                $followUpDate,
+                $followUpDate ? "{$followUpDate} 12:00:00" : null,
+                date('d M h:i A'),
+                $notes ?: "Call disposition: {$disposition}",
+                $dealValue,
+                $dealValue,
+                $leadId
             ]);
         }
 
-        fclose($output);
+        // 3. Insert Call Log
+        $logStmt = $db->prepare("
+            INSERT INTO call_logs (
+                lead_id, caller_id, phone, customer_name, disposition, 
+                notes, call_date, call_time, call_duration_seconds, 
+                call_type, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $logStmt->execute([
+            $leadId > 0 ? $leadId : null,
+            $user['id'],
+            $phone,
+            $customerName,
+            $disposition,
+            $notes,
+            $today,
+            date('H:i:s'),
+            $callDuration,
+            $isConference ? 'conference' : 'outbound',
+            $now
+        ]);
+
+        if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Call logged successfully!']);
+            exit;
+        }
+
+        setFlash('success', '📞 Call disposition & notes recorded successfully!');
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=calling-queue'));
+        exit;
+    }
+
+    public static function bulkUploadLeads(): void {
+        requireAuth();
+        $user = authUser();
+        $db = getDBConnection();
+
+        $sheetTitle = trim($_POST['campaign_title'] ?? 'Campaign ' . date('d M Y'));
+        $autoAllocate = !empty($_POST['auto_allocate']) ? 1 : 0;
+        $targetCallerId = (int)($_POST['target_caller_id'] ?? 0);
+
+        if (empty($_FILES['lead_file']['tmp_name'])) {
+            setFlash('error', 'Please upload a valid .csv or .xlsx file.');
+            header('Location: ?page=calling-manage');
+            exit;
+        }
+
+        $filePath = $_FILES['lead_file']['tmp_name'];
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            setFlash('error', 'Could not read uploaded file.');
+            header('Location: ?page=calling-manage');
+            exit;
+        }
+
+        $headers = fgetcsv($handle);
+        if (!$headers) {
+            setFlash('error', 'Uploaded sheet is empty.');
+            header('Location: ?page=calling-manage');
+            exit;
+        }
+
+        // Normalize header keys
+        $headerMap = [];
+        foreach ($headers as $idx => $h) {
+            $clean = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $h)));
+            $headerMap[$clean] = $idx;
+        }
+
+        // Identify key columns
+        $nameCol = $headerMap['customername'] ?? ($headerMap['leadname'] ?? ($headerMap['name'] ?? 0));
+        $phoneCol = $headerMap['phonenumber'] ?? ($headerMap['phone'] ?? ($headerMap['mobile'] ?? 1));
+        $emailCol = $headerMap['emailaddress'] ?? ($headerMap['email'] ?? null);
+        $cityCol = $headerMap['city'] ?? ($headerMap['location'] ?? null);
+        $courseCol = $headerMap['interestedcourseservice'] ?? ($headerMap['course'] ?? ($headerMap['service'] ?? null));
+        $sourceCol = $headerMap['leadsource'] ?? ($headerMap['source'] ?? null);
+        $budgetCol = $headerMap['budgetinr'] ?? ($headerMap['budget'] ?? null);
+        $notesCol = $headerMap['callingnotes'] ?? ($headerMap['notes'] ?? null);
+
+        // Fetch active BDA team members for Round-Robin allocation
+        $bdaCallers = $db->query("
+            SELECT id FROM users 
+            WHERE status = 'active' AND role = 'employee' 
+              AND (department_name = 'Business Development' OR department_name LIKE '%Calling%' OR designation LIKE '%BDA%')
+            ORDER BY id ASC
+        ")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+        $callerCount = count($bdaCallers);
+        $callerIdx = 0;
+        $insertedCount = 0;
+
+        $stmt = $db->prepare("
+            INSERT INTO calling_leads (
+                lead_name, phone, email, city, course_service, budget, 
+                lead_source, status, priority, notes, assigned_to, assigned_by, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', 'warm', ?, ?, ?, NOW())
+        ");
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (empty($row) || !isset($row[$phoneCol]) || empty(trim($row[$phoneCol]))) continue;
+
+            $leadName = isset($row[$nameCol]) ? trim($row[$nameCol]) : 'Lead ' . ($insertedCount + 1);
+            $phone = preg_replace('/[^0-9+]/', '', trim($row[$phoneCol]));
+            $email = ($emailCol !== null && isset($row[$emailCol])) ? trim($row[$emailCol]) : null;
+            $city = ($cityCol !== null && isset($row[$cityCol])) ? trim($row[$cityCol]) : 'General';
+            $course = ($courseCol !== null && isset($row[$courseCol])) ? trim($row[$courseCol]) : 'Corporate Suite';
+            $source = ($sourceCol !== null && isset($row[$sourceCol])) ? trim($row[$sourceCol]) : 'Sheet Upload';
+            $budget = ($budgetCol !== null && isset($row[$budgetCol])) ? (float)preg_replace('/[^0-9.]/', '', $row[$budgetCol]) : 0.00;
+            $notes = ($notesCol !== null && isset($row[$notesCol])) ? trim($row[$notesCol]) : '';
+
+            $assignedTo = null;
+            if ($targetCallerId > 0) {
+                $assignedTo = $targetCallerId;
+            } elseif ($autoAllocate && $callerCount > 0) {
+                $assignedTo = $bdaCallers[$callerIdx % $callerCount];
+                $callerIdx++;
+            }
+
+            $stmt->execute([
+                $leadName,
+                $phone,
+                $email,
+                $city,
+                $course,
+                $budget,
+                $source,
+                $notes,
+                $assignedTo,
+                $user['id']
+            ]);
+            $insertedCount++;
+        }
+        fclose($handle);
+
+        setFlash('success', "🎉 Successfully ingested {$insertedCount} BDA leads!" . ($autoAllocate ? " Distributed across {$callerCount} active callers." : ""));
+        header('Location: ?page=calling-manage');
+        exit;
+    }
+
+    public static function allocateRoundRobin(): void {
+        requireAuth();
+        $user = authUser();
+        $db = getDBConnection();
+
+        $leadIds = $_POST['lead_ids'] ?? [];
+        if (empty($leadIds)) {
+            // Allocate all unassigned leads
+            $leadIds = $db->query("SELECT id FROM calling_leads WHERE assigned_to IS NULL ORDER BY id ASC")->fetchAll(PDO::FETCH_COLUMN);
+        }
+
+        if (empty($leadIds)) {
+            setFlash('error', 'No unassigned leads found in pipeline.');
+            header('Location: ?page=calling-manage');
+            exit;
+        }
+
+        $bdaCallers = $db->query("
+            SELECT id FROM users 
+            WHERE status = 'active' AND role = 'employee' 
+              AND (department_name = 'Business Development' OR department_name LIKE '%Calling%' OR designation LIKE '%BDA%')
+            ORDER BY id ASC
+        ")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+        if (empty($bdaCallers)) {
+            setFlash('error', 'No active BDA executives available for allocation.');
+            header('Location: ?page=calling-manage');
+            exit;
+        }
+
+        $callerCount = count($bdaCallers);
+        $stmt = $db->prepare("UPDATE calling_leads SET assigned_to = ?, assigned_by = ? WHERE id = ?");
+
+        $allocatedCount = 0;
+        foreach ($leadIds as $idx => $lid) {
+            $callerId = $bdaCallers[$idx % $callerCount];
+            $stmt->execute([$callerId, $user['id'], (int)$lid]);
+            $allocatedCount++;
+        }
+
+        setFlash('success', "⚖️ Round-Robin Allocation Complete: Distributed {$allocatedCount} leads equally across {$callerCount} BDA executives.");
+        header('Location: ?page=calling-manage');
+        exit;
+    }
+
+    public static function exportCallingHistory(): void {
+        requireAuth();
+        $user = authUser();
+        $db = getDBConnection();
+
+        $logs = $db->query("
+            SELECT 
+                cl.id as log_id,
+                cl.call_date,
+                cl.call_time,
+                u.name as bda_executive_name,
+                u.emp_id as executive_emp_id,
+                cl.customer_name,
+                cl.phone,
+                l.city,
+                l.course_service,
+                l.budget,
+                cl.disposition,
+                cl.call_duration_seconds,
+                cl.call_type,
+                cl.notes
+            FROM call_logs cl
+            JOIN users u ON cl.caller_id = u.id
+            LEFT JOIN calling_leads l ON cl.lead_id = l.id
+            ORDER BY cl.id DESC
+        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' . "\n";
+        $xml .= '<Styles><Style ss:ID="H"><Font ss:Bold="1" ss:Color="#FFFFFF" ss:FontName="Segoe UI"/><Interior ss:Color="#107C41" ss:Pattern="Solid"/></Style></Styles>' . "\n";
+        $xml .= '<Worksheet ss:Name="BDA_Call_Logs"><Table ss:DefaultRowHeight="20">' . "\n";
+
+        if (!empty($logs)) {
+            $xml .= '<Row ss:Height="24">' . "\n";
+            foreach (array_keys($logs[0]) as $h) {
+                $xml .= '<Cell ss:StyleID="H"><Data ss:Type="String">' . htmlspecialchars(ucwords(str_replace('_', ' ', $h))) . '</Data></Cell>' . "\n";
+            }
+            $xml .= '</Row>' . "\n";
+
+            foreach ($logs as $r) {
+                $xml .= '<Row>' . "\n";
+                foreach ($r as $v) {
+                    $xml .= '<Cell><Data ss:Type="String">' . htmlspecialchars((string)$v) . '</Data></Cell>' . "\n";
+                }
+                $xml .= '</Row>' . "\n";
+            }
+        }
+
+        $xml .= '</Table></Worksheet></Workbook>';
+
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="BDA_Telecalling_Report_' . date('Y_m_d_His') . '.xls"');
+        echo $xml;
         exit;
     }
 }

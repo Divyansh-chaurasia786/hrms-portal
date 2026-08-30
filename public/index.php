@@ -807,6 +807,29 @@ if ($action) {
                 'status' => 'ok'
             ]);
             exit;
+                case 'upload-bda-leads':
+            requireActiveShift();
+            CallingController::bulkUploadLeads();
+            exit;
+        case 'allocate-leads-round-robin':
+            requireActiveShift();
+            CallingController::allocateRoundRobin();
+            exit;
+        case 'initiate-softphone-call':
+            requireActiveShift();
+            CallingController::initiateCall();
+            exit;
+        case 'invite-conference-call':
+            requireActiveShift();
+            CallingController::inviteConference();
+            exit;
+        case 'save-call-disposition':
+            requireActiveShift();
+            CallingController::saveDisposition();
+            exit;
+        case 'export-calling-history':
+            CallingController::exportCallingHistory();
+            exit;
         case 'submit-daily-report':
             requireActiveShift();
             ReportController::submitReport();
