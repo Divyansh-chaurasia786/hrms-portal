@@ -89,13 +89,15 @@
             scrollbar-width: none !important;
         }
     </style>
-            <!-- 📲 Instant 1-Click Direct App Downloader (Zero Popups) -->
+                <!-- 📲 Native App Engine & Standalone Window Launcher -->
     <script>
     window.pwaInstallPrompt = null;
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+                console.log('PWA ServiceWorker registered');
+            }).catch(() => {});
         });
     }
 
@@ -104,29 +106,31 @@
         window.pwaInstallPrompt = e;
     });
 
+    window.addEventListener('appinstalled', () => {
+        window.pwaInstallPrompt = null;
+    });
+
     function triggerPwaInstall() {
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
-            window.pwaInstallPrompt.userChoice.then(() => {
-                window.pwaInstallPrompt = null;
+            window.pwaInstallPrompt.userChoice.then((choice) => {
+                if (choice.outcome === 'accepted') {
+                    window.pwaInstallPrompt = null;
+                }
             });
             return;
         }
 
-        // Direct Instant Desktop Application Shortcut Download
-        const origin = window.location.origin;
-        const shortcut = `[InternetShortcut]\nURL=${origin}/?source=desktop_app\nIconIndex=0\nIconFile=${origin}/icon-192.png\nIDList=\nHotKey=0\n[{000214A0-0000-0000-C000-000000000046}]\nProp3=19,0\n`;
-        const blob = new Blob([shortcut], { type: 'application/internet-shortcut' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'Ecofone HRMS.url';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 300);
+        // Open in Standalone Native App Window Mode (Frameless Desktop App)
+        const currentUrl = window.location.href;
+        const appWindow = window.open(
+            currentUrl,
+            'EcofoneHRMS_NativeApp',
+            'toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1366,height=850,top=50,left=100'
+        );
+        if (appWindow) {
+            appWindow.focus();
+        }
     }
     </script>
 </head>
