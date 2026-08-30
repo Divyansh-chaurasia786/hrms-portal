@@ -89,6 +89,41 @@
             scrollbar-width: none !important;
         }
     </style>
+    <!-- 📲 PWA Service Worker & Install Prompt Trigger -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+                console.log('PWA ServiceWorker active:', reg.scope);
+            }).catch((err) => {
+                console.log('PWA ServiceWorker error:', err);
+            });
+        });
+    }
+
+    let pwaInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        pwaInstallPrompt = e;
+        const installBtns = document.querySelectorAll('.pwa-install-btn');
+        installBtns.forEach(btn => btn.style.display = 'inline-flex');
+    });
+
+    function triggerPwaInstall() {
+        if (pwaInstallPrompt) {
+            pwaInstallPrompt.prompt();
+            pwaInstallPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    const installBtns = document.querySelectorAll('.pwa-install-btn');
+                    installBtns.forEach(btn => btn.style.display = 'none');
+                }
+                pwaInstallPrompt = null;
+            });
+        } else {
+            alert('📲 How to Install App on Mobile / PC:\n\n• On Chrome/Brave/Edge: Click the (⋮) menu on top right and tap "Install App" or "Add to Home screen".\n• On iPhone Safari: Tap the Share icon (↑) and tap "Add to Home Screen".');
+        }
+    }
+    </script>
 </head>
 <body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
