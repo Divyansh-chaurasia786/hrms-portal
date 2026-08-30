@@ -413,39 +413,54 @@ foreach ($leads as $l) {
         </div>
     </div>
 
-    <!-- 👥 CONFERENCE CALL INVITE MODAL -->
+    <!-- 👥 CONFERENCE CALL INVITE MODAL (Internal Team & External Any Number) -->
     <div x-show="conferenceModalOpen" x-cloak class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4">
         <div @click.away="conferenceModalOpen = false" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold">
                         <i data-lucide="users-2" class="w-4 h-4"></i>
                     </div>
                     <div>
                         <h3 class="font-bold text-sm text-slate-900">Bridge 3-Way Conference Call</h3>
-                        <p class="text-[11px] text-slate-400">Invite Team Lead or Senior Specialist</p>
+                        <p class="text-[11px] text-slate-400">Add Team Lead, Closer, or External Phone Number</p>
                     </div>
                 </div>
                 <button type="button" @click="conferenceModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
 
-            <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                <?php foreach ($teamMembers as $m): ?>
-                    <div class="py-2.5 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
-                                <?= strtoupper(substr($m['name'], 0, 2)) ?>
+            <!-- Option 1: Dial ANY External Phone Number (Parent / Co-applicant / Sponsor) -->
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Option 1: Dial External Number</label>
+                <div class="flex items-center gap-2">
+                    <input type="tel" x-model="externalConfPhone" placeholder="Enter mobile number to bridge..." class="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 font-mono">
+                    <button type="button" @click="bridgeExternalPhone()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs">
+                        <i data-lucide="phone-outgoing" class="w-3.5 h-3.5"></i> Dial & Bridge
+                    </button>
+                </div>
+            </div>
+
+            <!-- Option 2: 1-Click Internal Team & TL Bridge -->
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Option 2: Internal Team & Leadership</label>
+                <div class="divide-y divide-slate-100 max-h-56 overflow-y-auto border border-slate-100 rounded-2xl p-1">
+                    <?php foreach ($teamMembers as $m): ?>
+                        <div class="py-2 px-2.5 flex items-center justify-between gap-3 hover:bg-slate-50 rounded-xl transition">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
+                                    <?= strtoupper(substr($m['name'], 0, 2)) ?>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="text-xs font-bold text-slate-900 truncate"><?= htmlspecialchars($m['name']) ?></h4>
+                                    <p class="text-[10px] text-slate-400 truncate"><?= htmlspecialchars($m['designation']) ?></p>
+                                </div>
                             </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs font-bold text-slate-900 truncate"><?= htmlspecialchars($m['name']) ?></h4>
-                                <p class="text-[10px] text-slate-400 truncate"><?= htmlspecialchars($m['designation']) ?></p>
-                            </div>
+                            <button type="button" @click="bridgeConference(<?= htmlspecialchars(json_encode($m)) ?>)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0">
+                                <i data-lucide="phone-forwarded" class="w-3 h-3"></i> Merge
+                            </button>
                         </div>
-                        <button type="button" @click="bridgeConference(<?= htmlspecialchars(json_encode($m)) ?>)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
-                            <i data-lucide="phone-forwarded" class="w-3.5 h-3.5"></i> Merge Call
-                        </button>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
     </div>
@@ -498,6 +513,7 @@ document.addEventListener('alpine:init', () => {
         isMuted: false,
         isOnHold: false,
         conferenceParticipant: null,
+        externalConfPhone: '',
         conferenceModalOpen: false,
         dispositionModalOpen: false,
         whatsappModalOpen: false,
@@ -561,6 +577,23 @@ document.addEventListener('alpine:init', () => {
         bridgeConference(member) {
             this.conferenceParticipant = member;
             this.conferenceModalOpen = false;
+            this.$nextTick(() => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+        },
+
+        bridgeExternalPhone() {
+            if (!this.externalConfPhone || !this.externalConfPhone.trim()) {
+                alert('Please enter a valid phone number to bridge.');
+                return;
+            }
+            this.conferenceParticipant = {
+                name: 'External (' + this.externalConfPhone.trim() + ')',
+                designation: 'Co-Applicant / Decision Maker',
+                phone: this.externalConfPhone.trim()
+            };
+            this.conferenceModalOpen = false;
+            this.externalConfPhone = '';
             this.$nextTick(() => {
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             });
