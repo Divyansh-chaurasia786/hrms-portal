@@ -199,6 +199,17 @@ $page = $_GET['page'] ?? 'dashboard';
         </a>
     </nav>
 
+        <!-- 📲 Sidebar Install App Link -->
+    <div class="px-3 pb-2">
+        <button type="button" onclick="triggerPwaInstall()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 font-bold text-xs transition cursor-pointer group">
+            <span class="flex items-center gap-2.5">
+                <i data-lucide="download-cloud" class="w-4 h-4 text-indigo-400 group-hover:text-white"></i>
+                <span>Install Native App</span>
+            </span>
+            <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-200">Free</span>
+        </button>
+    </div>
+
     <!-- Logout / Footer of Sidebar -->
     <div class="p-3 border-t border-slate-800/80">
         <a href="?action=logout" class="flex items-center gap-3 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition text-sm">
@@ -231,7 +242,13 @@ $page = $_GET['page'] ?? 'dashboard';
         </div>
 
         <!-- Quick Punch Status & User Info -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
+            <!-- 📲 Prominent 1-Click Install / Download App Button -->
+            <button type="button" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-black shadow-md shadow-indigo-600/30 transition cursor-pointer border border-indigo-400/30">
+                <i data-lucide="download-cloud" class="w-4 h-4 text-white"></i>
+                <span class="hidden sm:inline">Install / Download App</span>
+                <span class="sm:hidden">Install</span>
+            </button>
             <?php
             $todayAtt = AttendanceController::getTodayAttendanceForUser($user['id']);
             $isCurrentlyIn = ($todayAtt && $todayAtt['clock_out'] === null);
