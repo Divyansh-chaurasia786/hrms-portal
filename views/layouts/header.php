@@ -134,46 +134,6 @@
     }
     </script>
 </head>
-
-            <button type="button" onclick="closePwaModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-
-        <!-- Browser Specific Step-by-Step Instructions -->
-        <div class="space-y-3">
-            <!-- Brave / Chrome Desktop Guide -->
-            <div class="p-4 rounded-2xl bg-gradient-to-r from-orange-50/80 to-amber-50/80 border border-orange-200/80 flex items-start gap-3.5">
-                <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                    1
-                </div>
-                <div class="text-xs text-slate-700">
-                    <div class="font-bold text-slate-900 mb-0.5">For Brave / Chrome Browser:</div>
-                    Look at your browser's **top-right menu button (≡ or ⋮)** next to the address bar, then click <strong class="text-orange-950 bg-orange-100 px-1.5 py-0.5 rounded">"Install Ecofone HRMS..."</strong>.
-                </div>
-            </div>
-
-            <!-- Mobile Phone Guide -->
-            <div class="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/80 to-teal-50/80 border border-emerald-200/80 flex items-start gap-3.5">
-                <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                    2
-                </div>
-                <div class="text-xs text-slate-700">
-                    <div class="font-bold text-slate-900 mb-0.5">For Android & iOS Mobile:</div>
-                    Tap the <strong>(⋮) menu</strong> in Chrome or <strong>Share (↑)</strong> in Safari, then tap <strong class="text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">"Add to Home screen"</strong>.
-                </div>
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-between pt-2">
-            <span class="text-[11px] text-slate-400 font-medium">No Play Store download needed</span>
-            <button type="button" onclick="closePwaModal()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer">
-                Got It, Let Me Install!
-            </button>
-        </div>
-    </div>
-</div>
 <body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
 <script>
