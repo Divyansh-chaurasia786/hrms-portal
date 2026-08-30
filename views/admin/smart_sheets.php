@@ -145,64 +145,149 @@ body[data-page="admin-smart-sheets"] main {
     border: 1px solid #c8c6c4 !important;
 }
 
-/* 🟢 Authentic Excel 2021 Dialog & Popup Styling */
+/* 🟢 AUTHENTIC MICROSOFT OFFICE 2021 FLUENT MODAL DIALOGS */
+.luckysheet-modal-dialog-mask {
+    background: rgba(15, 23, 42, 0.45) !important;
+    backdrop-filter: blur(3px) !important;
+    z-index: 2000 !important;
+}
+
 .luckysheet-modal-dialog,
 .luckysheet-modal-dialog-content {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
-    border-radius: 8px !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12) !important;
-    border: 1px solid #d2d0ce !important;
+    border-radius: 12px !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid #e2e8f0 !important;
     background: #ffffff !important;
-    color: #201f1e !important;
+    color: #1e293b !important;
+    overflow: hidden !important;
+    z-index: 2001 !important;
 }
 
+/* Elegant Clean Header */
 .luckysheet-modal-dialog-title {
-    background: #107c41 !important;
-    color: #ffffff !important;
+    background: #f8fafc !important;
+    color: #0f172a !important;
     font-weight: 700 !important;
-    font-size: 13px !important;
-    padding: 10px 16px !important;
-    border-radius: 7px 7px 0 0 !important;
+    font-size: 14px !important;
+    padding: 12px 18px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
 }
 
+.luckysheet-modal-dialog-title-text {
+    font-family: 'Segoe UI', sans-serif !important;
+    color: #0f172a !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+}
+
+.luckysheet-modal-dialog-title-close {
+    color: #64748b !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    transition: color 0.15s ease !important;
+}
+
+.luckysheet-modal-dialog-title-close:hover {
+    color: #ef4444 !important;
+}
+
+/* Modal Body */
+.luckysheet-modal-dialog-box {
+    padding: 18px 20px !important;
+    font-size: 13px !important;
+    color: #334155 !important;
+}
+
+/* Hide broken/awkward fake input boxes in confirm modals */
+.luckysheet-modal-dialog input[readonly],
+.luckysheet-modal-dialog input[value*="Can be undo"],
+.luckysheet-modal-dialog input[value*="Ctrl+Z"] {
+    background: #f8fafc !important;
+    border: 1px dashed #cbd5e1 !important;
+    color: #64748b !important;
+    font-size: 11px !important;
+    border-radius: 6px !important;
+    padding: 6px 10px !important;
+    margin: 8px 0 !important;
+}
+
+/* Modal Buttons (Office 2021 Style) */
+.luckysheet-modal-dialog-button {
+    background: #f8fafc !important;
+    border-top: 1px solid #f1f5f9 !important;
+    padding: 12px 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+}
+
 .luckysheet-modal-dialog button,
-.luckysheet-modal-dialog-button,
-.luckysheet-btn,
-.luckysheet-btn-primary,
-.luckysheet-modal-dialog input[type="button"],
-.luckysheet-modal-dialog input[type="submit"] {
+.luckysheet-modal-dialog-button input[type="button"],
+.luckysheet-modal-dialog-button input[type="submit"],
+.luckysheet-btn {
+    border-radius: 6px !important;
+    padding: 7px 18px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    font-family: 'Segoe UI', sans-serif !important;
+}
+
+/* Primary Action Button */
+.luckysheet-modal-dialog button.luckysheet-btn-primary,
+.luckysheet-modal-dialog button:first-of-type,
+.luckysheet-modal-dialog input.luckysheet-btn-primary,
+.luckysheet-modal-dialog input[value="OK"],
+.luckysheet-modal-dialog input[value="Confirm"] {
     background: #107c41 !important;
     color: #ffffff !important;
     border: 1px solid #0f6c38 !important;
-    font-weight: 600 !important;
-    border-radius: 4px !important;
-    padding: 6px 16px !important;
-    font-size: 12px !important;
-    cursor: pointer !important;
-    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 2px rgba(16, 124, 65, 0.2) !important;
 }
 
-.luckysheet-modal-dialog button:hover,
-.luckysheet-modal-dialog input[type="button"]:hover {
+.luckysheet-modal-dialog button.luckysheet-btn-primary:hover,
+.luckysheet-modal-dialog input[value="OK"]:hover {
     background: #0f6c38 !important;
 }
 
-.luckysheet-modal-dialog input[type="text"],
+/* Cancel Button */
+.luckysheet-modal-dialog button:last-of-type,
+.luckysheet-modal-dialog input[value="Cancel"],
+.luckysheet-modal-dialog input[value="Close"] {
+    background: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+.luckysheet-modal-dialog button:last-of-type:hover,
+.luckysheet-modal-dialog input[value="Cancel"]:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* Modern Input Controls */
+.luckysheet-modal-dialog input[type="text"]:not([readonly]),
 .luckysheet-modal-dialog select {
-    border: 1px solid #8a8886 !important;
-    border-radius: 3px !important;
-    padding: 4px 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 6px 10px !important;
     font-size: 12px !important;
+    color: #1e293b !important;
     outline: none !important;
+    transition: all 0.15s ease !important;
 }
 
 .luckysheet-modal-dialog input[type="text"]:focus,
 .luckysheet-modal-dialog select:focus {
     border-color: #107c41 !important;
-    box-shadow: 0 0 0 1px #107c41 !important;
+    box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.15) !important;
 }
 
 /* 🟢 Authentic Microsoft Excel 2021 Right-Click Context Menus */
