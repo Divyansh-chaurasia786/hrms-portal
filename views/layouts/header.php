@@ -89,8 +89,10 @@
             scrollbar-width: none !important;
         }
     </style>
-    <!-- 📲 PWA Service Worker & Install Prompt Trigger -->
+        <!-- 📲 PWA Service Worker & Global Install Prompt Trigger -->
     <script>
+    window.pwaInstallPrompt = null;
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js').then((reg) => {
@@ -101,33 +103,37 @@
         });
     }
 
-    let pwaInstallPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        pwaInstallPrompt = e;
-        const installBtns = document.querySelectorAll('.pwa-install-btn');
-        installBtns.forEach(btn => btn.style.display = 'inline-flex');
+        window.pwaInstallPrompt = e;
+    });
+
+    window.addEventListener('appinstalled', () => {
+        window.pwaInstallPrompt = null;
     });
 
     function triggerPwaInstall() {
-        if (pwaInstallPrompt) {
-            pwaInstallPrompt.prompt();
-            pwaInstallPrompt.userChoice.then((choiceResult) => {
+        if (window.pwaInstallPrompt) {
+            window.pwaInstallPrompt.prompt();
+            window.pwaInstallPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') {
-                    const modal = document.getElementById('pwaInstallModal');
-                    if (modal) modal.classList.add('hidden');
+                    console.log('User installed the PWA app');
                 }
-                pwaInstallPrompt = null;
+                window.pwaInstallPrompt = null;
             });
         } else {
-            const modal = document.getElementById('pwaInstallModal');
-            if (modal) modal.classList.remove('hidden');
+            // Direct 1-Click Desktop Shortcut Generator (Zero Menu Required!)
+            const shortcutContent = `[InternetShortcut]\nURL=${window.location.origin}/?source=desktop_app\nIconIndex=0\nIconFile=${window.location.origin}/icon-192.png\n`;
+            const blob = new Blob([shortcutContent], { type: 'application/octet-stream' });
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'Ecofone HRMS.url';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
         }
-    }
-
-    function closePwaModal() {
-        const modal = document.getElementById('pwaInstallModal');
-        if (modal) modal.classList.add('hidden');
     }
     </script>
 </head>
