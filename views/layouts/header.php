@@ -143,6 +143,62 @@
         document.body.removeChild(a);
     }
     </script>
+
+    <!-- 📍 GPS Background Location Tracker -->
+    <script>
+    var _ecoGpsInterval = null;
+    var _ecoLastPing = 0;
+    var _ecoPingIntervalMs = 30 * 60 * 1000; // 30 min auto-ping interval
+
+    function _ecoSendLocationPing(type) {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            var payload = {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+                type: type || 'auto_ping',
+                device: navigator.userAgent.substring(0, 200),
+                address: ''
+            };
+            // Try reverse geocode via browser-side (no API key needed)
+            fetch('/api/track-location.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(function() {});
+            _ecoLastPing = Date.now();
+        }, function(err) {}, { enableHighAccuracy: true, timeout: 10000 });
+    }
+
+    function _ecoStartGpsTracking() {
+        // Send initial ping on page load
+        if (Date.now() - _ecoLastPing > 60000) {
+            _ecoSendLocationPing('auto_ping');
+        }
+        // Auto ping every 30 mins
+        if (_ecoGpsInterval) clearInterval(_ecoGpsInterval);
+        _ecoGpsInterval = setInterval(function() {
+            _ecoSendLocationPing('auto_ping');
+        }, _ecoPingIntervalMs);
+    }
+
+    // Start GPS tracking for field employees
+    document.addEventListener('DOMContentLoaded', function() {
+        if (navigator.geolocation) {
+            _ecoStartGpsTracking();
+        }
+    });
+
+    // On visibility restore (tab switch back), re-ping
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && navigator.geolocation) {
+            if (Date.now() - _ecoLastPing > 5 * 60 * 1000) {
+                _ecoSendLocationPing('auto_ping');
+            }
+        }
+    });
+    </script>
 </head>
 <body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
