@@ -230,21 +230,7 @@ $isTLSupport = (stripos($tlDesig, 'tl support') !== false || stripos($tlDesig, '
         <?php endif; ?>
     </div>
 
-        <!-- 📲 DOWNLOAD & INSTALL APP BANNER CARD -->
-    <div class="bg-gradient-to-r from-indigo-900 via-slate-900 to-purple-950 text-white p-5 sm:p-6 rounded-3xl border border-indigo-500/30 shadow-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 relative overflow-hidden">
-        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex items-center gap-4 relative z-10">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center font-black text-xl shrink-0 shadow-lg shadow-indigo-500/30 border border-white/20">
-                <i data-lucide="smartphone" class="w-6 h-6"></i>
-            </div>
-            <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h3 class="text-sm sm:text-base font-black text-white tracking-tight">Download & Install Ecofone HRMS App</h3>
-                    <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full text-[10px] font-extrabold uppercase">Mobile & Desktop</span>
-                </div>
-                <p class="text-xs text-slate-300 mt-0.5">Install native app on Android, iPhone, Windows PC, or Mac for 1-tap SIM calling & offline access.</p>
-            </div>
-        </div>
+        
 
         <div class="flex items-center gap-2.5 relative z-10 shrink-0">
             <button type="button" onclick="triggerPwaInstall()" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer border border-emerald-400/30">
