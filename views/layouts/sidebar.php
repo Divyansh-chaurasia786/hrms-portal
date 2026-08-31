@@ -447,9 +447,9 @@ $page = $_GET['page'] ?? 'dashboard';
                     <p class="text-[11px] text-indigo-100 mt-0.5">Installs official app with full screen & zero URL bar</p>
                 </div>
             </div>
-            <button type="button" onclick="if(window.pwaInstallPrompt){ window.pwaInstallPrompt.prompt(); closePwaInstallModal(); } else { alert('On Android: tap ⋮ Chrome Menu → Add to Home Screen.\nOn iPhone: tap Share (□↑) → Add to Home Screen.'); }" class="w-full py-2.5 px-4 bg-white text-indigo-700 hover:bg-indigo-50 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+            <button type="button" onclick="executePwaDirectInstall()" class="w-full py-2.5 px-4 bg-white text-indigo-700 hover:bg-indigo-50 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
                 <i data-lucide="download" class="w-4 h-4"></i>
-                <span>Direct Install Native App (Mobile)</span>
+                <span>Direct Install Native App (Mobile & PC)</span>
             </button>
         </div>
 

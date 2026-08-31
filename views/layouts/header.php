@@ -143,6 +143,28 @@
         }
     }
 
+    function executePwaDirectInstall() {
+        if (window.pwaInstallPrompt) {
+            window.pwaInstallPrompt.prompt();
+            window.pwaInstallPrompt.userChoice.then(function(choice) {
+                if (choice.outcome === 'accepted') {
+                    window.pwaInstallPrompt = null;
+                    closePwaInstallModal();
+                    showToast('🎉 Installing EcoFone App...');
+                }
+            });
+        } else {
+            if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                downloadDesktopLauncher();
+                closePwaInstallModal();
+            } else if (/Android/i.test(navigator.userAgent)) {
+                alert('📲 On Android: Tap Chrome Menu (⋮) top-right → Tap "Install App" or "Add to Home screen".');
+            } else {
+                alert('📲 On iPhone: Tap Safari Share icon (□↑) at bottom → Tap "Add to Home Screen".');
+            }
+        }
+    }
+
     function showToast(msg) {
         var toast = document.createElement('div');
         toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold border border-slate-700 animate-in fade-in slide-in-from-bottom duration-200 text-center max-w-[90%]';
