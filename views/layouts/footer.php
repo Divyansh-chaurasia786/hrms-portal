@@ -5,7 +5,7 @@
 $currentUser = authUser();
 $isFieldActive = false;
 $activeAttId = 0;
-if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($currentUser['department_name'] ?? '', 'Field') !== false || stripos($currentUser['designation'] ?? '', 'Field') !== false)) {
+if ($currentUser) {
     $dbTracker = getDBConnection();
     $todayDate = date('Y-m-d');
     $attRow = $dbTracker->query("SELECT id FROM attendance WHERE user_id = {$currentUser['id']} AND date = '{$todayDate}' AND clock_in IS NOT NULL AND clock_out IS NULL")->fetch();
@@ -18,7 +18,7 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
 
 <?php if ($isFieldActive): ?>
 <script>
-// 🚗 High-Resilience GPS Route Tracker with Background Lock & WakeLock
+// 🚗 High-Resilience GPS Route Tracker with Unthrottled WebWorker Heartbeat
 (function initResilientGpsTracker() {
     let lastLat = null;
     let lastLng = null;
@@ -90,15 +90,14 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
             currentBatteryLevel = Math.round(battery.level * 100);
             battery.addEventListener('levelchange', () => {
                 currentBatteryLevel = Math.round(battery.level * 100);
-                // If battery drops below 5%, send emergency shutdown ping
-                if (currentBatteryLevel <= 5 && lastLat && lastLng) {
-                    sendGpsPing(lastLat, lastLng, 0, true);
+                if (lastLat && lastLng) {
+                    sendGpsPing(lastLat, lastLng, 0);
                 }
             });
         }).catch(() => {});
     }
 
-    // 2. Offline Queue Helpers
+    // 5. Offline Queue Helpers
     function getOfflineQueue() {
         try {
             return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
@@ -108,7 +107,6 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
     function saveToOfflineQueue(ping) {
         const q = getOfflineQueue();
         q.push(ping);
-        // Keep max 500 pings to prevent memory overflow
         if (q.length > 500) q.shift();
         localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
     }
@@ -130,16 +128,14 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
         .then(data => {
             if (data.success) {
                 localStorage.removeItem(QUEUE_KEY);
-                console.log(`✅ Flushed ${data.synced_count} offline GPS pings to server!`);
             }
         })
         .catch(() => {});
     }
 
-    // Flush automatically when network comes back online
     window.addEventListener('online', flushOfflineQueue);
 
-    function sendGpsPing(lat, lng, speed, isEmergency = false) {
+    function sendGpsPing(lat, lng, speed) {
         if (!lat || !lng) return;
 
         lastLat = lat;
@@ -156,7 +152,6 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
         };
 
         if (!navigator.onLine) {
-            // Save to offline queue ONLY when no internet
             saveToOfflineQueue(pingData);
             return;
         }
@@ -170,7 +165,7 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
         .then(() => {
             flushOfflineQueue();
         })
-        .catch(err => {
+        .catch(() => {
             saveToOfflineQueue(pingData);
         });
     }
@@ -181,20 +176,42 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
             function(pos) {
                 sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
             },
-            function(err) {},
+            function() {},
             { enableHighAccuracy: true, timeout: 8000, maximumAge: 2000 }
         );
 
-        // Continuous 3-second live heartbeat ping
-        setInterval(function() {
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
-                },
-                function(err) {},
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-            );
-        }, 3000);
+        // ⚡ Un-throttled Background Web Worker Timer (Ticks every 3 seconds non-stop)
+        try {
+            const workerCode = "setInterval(function() { postMessage('TICK'); }, 3000);";
+            const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+            const tickerWorker = new Worker(URL.createObjectURL(workerBlob));
+            tickerWorker.onmessage = function() {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
+                    },
+                    function() {
+                        // Fallback: If hardware lock is busy, ping last known position so radar remains live
+                        if (lastLat && lastLng) {
+                            sendGpsPing(lastLat, lastLng, 0);
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 3500, maximumAge: 2000 }
+                );
+            };
+        } catch(e) {
+            setInterval(function() {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
+                    },
+                    function() {
+                        if (lastLat && lastLng) sendGpsPing(lastLat, lastLng, 0);
+                    },
+                    { enableHighAccuracy: true, timeout: 3500, maximumAge: 2000 }
+                );
+            }, 3000);
+        }
     }
 })();
 </script>
