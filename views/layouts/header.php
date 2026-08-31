@@ -112,16 +112,16 @@
     // Store deferred install prompt silently — never auto-fire
     window.pwaInstallPrompt = null;
 
-    // Register service worker silently
+    // Register service worker immediately for instant PWA readiness
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js').catch(function() {});
-        });
+        navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            if (reg && reg.update) reg.update();
+        }).catch(function() {});
     }
 
-    // Suppress browser's own install popup — store for later manual use only
+    // Capture install prompt event from browser
     window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault(); // ← Prevents automatic browser popup
+        e.preventDefault();
         window.pwaInstallPrompt = e;
         var btn = document.getElementById('installAppNavbarBtn');
         if (btn) btn.classList.add('ring-2', 'ring-indigo-400');
@@ -133,10 +133,9 @@
         if (btn) btn.style.display = 'none';
     });
 
-    // Directly triggers the native install prompt on mobile — NO guidance popup
+    // Directly triggers the native install prompt on mobile — NO popup/alerts
     function triggerPwaInstall() {
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            alert('✅ App is already installed and running on your device!');
             return;
         }
 
@@ -152,14 +151,12 @@
             return;
         }
 
-        // Direct mobile instruction if browser prompt not ready
-        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            alert('📲 On iPhone: Tap Safari Share icon (□↑) at bottom → Tap "Add to Home Screen".');
-        } else if (/Android/i.test(navigator.userAgent)) {
-            alert('📲 On Android: Tap Chrome Menu (⋮) top-right → Tap "Install App" or "Add to Home screen".');
-        } else {
-            downloadDesktopLauncher();
-        }
+        // Fallback: If clicked before event fired, listen for next prompt event and fire immediately
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.pwaInstallPrompt = e;
+            e.prompt();
+        }, { once: true });
     }
 
     function closePwaInstallModal() {
