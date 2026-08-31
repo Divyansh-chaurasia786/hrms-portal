@@ -67,39 +67,49 @@ $recentAudits = $db->query("
 ")->fetchAll();
 ?>
 
-<div class="space-y-7 pb-8">
+<div class="space-y-6 pb-8">
 
-    <!-- Executive Header & Quick Actions (Floating Glass Header) -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm">
-        <div class="flex items-center gap-3 sm:gap-4">
-            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold shrink-0 shadow-lg shadow-indigo-500/25 ring-2 sm:ring-4 ring-indigo-50">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 sm:w-6 sm:h-6"></i>
-            </div>
-            <div class="min-w-0">
-                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                    <?php 
-                    $userDesig = $user['designation'] ?? 'Head HR';
-                    $isHRSupport = (stripos($userDesig, 'hr support') !== false);
-                    ?>
-                    <h1 class="text-base sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight"><?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?></h1>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold <?= $isHRSupport ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-purple-100 text-purple-800 border border-purple-200' ?> uppercase">
-                        <?= htmlspecialchars($userDesig) ?>
-                    </span>
+    <!-- Executive Command Header (Ultra-Premium Glass & Slate Gradient Banner) -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-7 shadow-xl shadow-slate-900/20 border border-slate-800">
+        <!-- Ambient Background Glows -->
+        <div class="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <!-- Left Brand Identity & Title -->
+            <div class="flex items-start sm:items-center gap-4">
+                <div class="w-13 h-13 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-950/50">
+                    <img src="/logo_icon.png?v=3" alt="EcoFone" class="w-8 h-8 object-contain">
                 </div>
-                <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 font-medium">Real-time workforce metrics, live attendance stream, leave queue, and compliance.</p>
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
+                            <?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?>
+                        </h1>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 uppercase tracking-wide">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <?= htmlspecialchars($userDesig) ?>
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-1 font-medium flex items-center gap-2 flex-wrap">
+                        <span>Real-time workforce intelligence & operations monitor</span>
+                        <span class="text-slate-500">•</span>
+                        <span class="text-indigo-300 font-semibold"><?= date('l, d F Y') ?></span>
+                    </p>
+                </div>
             </div>
-        </div>
 
-        <!-- Quick Top Buttons (Clean 2-Column Grid on Mobile, Flex on Desktop) -->
-        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-            <a href="?page=admin-employees" class="px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-xl text-[11px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm">
-                <i data-lucide="user-plus" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
-                <span class="truncate">Directory & Onboard</span>
-            </a>
-            <a href="?page=admin-attendance" class="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-[11px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 border border-slate-200 shadow-2xs">
-                <i data-lucide="calendar" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500"></i>
-                <span class="truncate">Attendance Audit</span>
-            </a>
+            <!-- Right Quick Action Launchers -->
+            <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                <a href="?page=admin-employees" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-600/30 hover:scale-[1.02] cursor-pointer">
+                    <i data-lucide="user-plus" class="w-4 h-4 text-indigo-200"></i>
+                    <span>Directory & Onboard</span>
+                </a>
+                <a href="?page=admin-attendance" class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-white/20 backdrop-blur-sm shadow-sm cursor-pointer hover:scale-[1.02]">
+                    <i data-lucide="calendar-check" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Attendance Audit</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -126,86 +136,91 @@ $recentAudits = $db->query("
         </div>
     <?php endif; ?>
 
-    <!-- 4 High-Contrast Floating KPI Metric Cards (2x2 Grid on Mobile, 4 Cols on Desktop) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <!-- KPI 1: Workforce -->
-        <a href="?page=admin-employees" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(99,102,241,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+    <!-- 4 High-Contrast Executive KPI Metric Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+        <!-- KPI 1: Workforce Directory -->
+        <a href="?page=admin-employees" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-600 transition-colors truncate">Workforce</span>
-                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-purple-50 group-hover:bg-purple-600 text-purple-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
-                    <i data-lucide="users" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Total Workforce</span>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-indigo-100">
+                    <i data-lucide="users" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <div class="mt-2 sm:mt-3">
-                <div class="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-mono group-hover:text-indigo-600 transition-colors"><?= $empCount ?></div>
-                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
-                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60">
-                        <?= $tlCount ?> Leads
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-mono group-hover:text-indigo-600 transition-colors"><?= $empCount ?></div>
+                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                        <?= $tlCount ?> Team Leads
                     </span>
-                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">active</span>
+                    <span class="text-[10px] text-slate-400 font-semibold">Active Portal</span>
                 </div>
             </div>
         </a>
 
-        <!-- KPI 2: Present Today -->
-        <a href="?page=admin-attendance" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(16,185,129,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+        <!-- KPI 2: Present Today (Live Duty Stream) -->
+        <?php 
+        $dutyRate = ($empCount > 0) ? round(($presentCount / $empCount) * 100) : 0;
+        ?>
+        <a href="?page=admin-attendance" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-emerald-600 transition-colors truncate">Present Today</span>
-                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
-                    <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Present Today</span>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-emerald-100">
+                    <i data-lucide="clock-4" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <div class="mt-2 sm:mt-3">
-                <div class="text-xl sm:text-3xl font-extrabold text-emerald-600 tracking-tight font-mono">
-                    <?= $presentCount ?> <span class="text-xs sm:text-sm font-bold text-slate-400 font-sans">/ <?= $empCount ?></span>
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight font-mono flex items-baseline gap-1.5">
+                    <span><?= $presentCount ?></span>
+                    <span class="text-xs sm:text-sm font-bold text-slate-400 font-sans">/ <?= $empCount ?></span>
                 </div>
-                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
-                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                        <?= date('d M') ?>
-                    </span>
-                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">Shift Live</span>
+                <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+                    <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: <?= min(100, max(5, $dutyRate)) ?>%"></div>
+                </div>
+                <div class="flex items-center justify-between mt-1.5">
+                    <span class="text-[10px] font-bold text-emerald-700"><?= $dutyRate ?>% On Duty</span>
+                    <span class="text-[10px] text-slate-400 font-medium"><?= date('d M') ?> Live</span>
                 </div>
             </div>
         </a>
 
         <!-- KPI 3: Pending Leaves -->
-        <a href="?page=admin-leaves" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(245,158,11,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+        <a href="?page=admin-leaves" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-600 transition-colors truncate">Pending Leaves</span>
-                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-50 group-hover:bg-amber-600 text-amber-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
-                    <i data-lucide="calendar-off" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-amber-600 transition-colors">Pending Leaves</span>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl <?= $pendingLeaves > 0 ? 'bg-amber-500 text-white animate-pulse' : 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-amber-100">
+                    <i data-lucide="calendar-off" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <div class="mt-2 sm:mt-3">
-                <div class="text-xl sm:text-3xl font-extrabold <?= $pendingLeaves > 0 ? 'text-amber-600' : 'text-slate-900' ?> tracking-tight font-mono">
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-black <?= $pendingLeaves > 0 ? 'text-amber-600' : 'text-slate-900' ?> tracking-tight font-mono">
                     <?= $pendingLeaves ?>
                 </div>
-                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
-                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold <?= $pendingLeaves > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200/60' : 'bg-slate-100 text-slate-600' ?>">
-                        <?= $pendingLeaves > 0 ? 'Action' : 'Clear' ?>
+                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold <?= $pendingLeaves > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' ?>">
+                        <?= $pendingLeaves > 0 ? 'Review Needed' : 'All Reviewed ✓' ?>
                     </span>
-                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">Leaves</span>
+                    <span class="text-[10px] text-slate-400 font-semibold">Queue</span>
                 </div>
             </div>
         </a>
 
-        <!-- KPI 4: TL Referrals -->
-        <a href="?page=admin-tl-reports" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_35px_-6px_rgba(239,68,68,0.18)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+        <!-- KPI 4: TL Referrals & Compliance -->
+        <a href="?page=admin-tl-reports" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-rose-600 transition-colors truncate">TL Referrals</span>
-                <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl <?= $pendingEscCount > 0 ? 'bg-rose-50 group-hover:bg-rose-600 text-rose-600 group-hover:text-white' : 'bg-slate-100 group-hover:bg-slate-800 text-slate-600 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-2xs">
-                    <i data-lucide="shield-alert" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
+                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-purple-600 transition-colors">TL Referrals</span>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl <?= $pendingEscCount > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-purple-100">
+                    <i data-lucide="shield-check" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <div class="mt-2 sm:mt-3">
-                <div class="text-xl sm:text-3xl font-extrabold <?= $pendingEscCount > 0 ? 'text-rose-600' : 'text-slate-900' ?> tracking-tight font-mono">
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-black <?= $pendingEscCount > 0 ? 'text-rose-600' : 'text-slate-900' ?> tracking-tight font-mono">
                     <?= $pendingEscCount ?>
                 </div>
-                <div class="flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap">
-                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold <?= $pendingEscCount > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200/60' : 'bg-slate-100 text-slate-600' ?>">
-                        <?= $pendingEscCount === 0 ? 'Clear ✓' : 'Escalated' ?>
+                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold <?= $pendingEscCount > 0 ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-purple-50 text-purple-700 border border-purple-200' ?>">
+                        <?= $pendingEscCount > 0 ? 'Escalated' : '100% Compliant ✓' ?>
                     </span>
-                    <span class="text-[9px] sm:text-[10px] text-slate-400 font-medium">Audit</span>
+                    <span class="text-[10px] text-slate-400 font-semibold">Audit Health</span>
                 </div>
             </div>
         </a>
