@@ -141,7 +141,7 @@
         }
     });
 
-    // Direct 1-click installation trigger with zero popup
+    // Direct 1-click native installation trigger — ZERO file downloads
     function triggerPwaInstall() {
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
@@ -156,13 +156,13 @@
             return;
         }
 
-        // Direct Windows desktop launcher download or mobile install action (0 popups)
-        if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            downloadDesktopLauncher();
-        } else if (/Android/i.test(navigator.userAgent)) {
-            showToast('📲 Tap (⋮) Chrome Menu top-right → "Install app"');
-        } else {
+        // Native browser installation guidance without any file downloads
+        if (/Android/i.test(navigator.userAgent)) {
+            showToast('📲 Tap Chrome Menu (⋮) top-right → "Install app"');
+        } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             showToast('📲 Tap Safari Share (□↑) → "Add to Home Screen"');
+        } else {
+            showToast('📲 Click the Install (🖥️↓) icon in the address bar or Menu (⋮) → "Install EcoFone App"');
         }
     }
 
@@ -173,29 +173,6 @@
         document.body.appendChild(toast);
         setTimeout(function() { toast.remove(); }, 4000);
     }
-
-    function downloadDesktopLauncher() {
-        var content = "[InternetShortcut]\r\nURL=https://hrms-ecovista.vercel.app/?page=dashboard\r\nIconFile=https://hrms-ecovista.vercel.app/favicon.ico\r\nIconIndex=0\r\n";
-        var blob = new Blob([content], { type: 'application/octet-stream' });
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'EcoFone App.url';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showToast('✅ EcoFone App desktop shortcut downloaded!');
-    }
-
-    function closePwaInstallModal() {
-        var modal = document.getElementById('pwaInstallModal');
-        if (modal) modal.classList.add('hidden');
-    }
-
-    // Safety guard: ensure modal is always hidden on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        var modal = document.getElementById('pwaInstallModal');
-        if (modal) modal.classList.add('hidden');
-    });
     </script>
     <!-- 📍 ENTERPRISE 24/7 BACKGROUND GPS ENGINE (SW Persistent Keep-Alive, Screen-Lock & Closed-App Proof, Auto-Sync) -->
     <script>
