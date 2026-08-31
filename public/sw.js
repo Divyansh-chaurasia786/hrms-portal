@@ -1,7 +1,6 @@
-// public/sw.js - EcoFone App Background Service Worker (v5 Persistent Keep-Alive)
-const CACHE_NAME = 'ecofone-app-v5';
+// public/sw.js - EcoFone App Background Service Worker (v7 Network-First)
+const CACHE_NAME = 'ecofone-app-v7';
 const ASSETS_TO_CACHE = [
-    '/',
     '/manifest.json',
     '/logo_icon.png',
     '/logo.png',
@@ -102,6 +101,11 @@ self.addEventListener('sync', (event) => {
 
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
+    // Always fetch fresh HTML from network — never serve stale cached HTML pages!
+    if (event.request.mode === 'navigate') {
+        event.respondWith(fetch(event.request));
+        return;
+    }
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request);
