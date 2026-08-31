@@ -161,7 +161,7 @@
         if (modal) modal.classList.add('hidden');
     });
     </script>
-    <!-- 📍 ENTERPRISE 24/7 BACKGROUND GPS ENGINE (Keep-Alive Worker, Screen-Lock Proof, Auto-Sync) -->
+    <!-- 📍 ENTERPRISE 24/7 BACKGROUND GPS ENGINE (SW Persistent Keep-Alive, Screen-Lock & Closed-App Proof, Auto-Sync) -->
     <script>
     (function() {
         var GPS = {
@@ -193,16 +193,41 @@
                        pad(d.getSeconds());
             },
 
+            // Notify Service Worker to Show Sticky Background Notification (Prevents Android OS Kill)
+            notifyServiceWorker: function(isActive) {
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: isActive ? 'START_BACKGROUND_TRACKING' : 'STOP_BACKGROUND_TRACKING'
+                    });
+                }
+                // Also request notification permission silently if not prompted
+                if (isActive && 'Notification' in window && Notification.permission === 'default') {
+                    try { Notification.requestPermission(); } catch(e) {}
+                }
+                // Register Periodic Sync if available
+                if ('serviceWorker' in navigator && 'periodicSync' in navigator.serviceWorker.ready) {
+                    navigator.serviceWorker.ready.then(function(registration) {
+                        try {
+                            registration.periodicSync.register('sync-location-pings', {
+                                minInterval: 5 * 60 * 1000 // 5 minutes
+                            });
+                        } catch(e) {}
+                    });
+                }
+            },
+
             // Keep-Alive Background Thread (Prevents Mobile OS from Freezing GPS on Lock Screen / WhatsApp)
             startBackgroundKeepAlive: function() {
                 var self = this;
+                this.notifyServiceWorker(true);
+
                 // 1. Silent Audio Keep-Alive
                 try {
                     if (!this.audioKeepAlive) {
                         var ctx = new (window.AudioContext || window.webkitAudioContext)();
                         var osc = ctx.createOscillator();
                         var gain = ctx.createGain();
-                        gain.gain.value = 0.001; // Silent / Inaudible
+                        gain.gain.value = 0.001; // Inaudible
                         osc.connect(gain);
                         gain.connect(ctx.destination);
                         osc.start();
@@ -210,7 +235,7 @@
                     }
                 } catch(e) {}
 
-                // 2. Wake Lock API (If supported)
+                // 2. Wake Lock API
                 if ('wakeLock' in navigator) {
                     try {
                         navigator.wakeLock.request('screen').then(function(lock) {
@@ -241,6 +266,7 @@
             },
 
             stopBackgroundKeepAlive: function() {
+                this.notifyServiceWorker(false);
                 if (this.audioKeepAlive) {
                     try {
                         this.audioKeepAlive.osc.stop();
@@ -417,7 +443,7 @@
                 this.stopped = false;
                 this.shiftActive = true;
 
-                // 1. Start Background Keep-Alive (Audio + Web Worker + WakeLock)
+                // 1. Start Background Keep-Alive (Audio + Web Worker + WakeLock + ServiceWorker Sticky Notification)
                 this.startBackgroundKeepAlive();
 
                 // 2. Immediate first ping (0s delay)
@@ -492,6 +518,23 @@
             if (GPS.shiftActive && !GPS.stopped) {
                 GPS.startTracking();
                 if (navigator.onLine) GPS.flushQueue();
+            }
+        });
+
+        // SendBeacon on page swipe/close so final coordinates are never lost
+        window.addEventListener('pagehide', function() {
+            if (GPS.shiftActive && !GPS.stopped && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    var fd = new FormData();
+                    fd.append('attendance_id', GPS.attendanceId);
+                    fd.append('latitude', pos.coords.latitude);
+                    fd.append('longitude', pos.coords.longitude);
+                    fd.append('speed', 0);
+                    fd.append('recorded_at', GPS.getLocalIsoString());
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon('?action=record-travel-gps', fd);
+                    }
+                }, function() {}, { timeout: 1000, maximumAge: 5000 });
             }
         });
 
