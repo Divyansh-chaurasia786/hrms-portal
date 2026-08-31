@@ -211,9 +211,6 @@ $recentAudits = $db->query("
         </a>
     </div>
 
-        <!-- 🎂 INTEGRATED WORKFORCE BIRTHDAYS & CELEBRATIONS (NEXT 30 DAYS) -->
-    <?php include __DIR__ . '/../partials/_upcoming_birthdays.php'; ?>
-
     <!-- Main Two-Column Content Grid (Floating Elevated Layout) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
 
@@ -363,7 +360,10 @@ $recentAudits = $db->query("
                 <?php endif; ?>
             </div>
 
-            <!-- Card 2: Recent Security & Session Audit (Floating Elevated Card) -->
+            <!-- Card 2: 🎂 INTEGRATED WORKFORCE BIRTHDAYS & CELEBRATIONS -->
+            <?php include __DIR__ . '/../partials/_upcoming_birthdays.php'; ?>
+
+            <!-- Card 3: Recent Security & Session Audit (Floating Elevated Card) -->
             <div class="bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 p-5 sm:p-6 space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2.5">
