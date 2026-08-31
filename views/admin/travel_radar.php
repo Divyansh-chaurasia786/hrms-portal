@@ -19,7 +19,8 @@ $fieldEmployees = $db->query("
     LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$selectedDate}'
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
     LEFT JOIN (
-        SELECT user_id, COUNT(*) as waypoints_count, SUM(distance_meters) as total_distance_meters, MAX(speed) as current_speed
+        SELECT user_id, COUNT(*) as waypoints_count, SUM(distance_meters) as total_distance_meters,
+               (SELECT l2.speed FROM employee_travel_logs l2 WHERE l2.user_id = employee_travel_logs.user_id AND l2.recorded_at >= '{$selectedDate} 00:00:00' AND l2.recorded_at <= '{$selectedDate} 23:59:59' ORDER BY l2.id DESC LIMIT 1) as current_speed
         FROM employee_travel_logs
         WHERE recorded_at >= '{$selectedDate} 00:00:00' AND recorded_at <= '{$selectedDate} 23:59:59'
         GROUP BY user_id
