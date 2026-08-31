@@ -465,7 +465,12 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                 }
             }
         } else {
-            if (!isSilent && latLngs.length > 0) m.setView(latLngs[latLngs.length - 1], 17);
+            if (latLngs.length > 0) {
+                if (!isSilent || !m._hasInitiallyCentered) {
+                    m.setView(latLngs[latLngs.length - 1], 17);
+                    m._hasInitiallyCentered = true;
+                }
+            }
         }
 
         // 2. Start Pin 🟢 (Only show when actual route was traveled)

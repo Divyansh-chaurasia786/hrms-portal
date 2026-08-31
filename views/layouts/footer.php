@@ -5,7 +5,18 @@
 $currentUser = authUser();
 $isFieldActive = false;
 $activeAttId = 0;
-if ($currentUser) {
+$activePunchInLat = 0;
+$activePunchInLng = 0;
+
+// Strictly track ONLY Field Executives / Field Staff (NEVER Admin or HR)
+$isFieldUser = false;
+if ($currentUser && !in_array($currentUser['role'] ?? '', ['admin', 'hr']) && stripos($currentUser['designation'] ?? '', 'HR') === false && stripos($currentUser['department_name'] ?? '', 'HR') === false) {
+    if (($currentUser['work_mode'] ?? '') === 'field' || stripos($currentUser['department_name'] ?? '', 'Field') !== false || stripos($currentUser['designation'] ?? '', 'Field') !== false) {
+        $isFieldUser = true;
+    }
+}
+
+if ($isFieldUser) {
     $dbTracker = getDBConnection();
     $todayDate = date('Y-m-d');
     $attRow = $dbTracker->query("SELECT id, punch_in_lat, punch_in_lng FROM attendance WHERE user_id = {$currentUser['id']} AND date = '{$todayDate}' AND clock_in IS NOT NULL AND clock_out IS NULL")->fetch();
