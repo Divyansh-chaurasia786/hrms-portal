@@ -89,59 +89,77 @@
             scrollbar-width: none !important;
         }
     </style>
-                            <!-- 📲 Native PWA & Desktop App Installer Engine -->
+                            <!-- 📲 PWA Installer Engine — NO auto popup, only on button click -->
     <script>
+    // Store deferred install prompt silently — never auto-fire
     window.pwaInstallPrompt = null;
 
+    // Register service worker silently
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').catch(function() {});
         });
     }
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
+    // Suppress browser's own install popup — store for later manual use only
+    window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault(); // ← Prevents ANY automatic browser popup
         window.pwaInstallPrompt = e;
-        const btn = document.getElementById('installAppNavbarBtn');
+        // Subtle glow on install button to signal availability — no popup
+        var btn = document.getElementById('installAppNavbarBtn');
         if (btn) btn.classList.add('ring-2', 'ring-indigo-400');
     });
 
+    // Called ONLY when user explicitly clicks "Install App" button
     function triggerPwaInstall() {
         if (window.pwaInstallPrompt) {
+            // Use native browser install prompt (already deferred above)
             window.pwaInstallPrompt.prompt();
-            window.pwaInstallPrompt.userChoice.then((choice) => {
+            window.pwaInstallPrompt.userChoice.then(function(choice) {
                 if (choice.outcome === 'accepted') {
                     window.pwaInstallPrompt = null;
+                    var btn = document.getElementById('installAppNavbarBtn');
+                    if (btn) btn.classList.remove('ring-2', 'ring-indigo-400');
                 }
             });
-            return;
-        }
-
-        // Show Desktop Install Modal
-        const modal = document.getElementById('pwaInstallModal');
-        if (modal) {
-            modal.classList.remove('hidden');
+        } else {
+            // Fallback: show manual install guide modal
+            var modal = document.getElementById('pwaInstallModal');
+            if (modal) modal.classList.remove('hidden');
         }
     }
 
     function closePwaInstallModal() {
-        const modal = document.getElementById('pwaInstallModal');
-        if (modal) {
-            modal.classList.add('hidden');
-        }
+        var modal = document.getElementById('pwaInstallModal');
+        if (modal) modal.classList.add('hidden');
     }
 
     function downloadDesktopLauncher() {
-        const url = 'https://hrms-ecovista.vercel.app/?source=desktop_app';
-        const shortcutContent = `[InternetShortcut]\nURL=${url}\nIconIndex=0\nIconFile=https://hrms-ecovista.vercel.app/icon-192.png\n`;
-        const blob = new Blob([shortcutContent], { type: 'application/octet-stream' });
-        const a = document.createElement('a');
+        var shortcutLines = [
+            '[InternetShortcut]',
+            'URL=https://hrms-ecovista.vercel.app/?source=desktop_shortcut',
+            'IconFile=https://hrms-ecovista.vercel.app/icon-192.png',
+            'IconIndex=0',
+            'HotKey=0',
+            'IDList=',
+            '[{000214A0-0000-0000-C000-000000000046}]',
+            'Prop3=19,2'
+        ].join('\r\n');
+        var blob = new Blob([shortcutLines], { type: 'application/octet-stream' });
+        var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'Ecofone_HRMS_Portal.url';
+        a.download = 'Ecofone_HRMS.url';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
     }
+
+    // Safety guard: ensure modal is always hidden on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        var modal = document.getElementById('pwaInstallModal');
+        if (modal) modal.classList.add('hidden');
+    });
     </script>
     <!-- 📍 GPS Live Tracker — Offline Queue, Auto Sync, Auto Punch-Out on GPS Off -->
     <script>
