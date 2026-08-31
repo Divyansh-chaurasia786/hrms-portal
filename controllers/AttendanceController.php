@@ -449,17 +449,17 @@ class AttendanceController {
             ORDER BY id ASC
         ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        // 3. Compute Stoppages, Speeds, and Start/End points
+        // 3. Compute Clean Journey Trail & Grouped Stoppages (Filtered for GPS drift/noise)
         $maxSpeed = 0;
         $totalSpeed = 0;
         $speedSamples = 0;
-        $stops = [];
+        $rawStops = [];
         $cleanWaypoints = [];
-        $lastPt = null;
+        $lastAddedWp = null;
 
-        // If punch in coordinates exist, ensure first waypoint
+        // If punch in coordinates exist, ensure first anchor point
         if (!empty($emp['punch_in_lat']) && !empty($emp['punch_in_lng'])) {
-            $cleanWaypoints[] = [
+            $punchInWp = [
                 'lat' => (float)$emp['punch_in_lat'],
                 'lng' => (float)$emp['punch_in_lng'],
                 'speed' => 0,
@@ -467,8 +467,11 @@ class AttendanceController {
                 'type' => 'start',
                 'title' => 'Shift Started (Punch In)'
             ];
+            $cleanWaypoints[] = $punchInWp;
+            $lastAddedWp = $punchInWp;
         }
 
+        $lastPt = null;
         foreach ($logs as $l) {
             $lat = (float)$l['latitude'];
             $lng = (float)$l['longitude'];
@@ -483,37 +486,88 @@ class AttendanceController {
                 $speedSamples++;
             }
 
-            // Identify stoppage if distance moved is small and speed < 3 km/h
-            $isStop = false;
+            // Identify stoppage if stationary for >= 3 minutes
             if ($lastPt) {
-                $distDelta = (int)$l['distance_meters'];
+                $distDelta = (int)calculateDistance($lat, $lng, (float)$lastPt['latitude'], (float)$lastPt['longitude']);
                 $timeDeltaSeconds = strtotime($l['recorded_at']) - strtotime($lastPt['recorded_at']);
-                if ($distDelta < 20 && $timeDeltaSeconds >= 180) { // Stationary for 3+ minutes
-                    $isStop = true;
-                    $stopDurationMins = round($timeDeltaSeconds / 60);
-                    $stops[] = [
-                        'stop_number' => count($stops) + 1,
+                if ($distDelta < 25 && $timeDeltaSeconds >= 180) {
+                    $rawStops[] = [
                         'lat' => $lat,
                         'lng' => $lng,
+                        'arrival_ts' => strtotime($lastPt['recorded_at']),
+                        'departure_ts' => strtotime($l['recorded_at']),
                         'arrival_time' => date('h:i A', strtotime($lastPt['recorded_at'])),
                         'departure_time' => $timeStr,
-                        'duration' => "{$stopDurationMins} mins",
-                        'title' => "Client Visit / Stoppage #" . (count($stops) + 1)
+                        'duration_mins' => round($timeDeltaSeconds / 60)
                     ];
                 }
             }
 
-            $cleanWaypoints[] = [
-                'lat' => $lat,
-                'lng' => $lng,
-                'speed' => $speed,
-                'time' => $timeStr,
-                'distance_meters' => (int)$l['distance_meters'],
-                'is_stop' => $isStop,
-                'type' => 'waypoint'
-            ];
+            // GPS Deadband / Noise Filter: Only add point to route trail if moved >= 20 meters from last added point
+            $distFromLastWp = $lastAddedWp ? (int)calculateDistance($lat, $lng, $lastAddedWp['lat'], $lastAddedWp['lng']) : 999;
+            if (!$lastAddedWp || $distFromLastWp >= 20) {
+                $wp = [
+                    'lat' => $lat,
+                    'lng' => $lng,
+                    'speed' => $speed,
+                    'time' => $timeStr,
+                    'distance_meters' => (int)$l['distance_meters'],
+                    'type' => 'waypoint'
+                ];
+                $cleanWaypoints[] = $wp;
+                $lastAddedWp = $wp;
+            }
 
             $lastPt = $l;
+        }
+
+        // Always ensure the very latest live point is included in waypoints
+        if ($lastPt && $lastAddedWp) {
+            $distFromLast = (int)calculateDistance((float)$lastPt['latitude'], (float)$lastPt['longitude'], $lastAddedWp['lat'], $lastAddedWp['lng']);
+            if ($distFromLast > 0) {
+                $cleanWaypoints[] = [
+                    'lat' => (float)$lastPt['latitude'],
+                    'lng' => (float)$lastPt['longitude'],
+                    'speed' => (float)$lastPt['speed'],
+                    'time' => date('h:i A', strtotime($lastPt['recorded_at'])),
+                    'distance_meters' => (int)$lastPt['distance_meters'],
+                    'type' => 'latest'
+                ];
+            }
+        }
+
+        // Consolidate and Merge Overlapping Stops within 50m Radius into Clean Single Stops
+        $stops = [];
+        foreach ($rawStops as $rs) {
+            $merged = false;
+            foreach ($stops as &$existingStop) {
+                $dist = (int)calculateDistance($rs['lat'], $rs['lng'], $existingStop['lat'], $existingStop['lng']);
+                if ($dist < 50) { // Same location / building
+                    $existingStop['duration_mins'] += $rs['duration_mins'];
+                    $existingStop['departure_time'] = $rs['departure_time'];
+                    $existingStop['duration'] = "{$existingStop['duration_mins']} mins";
+                    $merged = true;
+                    break;
+                }
+            }
+            if (!$merged) {
+                $stops[] = [
+                    'stop_number' => count($stops) + 1,
+                    'lat' => $rs['lat'],
+                    'lng' => $rs['lng'],
+                    'arrival_time' => $rs['arrival_time'],
+                    'departure_time' => $rs['departure_time'],
+                    'duration_mins' => $rs['duration_mins'],
+                    'duration' => "{$rs['duration_mins']} mins",
+                    'title' => "Client Visit / Base Stoppage #" . (count($stops) + 1)
+                ];
+            }
+        }
+
+        // Re-number merged stops
+        foreach ($stops as $idx => &$st) {
+            $st['stop_number'] = $idx + 1;
+            $st['title'] = "Stoppage #" . ($idx + 1) . " ({$st['duration']})";
         }
 
         // If punch out coordinates exist, append as final point

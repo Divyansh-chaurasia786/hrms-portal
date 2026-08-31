@@ -411,8 +411,18 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
         const latLngs = waypoints.map(wp => [wp.lat, wp.lng]);
 
-        // 1. Draw Clean Crisp Polyline (Google Maps Blue)
+        // Calculate max spread to avoid drawing jittery polyline knots when stationary
+        let maxSpreadMeters = 0;
         if (latLngs.length > 1) {
+            const first = latLngs[0];
+            for (let i = 1; i < latLngs.length; i++) {
+                const d = m.distance(first, latLngs[i]);
+                if (d > maxSpreadMeters) maxSpreadMeters = d;
+            }
+        }
+
+        // 1. Draw Clean Crisp Polyline (Google Maps Blue) ONLY if actual movement occurred (> 30 meters)
+        if (latLngs.length > 1 && maxSpreadMeters >= 30) {
             // Shadow under polyline for depth
             L.polyline(latLngs, {
                 color: '#1d4ed8',
@@ -437,14 +447,14 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                     if (bounds.isValid() && (bounds.getNorthEast().lat !== bounds.getSouthWest().lat)) {
                         m.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
                     } else {
-                        m.setView(latLngs[latLngs.length - 1], 16);
+                        m.setView(latLngs[latLngs.length - 1], 17);
                     }
                 } catch(e) {
-                    m.setView(latLngs[latLngs.length - 1], 16);
+                    m.setView(latLngs[latLngs.length - 1], 17);
                 }
             }
         } else {
-            if (!isSilent) m.setView(latLngs[0], 16);
+            if (!isSilent && latLngs.length > 0) m.setView(latLngs[latLngs.length - 1], 17);
         }
 
         // 2. Start Pin 🟢 (Clean Google Style Origin Dot with Pulse)
