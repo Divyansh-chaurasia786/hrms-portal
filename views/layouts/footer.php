@@ -8,11 +8,18 @@ $activeAttId = 0;
 $activePunchInLat = 0;
 $activePunchInLng = 0;
 
-// Strictly track ONLY Field Executives / Field Staff (NEVER Admin or HR)
+// Strictly track ONLY Field Employees (role = 'employee' AND work_mode = 'field')
 $isFieldUser = false;
-if ($currentUser && !in_array($currentUser['role'] ?? '', ['admin', 'hr']) && stripos($currentUser['designation'] ?? '', 'HR') === false && stripos($currentUser['department_name'] ?? '', 'HR') === false) {
-    if (($currentUser['work_mode'] ?? '') === 'field' || stripos($currentUser['department_name'] ?? '', 'Field') !== false || stripos($currentUser['designation'] ?? '', 'Field') !== false) {
-        $isFieldUser = true;
+$userRole = strtolower($currentUser['role'] ?? '');
+if ($currentUser && $userRole === 'employee') {
+    $desig = strtolower($currentUser['designation'] ?? '');
+    $dept = strtolower($currentUser['department_name'] ?? '');
+    $workMode = strtolower($currentUser['work_mode'] ?? '');
+    
+    if (strpos($desig, 'hr') === false && strpos($dept, 'human') === false && strpos($desig, 'admin') === false) {
+        if ($workMode === 'field' || strpos($desig, 'field') !== false || strpos($dept, 'field') !== false) {
+            $isFieldUser = true;
+        }
     }
 }
 
