@@ -69,47 +69,44 @@ $recentAudits = $db->query("
 ")->fetchAll();
 ?>
 
-<div class="space-y-6 pb-8">
+<div class="space-y-5 pb-6">
 
-    <!-- Executive Command Header (Ultra-Premium Glass & Slate Gradient Banner) -->
-    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-7 shadow-xl shadow-slate-900/20 border border-slate-800">
-        <!-- Ambient Background Glows -->
-        <div class="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- Executive Command Header (Compact Modern Glass & Slate Banner) -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-5 py-4 shadow-md border border-slate-800">
+        <!-- Ambient Background Glow -->
+        <div class="absolute -right-10 -top-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
 
-        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
             <!-- Left Brand Identity & Title -->
-            <div class="flex items-start sm:items-center gap-4">
-                <div class="w-13 h-13 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-950/50">
-                    <img src="/logo_icon.png?v=3" alt="EcoFone" class="w-8 h-8 object-contain">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 shadow">
+                    <img src="/logo_icon.png?v=3" alt="EcoFone" class="w-6 h-6 object-contain">
                 </div>
                 <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
                             <?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?>
                         </h1>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 uppercase tracking-wide">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 uppercase tracking-wide">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                             <?= htmlspecialchars($userDesig) ?>
                         </span>
                     </div>
-                    <p class="text-xs text-slate-300 mt-1 font-medium flex items-center gap-2 flex-wrap">
-                        <span>Real-time workforce intelligence & operations monitor</span>
-                        <span class="text-slate-500">•</span>
-                        <span class="text-indigo-300 font-semibold"><?= date('l, d F Y') ?></span>
+                    <p class="text-[11px] text-slate-300 font-medium">
+                        Real-time workforce intelligence • <span class="text-indigo-300 font-semibold"><?= date('l, d F Y') ?></span>
                     </p>
                 </div>
             </div>
 
             <!-- Right Quick Action Launchers -->
-            <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                <a href="?page=admin-employees" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-600/30 hover:scale-[1.02] cursor-pointer">
-                    <i data-lucide="user-plus" class="w-4 h-4 text-indigo-200"></i>
-                    <span>Directory & Onboard</span>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="?page=admin-employees" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5 text-indigo-200"></i>
+                    <span>Onboard</span>
                 </a>
-                <a href="?page=admin-attendance" class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-white/20 backdrop-blur-sm shadow-sm cursor-pointer hover:scale-[1.02]">
-                    <i data-lucide="calendar-check" class="w-4 h-4 text-emerald-400"></i>
-                    <span>Attendance Audit</span>
+                <a href="?page=admin-attendance" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-white/20 backdrop-blur-sm cursor-pointer">
+                    <i data-lucide="calendar-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span>Audit</span>
                 </a>
             </div>
         </div>
@@ -117,44 +114,42 @@ $recentAudits = $db->query("
 
     <!-- Conditional Priority Alert: Only displays when action is required -->
     <?php if ($pendingEscCount > 0): ?>
-        <div class="p-5 rounded-3xl bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-300/80 text-rose-900 shadow-[0_10px_25px_-5px_rgba(244,63,94,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3.5">
-                <div class="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-500/30">
-                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-orange-50 border border-rose-300 text-rose-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-rose-900 flex items-center gap-2">
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-rose-900 flex items-center gap-1.5">
                         <?= $pendingEscCount ?> TL Disciplinary Referral(s) Pending HR Action
                         <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
                     </h3>
-                    <p class="text-xs text-rose-700 font-medium mt-0.5">
-                        Team Leads have forwarded employee misconduct/attendance cases for formal HR intervention.
-                    </p>
+                    <p class="text-[11px] text-rose-700 font-medium">Team Leads have forwarded employee misconduct cases for HR intervention.</p>
                 </div>
             </div>
-            <a href="?page=admin-tl-reports" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-1.5 shadow-md shadow-rose-600/30 shrink-0">
-                <span>Review Referrals</span> &rarr;
+            <a href="?page=admin-tl-reports" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-1 shrink-0">
+                <span>Review</span> &rarr;
             </a>
         </div>
     <?php endif; ?>
 
-    <!-- 4 High-Contrast Executive KPI Metric Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+    <!-- 4 High-Contrast Executive KPI Metric Cards (Compact & Proportional) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <!-- KPI 1: Workforce Directory -->
-        <a href="?page=admin-employees" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+        <a href="?page=admin-employees" class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs hover:shadow-md hover:border-indigo-200 transition-all flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Total Workforce</span>
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-indigo-100">
-                    <i data-lucide="users" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Workforce</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-colors">
+                    <i data-lucide="users" class="w-4 h-4"></i>
                 </div>
             </div>
-            <div class="mt-3">
-                <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-mono group-hover:text-indigo-600 transition-colors"><?= $empCount ?></div>
-                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-                        <?= $tlCount ?> Team Leads
+            <div class="mt-2">
+                <div class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-mono group-hover:text-indigo-600 transition-colors"><?= $empCount ?></div>
+                <div class="flex items-center gap-1 mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <?= $tlCount ?> Leads
                     </span>
-                    <span class="text-[10px] text-slate-400 font-semibold">Active Portal</span>
+                    <span class="text-[9px] text-slate-400 font-medium">Active</span>
                 </div>
             </div>
         </a>
@@ -163,139 +158,135 @@ $recentAudits = $db->query("
         <?php 
         $dutyRate = ($empCount > 0) ? round(($presentCount / $empCount) * 100) : 0;
         ?>
-        <a href="?page=admin-attendance" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+        <a href="?page=admin-attendance" class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs hover:shadow-md hover:border-emerald-200 transition-all flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Present Today</span>
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-emerald-100">
-                    <i data-lucide="clock-4" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Present Today</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white flex items-center justify-center font-bold shrink-0 transition-colors">
+                    <i data-lucide="clock-4" class="w-4 h-4"></i>
                 </div>
             </div>
-            <div class="mt-3">
-                <div class="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight font-mono flex items-baseline gap-1.5">
+            <div class="mt-2">
+                <div class="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight font-mono flex items-baseline gap-1">
                     <span><?= $presentCount ?></span>
-                    <span class="text-xs sm:text-sm font-bold text-slate-400 font-sans">/ <?= $empCount ?></span>
+                    <span class="text-xs font-bold text-slate-400 font-sans">/ <?= $empCount ?></span>
                 </div>
-                <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
-                    <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: <?= min(100, max(5, $dutyRate)) ?>%"></div>
-                </div>
-                <div class="flex items-center justify-between mt-1.5">
-                    <span class="text-[10px] font-bold text-emerald-700"><?= $dutyRate ?>% On Duty</span>
-                    <span class="text-[10px] text-slate-400 font-medium"><?= date('d M') ?> Live</span>
+                <div class="flex items-center justify-between mt-1">
+                    <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100"><?= $dutyRate ?>% On Duty</span>
+                    <span class="text-[9px] text-slate-400 font-medium"><?= date('d M') ?></span>
                 </div>
             </div>
         </a>
 
         <!-- KPI 3: Pending Leaves -->
-        <a href="?page=admin-leaves" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+        <a href="?page=admin-leaves" class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs hover:shadow-md hover:border-amber-200 transition-all flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-amber-600 transition-colors">Pending Leaves</span>
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl <?= $pendingLeaves > 0 ? 'bg-amber-500 text-white animate-pulse' : 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-amber-100">
-                    <i data-lucide="calendar-off" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-amber-600 transition-colors">Pending Leaves</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl <?= $pendingLeaves > 0 ? 'bg-amber-500 text-white animate-pulse' : 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-colors">
+                    <i data-lucide="calendar-off" class="w-4 h-4"></i>
                 </div>
             </div>
-            <div class="mt-3">
-                <div class="text-2xl sm:text-3xl font-black <?= $pendingLeaves > 0 ? 'text-amber-600' : 'text-slate-900' ?> tracking-tight font-mono">
+            <div class="mt-2">
+                <div class="text-xl sm:text-2xl font-black <?= $pendingLeaves > 0 ? 'text-amber-600' : 'text-slate-900' ?> tracking-tight font-mono">
                     <?= $pendingLeaves ?>
                 </div>
-                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold <?= $pendingLeaves > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' ?>">
-                        <?= $pendingLeaves > 0 ? 'Review Needed' : 'All Reviewed ✓' ?>
+                <div class="flex items-center gap-1 mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold <?= $pendingLeaves > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600' ?>">
+                        <?= $pendingLeaves > 0 ? 'Review Needed' : 'All Clear ✓' ?>
                     </span>
-                    <span class="text-[10px] text-slate-400 font-semibold">Queue</span>
+                    <span class="text-[9px] text-slate-400 font-medium">Queue</span>
                 </div>
             </div>
         </a>
 
         <!-- KPI 4: TL Referrals & Compliance -->
-        <a href="?page=admin-tl-reports" class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer block">
+        <a href="?page=admin-tl-reports" class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs hover:shadow-md hover:border-purple-200 transition-all flex flex-col justify-between group cursor-pointer block">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-purple-600 transition-colors">TL Referrals</span>
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl <?= $pendingEscCount > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm border border-purple-100">
-                    <i data-lucide="shield-check" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider group-hover:text-purple-600 transition-colors">TL Referrals</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl <?= $pendingEscCount > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' ?> flex items-center justify-center font-bold shrink-0 transition-colors">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
                 </div>
             </div>
-            <div class="mt-3">
-                <div class="text-2xl sm:text-3xl font-black <?= $pendingEscCount > 0 ? 'text-rose-600' : 'text-slate-900' ?> tracking-tight font-mono">
+            <div class="mt-2">
+                <div class="text-xl sm:text-2xl font-black <?= $pendingEscCount > 0 ? 'text-rose-600' : 'text-slate-900' ?> tracking-tight font-mono">
                     <?= $pendingEscCount ?>
                 </div>
-                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold <?= $pendingEscCount > 0 ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-purple-50 text-purple-700 border border-purple-200' ?>">
-                        <?= $pendingEscCount > 0 ? 'Escalated' : '100% Compliant ✓' ?>
+                <div class="flex items-center gap-1 mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold <?= $pendingEscCount > 0 ? 'bg-rose-100 text-rose-800' : 'bg-purple-50 text-purple-700 border border-purple-100' ?>">
+                        <?= $pendingEscCount > 0 ? 'Escalated' : 'Compliant ✓' ?>
                     </span>
-                    <span class="text-[10px] text-slate-400 font-semibold">Audit Health</span>
+                    <span class="text-[9px] text-slate-400 font-medium">Audit</span>
                 </div>
             </div>
         </a>
     </div>
 
-    <!-- Main Two-Column Content Grid (Floating Elevated Layout) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
+    <!-- Main Content Grid (Aligned with items-start to eliminate stretching & empty space) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
         <!-- Left Column (7 Cols): Today Live Attendance Check-Ins -->
-        <div class="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 overflow-hidden flex flex-col">
-            <!-- Header with subtle contrast tint -->
-            <div class="p-5 sm:p-6 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0 border border-emerald-200/50">
-                        <i data-lucide="radio" class="w-4.5 h-4.5 animate-pulse"></i>
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0 border border-emerald-200/50">
+                        <i data-lucide="radio" class="w-4 h-4 animate-pulse"></i>
                     </div>
                     <div>
-                        <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <h2 class="text-xs sm:text-sm font-bold text-slate-900">
                             Today's Live Check-Ins & Shifts
                         </h2>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Real-time attendance punch stream for <?= date('d M Y') ?>.</p>
+                        <p class="text-[10px] text-slate-500">Punch stream for <?= date('d M Y') ?>.</p>
                     </div>
                 </div>
-                <a href="?page=admin-attendance" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-indigo-600 text-xs font-bold border border-slate-200 shadow-2xs transition inline-flex items-center gap-1 shrink-0">
-                    <span>Full Register</span> &rarr;
+                <a href="?page=admin-attendance" class="px-2.5 py-1 rounded-xl bg-white hover:bg-slate-100 text-indigo-600 text-xs font-bold border border-slate-200 shadow-2xs transition inline-flex items-center gap-1 shrink-0">
+                    <span>Register</span> &rarr;
                 </a>
             </div>
 
-                        <!-- Table content (Clean, Perfectly Arranged Inside Box) -->
-            <div class="overflow-x-auto no-scrollbar flex-1 px-4 py-2">
+            <!-- Table content -->
+            <div class="overflow-x-auto no-scrollbar p-3">
                 <table class="w-full text-left text-xs text-slate-600">
                     <thead class="text-slate-400 text-[10px] uppercase tracking-wider font-bold border-b border-slate-100">
                         <tr>
-                            <th class="py-3 px-2">Employee</th>
-                            <th class="py-3 px-2 whitespace-nowrap">Line / Role</th>
-                            <th class="py-3 px-2 whitespace-nowrap">Punch In</th>
-                            <th class="py-3 px-2 text-center whitespace-nowrap">Status</th>
-                            <th class="py-3 px-2 text-center whitespace-nowrap">Location</th>
+                            <th class="py-2.5 px-2">Employee</th>
+                            <th class="py-2.5 px-2 whitespace-nowrap">Line / Role</th>
+                            <th class="py-2.5 px-2 whitespace-nowrap">Punch In</th>
+                            <th class="py-2.5 px-2 text-center whitespace-nowrap">Status</th>
+                            <th class="py-2.5 px-2 text-center whitespace-nowrap">Location</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         <?php if (empty($recentAtt)): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-12 text-slate-400">
-                                    <div class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 mx-auto flex items-center justify-center mb-2 border border-slate-100">
-                                        <i data-lucide="clock" class="w-6 h-6"></i>
+                                <td colspan="5" class="text-center py-8 text-slate-400">
+                                    <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 mx-auto flex items-center justify-center mb-1.5 border border-slate-100">
+                                        <i data-lucide="clock" class="w-5 h-5"></i>
                                     </div>
                                     <p class="text-xs font-bold text-slate-700">No punches logged yet today</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Check back once employees clock in for their shift.</p>
                                 </td>
                             </tr>
                         <?php endif; ?>
                         <?php foreach ($recentAtt as $r): ?>
                             <tr class="hover:bg-slate-50/80 transition rounded-xl">
-                                <td class="py-3 px-2 align-middle">
-                                    <div class="flex items-center gap-2.5">
-                                        <img src="<?= $r['avatar'] ?: 'https://ui-avatars.com/api/?name=' . urlencode($r['name']) ?>" class="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 shrink-0 shadow-2xs" alt="Avatar">
+                                <td class="py-2.5 px-2 align-middle">
+                                    <div class="flex items-center gap-2">
+                                        <img src="<?= $r['avatar'] ?: 'https://ui-avatars.com/api/?name=' . urlencode($r['name']) ?>" class="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0" alt="Avatar">
                                         <div class="min-w-0">
-                                            <div class="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-[150px]"><?= htmlspecialchars($r['name']) ?></div>
-                                            <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($r['emp_id']) ?></div>
+                                            <div class="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-[140px] text-xs"><?= htmlspecialchars($r['name']) ?></div>
+                                            <div class="text-[9px] text-slate-400 font-mono"><?= htmlspecialchars($r['emp_id']) ?></div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="py-3 px-2 align-middle text-[11px] font-medium text-slate-700 truncate max-w-[100px]">
+                                <td class="py-2.5 px-2 align-middle text-[11px] font-medium text-slate-700 truncate max-w-[90px]">
                                     <?= htmlspecialchars($r['tl_name'] ?: ($r['role'] === 'team_lead' ? 'Direct HR' : ($r['role'] === 'admin' ? 'Head HR' : 'HR'))) ?>
                                 </td>
-                                <td class="py-3 px-2 align-middle font-mono text-[11px] font-semibold text-slate-800 whitespace-nowrap">
+                                <td class="py-2.5 px-2 align-middle font-mono text-[11px] font-semibold text-slate-800 whitespace-nowrap">
                                     <?= formatTime($r['clock_in']) ?>
                                 </td>
-                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
+                                <td class="py-2.5 px-2 align-middle text-center whitespace-nowrap">
                                     <?= getStatusBadge($r['status']) ?>
                                 </td>
-                                                                                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
+                                <td class="py-2.5 px-2 align-middle text-center whitespace-nowrap">
                                     <?php 
                                     $isExemptUser = (($r['role'] ?? '') === 'admin' || ($r['work_mode'] ?? '') === 'field' || ($r['work_mode'] ?? '') === 'wfh' || ($r['status'] ?? '') === 'wfh');
                                     $sessCount = !empty($allTodaySessions[$r['id']]) ? count($allTodaySessions[$r['id']]) : 1;
@@ -314,16 +305,13 @@ $recentAudits = $db->query("
                                             in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
                                             out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
                                             out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
-                                        })" class="px-2 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center gap-1.5 font-bold text-[10px] border border-indigo-100" title="View <?= $sessCount ?> Punch In/Out Sessions">
-                                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                        })" class="px-2 py-0.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center gap-1 font-bold text-[10px] border border-indigo-100" title="View <?= $sessCount ?> Sessions">
+                                            <i data-lucide="map-pin" class="w-3 h-3 text-indigo-600"></i>
                                             <span>GPS</span>
-                                            <span class="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full font-mono text-[9px] font-extrabold"><?= $sessCount ?></span>
+                                            <span class="px-1 py-0.2 bg-indigo-600 text-white rounded font-mono text-[8px]"><?= $sessCount ?></span>
                                         </button>
                                     <?php else: ?>
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60" title="Fixed 150m Geofence Verified">
-                                            <i data-lucide="building" class="w-3 h-3"></i> In-Office
-                                            <span class="ml-0.5 px-1 bg-emerald-200/60 text-emerald-900 rounded font-mono text-[9px]"><?= $sessCount ?></span>
-                                        </span>
+                                        <span class="text-[10px] text-slate-400 font-mono">Office Biometric</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -333,42 +321,39 @@ $recentAudits = $db->query("
             </div>
         </div>
 
-        <!-- Right Column (5 Cols): Fast Management Hub & Operational Feeds -->
-        <div class="lg:col-span-5 space-y-7">
+        <!-- Right Column (5 Cols): Compact Widgets -->
+        <div class="lg:col-span-5 space-y-4">
 
-            <!-- Card 1: Leave Approval Quick Queue (Floating Elevated Card) -->
-            <div class="bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 p-5 sm:p-6 space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0 border border-indigo-200/50">
-                            <i data-lucide="calendar-check" class="w-4 h-4"></i>
+            <!-- Card 1: Leave Review Queue -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-900">
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-900">
                             Leave Review Queue
                         </h3>
                     </div>
-                    <a href="?page=admin-leaves" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition flex items-center gap-1">
+                    <a href="?page=admin-leaves" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 transition flex items-center gap-0.5">
                         <span>View All (<?= $pendingLeaves ?>)</span> &rarr;
                     </a>
                 </div>
 
                 <?php if (empty($pendingLeavesList)): ?>
-                    <div class="text-center py-7 bg-slate-50/70 rounded-2xl border border-slate-100/80">
-                        <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-1.5 border border-emerald-100">
-                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
-                        </div>
+                    <div class="text-center py-4 bg-slate-50/70 rounded-xl border border-slate-100/80">
                         <p class="text-xs font-bold text-slate-700">All leave applications reviewed</p>
                         <p class="text-[10px] text-slate-400 mt-0.5">Zero pending leave requests in queue.</p>
                     </div>
                 <?php else: ?>
-                    <div class="space-y-2.5">
+                    <div class="space-y-2">
                         <?php foreach ($pendingLeavesList as $lv): ?>
-                            <div class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50/40 border border-slate-200/80 flex items-center justify-between gap-3 text-xs transition">
+                            <div class="p-2.5 rounded-xl bg-slate-50 hover:bg-indigo-50/40 border border-slate-200/80 flex items-center justify-between gap-2 text-xs transition">
                                 <div class="min-w-0">
                                     <div class="font-bold text-slate-900 truncate"><?= htmlspecialchars($lv['name']) ?></div>
                                     <div class="text-[10px] text-slate-500 font-mono"><?= formatDate($lv['start_date']) ?> → <?= formatDate($lv['end_date']) ?></div>
                                 </div>
-                                <a href="?page=admin-leaves" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold transition shadow-sm shrink-0">
+                                <a href="?page=admin-leaves" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm shrink-0">
                                     Review
                                 </a>
                             </div>
@@ -380,34 +365,34 @@ $recentAudits = $db->query("
             <!-- Card 2: 🎂 INTEGRATED WORKFORCE BIRTHDAYS & CELEBRATIONS -->
             <?php include __DIR__ . '/../partials/_upcoming_birthdays.php'; ?>
 
-            <!-- Card 3: Recent Security & Session Audit (Floating Elevated Card) -->
-            <div class="bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 p-5 sm:p-6 space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0 border border-purple-200/50">
-                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <!-- Card 3: Recent Security & Session Audit -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-900">
-                            Recent Security & Session Logs
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-900">
+                            Security & Session Logs
                         </h3>
                     </div>
-                    <span class="text-[10px] font-mono text-slate-400 font-bold uppercase bg-slate-100 px-2 py-0.5 rounded-md">Audit Trail</span>
+                    <span class="text-[9px] font-mono text-slate-400 font-bold uppercase bg-slate-100 px-1.5 py-0.5 rounded">Audit</span>
                 </div>
 
                 <?php if (empty($recentAudits)): ?>
-                    <div class="text-center py-7 bg-slate-50/70 rounded-2xl border border-slate-100/80">
+                    <div class="text-center py-4 bg-slate-50/70 rounded-xl border border-slate-100/80">
                         <p class="text-xs font-bold text-slate-700">No session anomalies recorded</p>
                         <p class="text-[10px] text-slate-400 mt-0.5">All team active sessions operational.</p>
                     </div>
                 <?php else: ?>
-                    <div class="space-y-2.5">
+                    <div class="space-y-2">
                         <?php foreach ($recentAudits as $ra): ?>
-                            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 text-xs">
+                            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
                                 <div class="min-w-0">
                                     <span class="font-bold text-slate-900"><?= htmlspecialchars($ra['employee_name']) ?></span>
                                     <span class="text-[10px] text-slate-400 block truncate">By TL: <?= htmlspecialchars($ra['tl_name']) ?> • <?= htmlspecialchars($ra['reason']) ?></span>
                                 </div>
-                                <span class="text-[10px] font-mono text-slate-400 shrink-0"><?= date('h:i A', strtotime($ra['created_at'])) ?></span>
+                                <span class="text-[9px] font-mono text-slate-400 shrink-0"><?= date('h:i A', strtotime($ra['created_at'])) ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
