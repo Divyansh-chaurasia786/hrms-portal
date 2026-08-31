@@ -119,6 +119,14 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                 this.stops = data.stops || [];
                 this.waypoints = data.waypoints || [];
 
+                // Dynamically sync left card stats
+                const fIdx = this.fieldEmployees.findIndex(e => Number(e.id) === Number(userId));
+                if (fIdx !== -1) {
+                    this.fieldEmployees[fIdx].waypoints_count = data.employee.waypoints_count || this.analytics.total_waypoints;
+                    this.fieldEmployees[fIdx].current_speed = data.employee.current_speed || 0;
+                    this.fieldEmployees[fIdx].total_distance_meters = data.employee.total_distance_meters || 0;
+                }
+
                 if (window.renderCleanGoogleMap) {
                     window.renderCleanGoogleMap(this.selectedEmp, this.waypoints, this.stops, isSilent);
                 }
