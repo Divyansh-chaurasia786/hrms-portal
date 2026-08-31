@@ -89,7 +89,7 @@
             scrollbar-width: none !important;
         }
     </style>
-                    <!-- 📲 Native Standalone App Engine -->
+                        <!-- 📲 Native Standalone App Engine (Zero Blank Tabs) -->
     <script>
     window.pwaInstallPrompt = null;
 
@@ -105,6 +105,7 @@
     });
 
     function triggerPwaInstall() {
+        // 1. If Native PWA Install Prompt is ready, trigger it
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
             window.pwaInstallPrompt.userChoice.then(() => {
@@ -113,22 +114,13 @@
             return;
         }
 
-        // Launch in Pure Standalone Frameless Native App Window (No browser address bar or tabs)
-        const appUrl = window.location.origin + '/?source=standalone_app';
-        const screenW = window.screen.availWidth || 1366;
-        const screenH = window.screen.availHeight || 850;
-        const w = Math.min(1366, screenW - 40);
-        const h = Math.min(850, screenH - 40);
-        const left = Math.max(0, (screenW - w) / 2);
-        const top = Math.max(0, (screenH - h) / 2);
-
-        const appWin = window.open(
-            appUrl,
-            'Ecofone_HRMS_App',
-            `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${w},height=${h},top=${top},left=${left}`
-        );
-        if (appWin) {
-            appWin.focus();
+        // 2. Otherwise, toggle Pure Fullscreen Native App Mode on the current page (Zero Blank Tabs!)
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
         }
     }
     </script>
