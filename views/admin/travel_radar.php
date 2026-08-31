@@ -178,34 +178,104 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
         </div>
 
         <!-- Controls & Date Picker -->
-        <div class="flex items-center gap-2 flex-wrap">
-            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 shadow-2xs">
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
+            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 shadow-2xs shrink-0">
                 <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i>
                 <input type="date" :value="selectedDate" @change="changeDate($event.target.value)" class="bg-transparent text-xs font-bold text-slate-800 border-none outline-hidden cursor-pointer">
             </div>
 
-            <button type="button" @click="changeDate('<?= date('Y-m-d') ?>')" class="px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer" :class="selectedDate === '<?= date('Y-m-d') ?>' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+            <button type="button" @click="changeDate('<?= date('Y-m-d') ?>')" class="px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer shrink-0" :class="selectedDate === '<?= date('Y-m-d') ?>' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
                 Today
             </button>
-            <button type="button" @click="changeDate('<?= date('Y-m-d', strtotime('-1 day')) ?>')" class="px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer" :class="selectedDate === '<?= date('Y-m-d', strtotime('-1 day')) ?>' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+            <button type="button" @click="changeDate('<?= date('Y-m-d', strtotime('-1 day')) ?>')" class="px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer shrink-0" :class="selectedDate === '<?= date('Y-m-d', strtotime('-1 day')) ?>' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
                 Yesterday
             </button>
 
-            <button type="button" @click="openGoogleMapsApp()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-600"></i> Open in Google Maps
+            <button type="button" @click="openGoogleMapsApp()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0">
+                <i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-600"></i> Open in Maps
             </button>
 
-            <button type="button" @click="loadStaffRoute(selectedUserId, selectedDate)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer">
+            <button type="button" @click="loadStaffRoute(selectedUserId, selectedDate)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer shrink-0">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="isLoading ? 'animate-spin' : ''"></i>
             </button>
         </div>
     </div>
 
-    <!-- 🗺️ MAIN RADAR CONTAINER: 2-COLUMN BALANCED VIEW -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+    <!-- 🗺️ MAIN RADAR CONTAINER: MOBILE-OPTIMIZED (MAP ON TOP ON MOBILE, 2-COLS ON DESKTOP) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
         
-        <!-- Left: Field Staff Selector (4 Cols) -->
-        <div class="lg:col-span-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <!-- Right on Desktop / Top on Mobile: Real Google Maps Canvas & Clean Journey Trail (8 Cols) -->
+        <div class="order-1 lg:order-2 lg:col-span-8 space-y-3 sm:space-y-4">
+            
+            <!-- Map Container with Clean Floating Controls -->
+            <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5 relative">
+                
+                <!-- Map Top Bar: Selected Staff Summary & Map Style Switcher -->
+                <div class="flex items-center justify-between flex-wrap gap-2 px-1">
+                    <template x-if="selectedEmp">
+                        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                            <span class="font-extrabold text-xs sm:text-sm text-slate-900" x-text="selectedEmp.name"></span>
+                            <span class="text-[10px] text-slate-500 font-mono" x-text="'(' + (selectedEmp.emp_id || '') + ')'"></span>
+                            <span class="text-xs text-slate-300 hidden xs:inline">•</span>
+                            <span class="text-xs font-bold text-blue-700 font-mono" x-text="analytics.total_distance_km + ' km'"></span>
+                            
+                            <!-- 🔋 Live Battery & Last Seen Status Telemetry -->
+                            <template x-if="analytics.latest_battery_level !== null && analytics.latest_battery_level !== undefined">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 shadow-2xs"
+                                      :class="analytics.latest_battery_level > 20 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-300 animate-pulse'">
+                                    <span x-text="analytics.latest_battery_level > 20 ? '🔋' : '🪫'"></span>
+                                    <span x-text="analytics.latest_battery_level + '%'"></span>
+                                </span>
+                            </template>
+
+                            <template x-if="analytics.last_seen_at">
+                                <span class="text-[10px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200 inline-flex items-center gap-1 shadow-2xs">
+                                    <span class="w-1.5 h-1.5 rounded-full inline-block" :class="(analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 30) ? 'bg-emerald-500 animate-ping' : ((analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 120) ? 'bg-emerald-500' : 'bg-amber-500')"></span>
+                                    <span x-text="analytics.last_seen_at"></span>
+                                </span>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Clean Google Map Style Switcher -->
+                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[10px] sm:text-[11px] font-semibold">
+                        <button type="button" @click="toggleMapLayer('roadmap')" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg transition cursor-pointer" :class="mapLayerType === 'roadmap' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'">
+                            Map
+                        </button>
+                        <button type="button" @click="toggleMapLayer('satellite')" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg transition cursor-pointer" :class="mapLayerType === 'satellite' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'">
+                            Satellite
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Google Maps Canvas with Perfect Responsive Height -->
+                <div id="radarMap" class="w-full h-[340px] sm:h-[450px] lg:h-[540px] rounded-xl border border-slate-200 z-10 shadow-inner"></div>
+
+                <!-- Clean Bottom Stoppages / Timeline Bar (Only shows when stops exist) -->
+                <template x-if="stops.length > 0">
+                    <div class="pt-2 border-t border-slate-100">
+                        <div class="flex items-center justify-between mb-1.5 px-1">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stops:</span>
+                            <span class="text-[10px] text-slate-400" x-text="stops.length + ' stops detected'"></span>
+                        </div>
+                        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                            <template x-for="st in stops" :key="st.stop_number">
+                                <div @click="focusStop(st)" class="px-2.5 py-1 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer shrink-0 flex items-center gap-1.5 text-xs shadow-2xs">
+                                    <span class="w-4 h-4 rounded-full bg-amber-500 text-white font-black text-[9px] flex items-center justify-center shrink-0" x-text="st.stop_number"></span>
+                                    <div class="text-[10px] leading-tight">
+                                        <strong class="text-slate-800" x-text="st.duration"></strong>
+                                        <span class="text-slate-400 text-[9px] block font-mono" x-text="st.arrival_time"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Left on Desktop / Bottom on Mobile: Field Staff Selector (4 Cols) -->
+        <div class="order-2 lg:order-1 lg:col-span-4 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                 <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                     <i data-lucide="users" class="w-4 h-4 text-blue-600"></i>
@@ -221,15 +291,15 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             </div>
 
             <!-- Staff Cards -->
-            <div class="space-y-2 max-h-[620px] overflow-y-auto no-scrollbar pr-1">
+            <div class="space-y-2 max-h-[420px] lg:max-h-[580px] overflow-y-auto no-scrollbar pr-0.5">
                 <template x-for="emp in filteredEmployees" :key="emp.id">
                     <div @click="selectEmployee(emp)" 
-                         class="p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 relative overflow-hidden group"
+                         class="p-2.5 sm:p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 relative overflow-hidden group"
                          :class="Number(selectedUserId) === Number(emp.id) ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/20 shadow-sm' : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/90'">
                         
                         <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-xs"
+                            <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-xs"
                                      :class="Number(selectedUserId) === Number(emp.id) ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'">
                                     <span x-text="emp.name.substring(0, 2).toUpperCase()"></span>
                                 </div>
@@ -255,91 +325,16 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                         <div class="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-200/60 text-center text-[10px]">
                             <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Distance</span>
-                                <strong class="text-slate-800 font-mono" x-text="(Number(emp.total_distance_meters || 0) / 1000).toFixed(1) + ' km'"></strong>
+                                <strong class="text-slate-800 font-mono text-[10px]" x-text="(Number(emp.total_distance_meters || 0) / 1000).toFixed(1) + ' km'"></strong>
                             </div>
                             <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Speed</span>
-                                <strong class="text-blue-600 font-mono" x-text="(Number(emp.current_speed || 0)).toFixed(0) + ' km/h'"></strong>
+                                <strong class="text-blue-600 font-mono text-[10px]" x-text="(Number(emp.current_speed || 0)).toFixed(0) + ' km/h'"></strong>
                             </div>
                             <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Waypoints</span>
-                                <strong class="text-slate-800 font-mono" x-text="emp.waypoints_count || 0"></strong>
+                                <strong class="text-slate-800 font-mono text-[10px]" x-text="emp.waypoints_count || 0"></strong>
                             </div>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-
-        <!-- Right: Real Google Maps Canvas & Clean Journey Trail (8 Cols) -->
-        <div class="lg:col-span-8 space-y-4">
-            
-            <!-- Map Container with Clean Floating Controls -->
-            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2.5 relative">
-                
-                <!-- Map Top Bar: Selected Staff Summary & Map Style Switcher -->
-                <div class="flex items-center justify-between flex-wrap gap-2 px-1">
-                    <template x-if="selectedEmp">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-bold text-xs text-slate-900" x-text="selectedEmp.name"></span>
-                            <span class="text-[10px] text-slate-500 font-mono" x-text="'(' + (selectedEmp.emp_id || '') + ')'"></span>
-                            <span class="text-xs text-slate-400">•</span>
-                            <span class="text-xs font-bold text-blue-700 font-mono" x-text="analytics.total_distance_km + ' KM traveled'"></span>
-                            <span class="text-xs text-slate-400">•</span>
-                            <span class="text-xs font-semibold text-slate-600" x-text="analytics.total_stops + ' stops'"></span>
-                            
-                            <!-- 🔋 Live Battery & Last Seen Status Telemetry -->
-                            <template x-if="analytics.latest_battery_level !== null && analytics.latest_battery_level !== undefined">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 shadow-2xs"
-                                      :class="analytics.latest_battery_level > 20 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-300 animate-pulse'">
-                                    <span x-text="analytics.latest_battery_level > 20 ? '🔋' : '🪫'"></span>
-                                    <span x-text="analytics.latest_battery_level + '% Battery'"></span>
-                                </span>
-                            </template>
-
-                            <template x-if="analytics.last_seen_at">
-                                <span class="text-[10px] font-mono text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 shadow-2xs">
-                                    <span class="w-2 h-2 rounded-full inline-block" :class="(analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 30) ? 'bg-emerald-500 animate-ping' : ((analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 120) ? 'bg-emerald-500' : 'bg-amber-500')"></span>
-                                    <span>Last Ping: <strong class="text-slate-900" x-text="analytics.last_seen_at"></strong></span>
-                                    <template x-if="analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago !== undefined">
-                                        <span class="text-slate-400 text-[9px]" x-text="analytics.last_seen_seconds_ago < 60 ? ('(' + analytics.last_seen_seconds_ago + 's ago)') : ('(' + Math.round(analytics.last_seen_seconds_ago/60) + 'm ago)')"></span>
-                                    </template>
-                                </span>
-                            </template>
-                        </div>
-                    </template>
-
-                    <!-- Clean Google Map Style Switcher -->
-                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold">
-                        <button type="button" @click="toggleMapLayer('roadmap')" class="px-2.5 py-1 rounded-lg transition cursor-pointer" :class="mapLayerType === 'roadmap' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'">
-                            Map
-                        </button>
-                        <button type="button" @click="toggleMapLayer('satellite')" class="px-2.5 py-1 rounded-lg transition cursor-pointer" :class="mapLayerType === 'satellite' ? 'bg-white text-blue-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'">
-                            Satellite
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Google Maps Canvas -->
-                <div id="radarMap" class="w-full h-[500px] rounded-xl border border-slate-200 z-10 shadow-inner"></div>
-
-                <!-- Clean Bottom Stoppages / Timeline Bar (Only shows when stops exist) -->
-                <template x-if="stops.length > 0">
-                    <div class="pt-2 border-t border-slate-100">
-                        <div class="flex items-center justify-between mb-1.5 px-1">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stoppage Stops (Click to focus on Map):</span>
-                            <span class="text-[10px] text-slate-400" x-text="stops.length + ' stops detected'"></span>
-                        </div>
-                        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-                            <template x-for="st in stops" :key="st.stop_number">
-                                <div @click="focusStop(st)" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer shrink-0 flex items-center gap-2 text-xs shadow-2xs">
-                                    <span class="w-5 h-5 rounded-full bg-amber-500 text-white font-black text-[10px] flex items-center justify-center shrink-0" x-text="st.stop_number"></span>
-                                    <div class="text-[11px] leading-tight">
-                                        <strong class="text-slate-800" x-text="st.duration"></strong>
-                                        <span class="text-slate-400 text-[10px] block font-mono" x-text="st.arrival_time"></span>
-                                    </div>
-                                </div>
-                            </template>
                         </div>
                     </div>
                 </template>

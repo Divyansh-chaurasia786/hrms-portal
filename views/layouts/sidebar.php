@@ -229,11 +229,11 @@ $page = $_GET['page'] ?? 'dashboard';
         </div>
 
         <!-- Quick Punch Status & User Info -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <!-- 📲 Install Application Button -->
-            <button type="button" id="installAppNavbarBtn" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 hover:border-indigo-300 text-xs font-bold transition shadow-2xs cursor-pointer group" title="Install Official App on PC / Mobile">
-                <i data-lucide="download-cloud" class="w-4 h-4 text-indigo-600 group-hover:-translate-y-0.5 transition-transform"></i>
-                <span class="hidden sm:inline font-extrabold">Install App</span>
+            <button type="button" id="installAppNavbarBtn" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition shadow-2xs cursor-pointer group" title="Install Official App on PC / Mobile">
+                <i data-lucide="download-cloud" class="w-3.5 h-3.5 text-indigo-600 group-hover:-translate-y-0.5 transition-transform"></i>
+                <span class="text-[11px] sm:text-xs font-extrabold">Install App</span>
             </button>
             <?php
             $todayAtt = AttendanceController::getTodayAttendanceForUser($user['id']);
@@ -242,8 +242,8 @@ $page = $_GET['page'] ?? 'dashboard';
             ?>
             <?php if ($isCurrentlyIn): ?>
                 <!-- PUNCHED IN: SHOW STATUS & PUNCH OUT BUTTON -->
-                <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-sm">
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                    <span class="hidden md:inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> In: <?= formatTime($todayAtt['clock_in']) ?>
                     </span>
                     <div x-data="{
@@ -268,24 +268,20 @@ $page = $_GET['page'] ?? 'dashboard';
                                     (e) => {
                                         submitWithCoords(null, null);
                                     },
-                                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+                                    { timeout: 3000, enableHighAccuracy: true }
                                 );
                             } else {
                                 submitWithCoords(null, null);
                             }
                         }
                     }">
-                        <form x-ref="punchOutForm" action="?action=clock-out" method="POST" class="inline" @submit.prevent="doPunchOut()">
-                            <input type="hidden" name="latitude" :value="outLat">
-                            <input type="hidden" name="longitude" :value="outLng">
-                            <button type="submit" :disabled="outState === 'saving'" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-slate-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer">
-                                <template x-if="outState === 'saving'">
-                                    <svg class="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                                </template>
-                                <template x-if="outState !== 'saving'">
-                                    <i data-lucide="stop-circle" class="w-3.5 h-3.5"></i>
-                                </template>
-                                <span x-text="outState === 'saving' ? 'Recording Location...' : 'Punch Out'"></span>
+                        <form x-ref="punchOutForm" action="?action=punch-out" method="POST" class="m-0">
+                            <input type="hidden" name="latitude" value="">
+                            <input type="hidden" name="longitude" value="">
+                            <button type="button" @click="doPunchOut()" :disabled="outState === 'saving'" class="px-2.5 sm:px-3.5 py-1.5 text-xs font-bold bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl shadow-xs transition flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="log-out" class="w-3.5 h-3.5" x-show="outState === 'idle'"></i>
+                                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="outState === 'saving'" style="display: none;"></i>
+                                <span class="text-[11px] sm:text-xs" x-text="outState === 'saving' ? 'Exiting...' : 'Punch Out'"></span>
                             </button>
                         </form>
                     </div>
