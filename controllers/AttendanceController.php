@@ -535,8 +535,9 @@ class AttendanceController {
         $endLocation = !empty($cleanWaypoints) ? $cleanWaypoints[count($cleanWaypoints) - 1] : null;
 
                 $lastLog = !empty($logs) ? $logs[count($logs) - 1] : null;
-        $latestBattery = $lastLog && isset($lastLog['battery_level']) ? (int)$lastLog['battery_level'] : null;
-        $lastSeenAt = $lastLog ? date('h:i A', strtotime($lastLog['recorded_at'])) : ($emp['clock_in'] ? date('h:i A', strtotime($emp['clock_in'])) : null);
+        $latestBattery = $lastLog && isset($lastLog['battery_level']) && $lastLog['battery_level'] !== '' ? (int)$lastLog['battery_level'] : null;
+        $lastSeenAt = $lastLog ? date('h:i:s A', strtotime($lastLog['recorded_at'])) : ($emp['clock_in'] ? date('h:i:s A', strtotime($emp['clock_in'])) : null);
+        $lastSeenSecondsAgo = $lastLog ? max(0, time() - strtotime($lastLog['recorded_at'])) : ($emp['clock_in'] ? max(0, time() - strtotime($emp['clock_in'])) : null);
 
         $analytics = [
             'total_distance_km' => $totalDistanceKm,
@@ -546,6 +547,7 @@ class AttendanceController {
             'avg_speed_kmh' => $avgSpeed,
             'latest_battery_level' => $latestBattery,
             'last_seen_at' => $lastSeenAt,
+            'last_seen_seconds_ago' => $lastSeenSecondsAgo,
             'shift_start_time' => $emp['clock_in'] ? date('h:i A', strtotime($emp['clock_in'])) : 'Not Started',
             'shift_end_time' => $emp['clock_out'] ? date('h:i A', strtotime($emp['clock_out'])) : ($emp['clock_in'] ? 'Active On Field' : 'No Shift'),
             'is_active_now' => (!empty($emp['clock_in']) && empty($emp['clock_out']))

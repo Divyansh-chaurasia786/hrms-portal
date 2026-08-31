@@ -24,7 +24,7 @@ $fieldEmployees = $db->query("
         WHERE recorded_at >= '{$selectedDate} 00:00:00' AND recorded_at <= '{$selectedDate} 23:59:59'
         GROUP BY user_id
     ) stats ON stats.user_id = u.id
-    WHERE (u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%') AND u.status = 'active'
+    WHERE ((u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%') OR (a.clock_in IS NOT NULL)) AND u.status = 'active'
     ORDER BY CASE WHEN a.clock_in IS NOT NULL AND a.clock_out IS NULL THEN 1 ELSE 2 END, u.name ASC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -293,8 +293,12 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                             </template>
 
                             <template x-if="analytics.last_seen_at">
-                                <span class="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
-                                    Last Ping: <strong class="text-slate-800" x-text="analytics.last_seen_at"></strong>
+                                <span class="text-[10px] font-mono text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <span class="w-2 h-2 rounded-full inline-block" :class="(analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 30) ? 'bg-emerald-500 animate-ping' : ((analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 120) ? 'bg-emerald-500' : 'bg-amber-500')"></span>
+                                    <span>Last Ping: <strong class="text-slate-900" x-text="analytics.last_seen_at"></strong></span>
+                                    <template x-if="analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago !== undefined">
+                                        <span class="text-slate-400 text-[9px]" x-text="analytics.last_seen_seconds_ago < 60 ? ('(' + analytics.last_seen_seconds_ago + 's ago)') : ('(' + Math.round(analytics.last_seen_seconds_ago/60) + 'm ago)')"></span>
+                                    </template>
                                 </span>
                             </template>
                         </div>

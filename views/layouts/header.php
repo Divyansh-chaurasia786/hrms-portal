@@ -161,13 +161,14 @@
         if (modal) modal.classList.add('hidden');
     });
     </script>
-
-    <!-- 📍 GPS LIVE TRACKER — 5s interval, employee_travel_logs endpoint, offline queue -->
+    <!-- 📍 ULTRA-FAST LIVE GPS TRACKER (2-5s Gap, Offline Sync, Instant Start, Local IST Time) -->
     <script>
     (function() {
         var GPS = {
             watchId:            null,
-            pingIntervalMs:     5000,       // ← LIVE: 5-second interval
+            timerId:            null,
+            pingIntervalMs:     4000,       // 4s live heartbeat ping (2-10s gap)
+            minIntervalMs:      2000,       // 2s minimum throttle gate
             offlineQueueKey:    'eco_gps_queue',
             grantedKey:         'eco_gps_granted',
             shiftActive:        false,
@@ -177,6 +178,19 @@
             stopped:            false,
             lastPingTs:         0,
 
+            // Local Date String YYYY-MM-DD HH:MM:SS (in client's local timezone)
+            getLocalIsoString: function() {
+                var d = new Date();
+                var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+                return d.getFullYear() + '-' +
+                       pad(d.getMonth() + 1) + '-' +
+                       pad(d.getDate()) + ' ' +
+                       pad(d.getHours()) + ':' +
+                       pad(d.getMinutes()) + ':' +
+                       pad(d.getSeconds());
+            },
+
+            // Offline Queue Enqueue
             enqueue: function(p) {
                 var q = [];
                 try { q = JSON.parse(localStorage.getItem(this.offlineQueueKey) || '[]'); } catch(e) {}
@@ -185,60 +199,92 @@
                 try { localStorage.setItem(this.offlineQueueKey, JSON.stringify(q)); } catch(e) {}
             },
 
+            // Offline Queue Flush
             flushQueue: function() {
                 var self = this;
                 var q = [];
                 try { q = JSON.parse(localStorage.getItem(this.offlineQueueKey) || '[]'); } catch(e) {}
-                if (!q.length || !this.attendanceId) return;
+                if (!q.length) return;
                 try { localStorage.setItem(this.offlineQueueKey, '[]'); } catch(e) {}
                 fetch('?action=sync-offline-gps-batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ pings: q })
-                }).catch(function() { q.forEach(function(p) { self.enqueue(p); }); });
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (!data || !data.success) {
+                        // Re-queue on rejection
+                        q.forEach(function(p) { self.enqueue(p); });
+                    }
+                })
+                .catch(function() {
+                    q.forEach(function(p) { self.enqueue(p); });
+                });
             },
 
+            // Send Ping to Server
             sendPing: function(pos, type) {
+                if (this.stopped) return;
                 var now = Date.now();
-                // Throttle by interval unless clock_in or clock_out
-                if (type !== 'clock_in' && type !== 'clock_out' && (now - this.lastPingTs < this.pingIntervalMs)) return;
+                var isExplicit = (type === 'clock_in' || type === 'clock_out' || type === 'manual');
+                if (!isExplicit && (now - this.lastPingTs < this.minIntervalMs)) return;
                 this.lastPingTs = now;
 
                 var lat         = pos.coords.latitude;
                 var lng         = pos.coords.longitude;
+                var accuracy    = pos.coords.accuracy || 10;
                 var speedMs     = pos.coords.speed || 0;
                 var speedKmh    = Math.round(speedMs * 3.6 * 10) / 10;
-                var recordedAt  = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                var recordedAt  = this.getLocalIsoString();
 
                 try { localStorage.setItem(this.grantedKey, '1'); } catch(e) {}
                 this.consecutiveErrors = 0;
 
                 var self = this;
                 var doSend = function(battery) {
+                    var payload = {
+                        attendance_id: self.attendanceId,
+                        latitude: lat,
+                        longitude: lng,
+                        accuracy: accuracy,
+                        speed: speedKmh,
+                        battery_level: battery,
+                        ping_type: type || 'auto_ping',
+                        recorded_at: recordedAt,
+                        distance_meters: 0,
+                        is_offline: 0
+                    };
+
                     if (!navigator.onLine) {
-                        self.enqueue({
-                            attendance_id: self.attendanceId,
-                            latitude: lat, longitude: lng,
-                            speed: speedKmh, battery_level: battery,
-                            recorded_at: recordedAt, distance_meters: 0, is_offline: 1
-                        });
+                        payload.is_offline = 1;
+                        self.enqueue(payload);
                         return;
                     }
+
                     var fd = new FormData();
                     fd.append('attendance_id', self.attendanceId);
                     fd.append('latitude', lat);
                     fd.append('longitude', lng);
+                    fd.append('accuracy', accuracy);
                     fd.append('speed', speedKmh);
-                    fd.append('battery_level', battery || '');
+                    fd.append('battery_level', (battery !== null && battery !== undefined) ? battery : '');
+                    fd.append('ping_type', type || 'auto_ping');
                     fd.append('recorded_at', recordedAt);
+
                     fetch('?action=record-travel-gps', { method: 'POST', body: fd })
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res && res.attendance_id) {
+                                self.attendanceId = res.attendance_id;
+                            }
+                            if (self.offlineQueueKey && navigator.onLine) {
+                                self.flushQueue();
+                            }
+                        })
                         .catch(function() {
-                            self.enqueue({
-                                attendance_id: self.attendanceId,
-                                latitude: lat, longitude: lng,
-                                speed: speedKmh, battery_level: battery,
-                                recorded_at: recordedAt, distance_meters: 0, is_offline: 1
-                            });
+                            payload.is_offline = 1;
+                            self.enqueue(payload);
                         });
                 };
 
@@ -252,7 +298,9 @@
             },
 
             onGpsError: function(err) {
-                if (err.code === 1) try { localStorage.setItem(this.grantedKey, 'denied'); } catch(e) {}
+                if (err.code === 1) {
+                    try { localStorage.setItem(this.grantedKey, 'denied'); } catch(e) {}
+                }
                 if (err.code === 1 || err.code === 2) {
                     this.consecutiveErrors++;
                     if (this.consecutiveErrors >= this.maxConsecutiveErrors && this.shiftActive) {
@@ -272,10 +320,10 @@
                     if (res.success) {
                         GPS.shiftActive = false;
                         var b = document.createElement('div');
-                        b.innerHTML = '📍 <strong>Auto Punch-Out:</strong> GPS disabled. Shift auto-ended. Total: <strong>' + (res.hours || 0) + ' hrs</strong>';
+                        b.innerHTML = '📍 <strong>Auto Punch-Out:</strong> GPS was turned off. Shift auto-ended. Total: <strong>' + (res.hours || 0) + ' hrs</strong>';
                         b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;';
                         document.body.prepend(b);
-                        setTimeout(function() { window.location.reload(); }, 4000);
+                        setTimeout(function() { window.location.reload(); }, 3500);
                     }
                 }).catch(function() {});
             },
@@ -286,18 +334,46 @@
                     try { navigator.geolocation.clearWatch(this.watchId); } catch(e) {}
                     this.watchId = null;
                 }
+                if (this.timerId !== null) {
+                    clearInterval(this.timerId);
+                    this.timerId = null;
+                }
             },
 
-            startWatch: function() {
+            startTracking: function() {
                 var self = this;
-                if (!navigator.geolocation || this.stopped) return;
-                if (this.watchId !== null) try { navigator.geolocation.clearWatch(this.watchId); } catch(e) {}
+                if (!navigator.geolocation) return;
+                this.stopped = false;
+                this.shiftActive = true;
 
+                // 1. Immediate first ping (0s delay)
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) { self.sendPing(pos, 'auto_ping'); },
+                    function(err) { self.onGpsError(err); },
+                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+                );
+
+                // 2. Hardware watchPosition stream for active movement
+                if (this.watchId !== null) try { navigator.geolocation.clearWatch(this.watchId); } catch(e) {}
                 this.watchId = navigator.geolocation.watchPosition(
                     function(pos) { self.sendPing(pos, 'auto_ping'); },
                     function(err) { self.onGpsError(err); },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 1000 }
                 );
+
+                // 3. Heartbeat timer (every 4s) so stationary devices also ping continuously
+                if (this.timerId !== null) clearInterval(this.timerId);
+                this.timerId = setInterval(function() {
+                    if (self.stopped || !self.shiftActive) return;
+                    navigator.geolocation.getCurrentPosition(
+                        function(pos) { self.sendPing(pos, 'auto_ping'); },
+                        function(err) { self.onGpsError(err); },
+                        { enableHighAccuracy: true, timeout: 4000, maximumAge: 2000 }
+                    );
+                }, this.pingIntervalMs);
+
+                // 4. Flush offline backlog
+                if (navigator.onLine) this.flushQueue();
             },
 
             init: function() {
@@ -307,29 +383,28 @@
                 try { st = localStorage.getItem(this.grantedKey) || ''; } catch(e) {}
                 if (st === 'denied') return;
 
-                var doStart = function() {
-                    self.startWatch();
-                    if (navigator.onLine) self.flushQueue();
-                };
-
-                if (st === '1') { doStart(); return; }
+                if (st === '1') {
+                    self.startTracking();
+                    return;
+                }
 
                 if (navigator.permissions && navigator.permissions.query) {
                     navigator.permissions.query({ name: 'geolocation' }).then(function(r) {
                         if (r.state === 'granted') {
                             try { localStorage.setItem(self.grantedKey, '1'); } catch(e) {}
-                            doStart();
+                            self.startTracking();
                         } else if (r.state === 'prompt') {
-                            doStart();
+                            self.startTracking();
                         }
-                    }).catch(function() { doStart(); });
+                    }).catch(function() { self.startTracking(); });
                 } else {
-                    doStart();
+                    self.startTracking();
                 }
             }
         };
 
         window.ecoStopGpsTracking = function() { GPS.stop(); };
+        window.ecoStartGpsTracking = function() { GPS.startTracking(); };
         window.addEventListener('online', function() { GPS.flushQueue(); });
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden && navigator.onLine) GPS.flushQueue();
@@ -342,24 +417,24 @@
             var st = '';
             try { st = localStorage.getItem(GPS.grantedKey) || ''; } catch(e) {}
 
-            // Detect punch-in redirect — fire silent clock_in ping immediately
+            // Clean loc_start from URL
             var urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('loc_start')) {
                 if (window.history && window.history.replaceState) {
                     urlParams.delete('loc_start');
                     window.history.replaceState({}, '', window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : ''));
                 }
-                if (st === '1' && navigator.geolocation) {
+                if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         function(pos) { GPS.sendPing(pos, 'clock_in'); },
                         function() {},
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
                     );
                 }
             }
 
-            // Only track when shift is active — saves battery when off-duty
-            if (GPS.shiftActive && GPS.attendanceId > 0) {
+            // Start tracking if active shift
+            if (GPS.shiftActive) {
                 GPS.init();
             }
         });

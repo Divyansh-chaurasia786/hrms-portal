@@ -308,6 +308,8 @@ $page = $_GET['page'] ?? 'dashboard';
                                 (p) => {
                                     this.lat = p.coords.latitude; 
                                     this.lng = p.coords.longitude;
+                                    try { localStorage.setItem('eco_gps_granted', '1'); } catch(e) {}
+                                    if (window.ecoStartGpsTracking) { window.ecoStartGpsTracking(); }
                                     if (this.isExempt) {
                                         this.locState = 'ok';
                                         this.$nextTick(() => this.$refs.hdrForm.submit());

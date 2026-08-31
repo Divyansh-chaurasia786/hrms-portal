@@ -337,6 +337,8 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                                         (pos) => {
                                             this.latitude = pos.coords.latitude;
                                             this.longitude = pos.coords.longitude;
+                                            try { localStorage.setItem('eco_gps_granted', '1'); } catch(e) {}
+                                            if (window.ecoStartGpsTracking) { window.ecoStartGpsTracking(); }
                                             this.$nextTick(() => this.$refs.punchForm.submit());
                                         },
                                         (err) => {
@@ -365,6 +367,8 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                                 (pos) => {
                                     this.latitude = pos.coords.latitude;
                                     this.longitude = pos.coords.longitude;
+                                    try { localStorage.setItem('eco_gps_granted', '1'); } catch(e) {}
+                                    if (window.ecoStartGpsTracking) { window.ecoStartGpsTracking(); }
                                     const R = 6371000;
                                     const dLat = (this.officeLat - this.latitude) * Math.PI / 180;
                                     const dLon = (this.officeLng - this.longitude) * Math.PI / 180;

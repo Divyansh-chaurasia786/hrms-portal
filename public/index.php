@@ -231,15 +231,21 @@ if ($action) {
             $lat = (float)($_POST['latitude'] ?? 0);
             $lng = (float)($_POST['longitude'] ?? 0);
             $speed = (float)($_POST['speed'] ?? 0);
-            $battery = isset($_POST['battery_level']) ? (int)$_POST['battery_level'] : null;
+            $battery = (isset($_POST['battery_level']) && $_POST['battery_level'] !== '') ? (int)$_POST['battery_level'] : null;
+            $accuracy = (float)($_POST['accuracy'] ?? 10);
+            $pingType = !empty($_POST['ping_type']) ? trim($_POST['ping_type']) : 'auto_ping';
             $recordedAt = !empty($_POST['recorded_at']) ? trim($_POST['recorded_at']) : date('Y-m-d H:i:s');
+            // Ensure format YYYY-MM-DD HH:MM:SS
+            if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $recordedAt)) {
+                $recordedAt = date('Y-m-d H:i:s');
+            }
             $isOffline = !empty($_POST['is_offline']) ? 1 : 0;
 
             if ($user && $lat != 0 && $lng != 0) {
                 $db = getDBConnection();
+                $today = date('Y-m-d');
                 if ($attendanceId <= 0) {
-                    $today = date('Y-m-d');
-                    $attRow = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch();
+                    $attRow = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' ORDER BY (clock_out IS NULL) DESC, id DESC LIMIT 1")->fetch();
                     if ($attRow) $attendanceId = (int)$attRow['id'];
                 }
 
@@ -247,8 +253,11 @@ if ($action) {
                     // Calculate distance from previous coordinate
                     $prev = $db->query("SELECT latitude, longitude FROM employee_travel_logs WHERE attendance_id = {$attendanceId} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                     $distMeters = 0;
-                    if ($prev) {
+                    if ($prev && !empty($prev['latitude']) && !empty($prev['longitude'])) {
                         $distMeters = (int)calculateDistance($lat, $lng, (float)$prev['latitude'], (float)$prev['longitude']);
+                        if ($distMeters > 50000) { // Safety sanity cap for GPS teleport glitches
+                            $distMeters = 0;
+                        }
                     }
 
                     $stmt = $db->prepare("
@@ -260,11 +269,17 @@ if ($action) {
                     // Update latest location in attendance
                     $db->prepare("UPDATE attendance SET latitude = ?, longitude = ? WHERE id = ?")->execute([$lat, $lng, $attendanceId]);
 
-                    echo json_encode(['success' => true, 'dist' => $distMeters]);
+                    // Also sync to location_pings table for Live Location board
+                    try {
+                        $db->prepare("INSERT INTO location_pings (user_id, latitude, longitude, accuracy, ping_type, session_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                           ->execute([$user['id'], $lat, $lng, $accuracy, $pingType, date('Y-m-d', strtotime($recordedAt)), $recordedAt]);
+                    } catch (Exception $e) {}
+
+                    echo json_encode(['success' => true, 'dist' => $distMeters, 'attendance_id' => $attendanceId]);
                     exit;
                 }
             }
-            echo json_encode(['success' => false]);
+            echo json_encode(['success' => false, 'message' => 'No active shift record']);
             exit;
 
         case 'sync-offline-gps-batch':
@@ -275,13 +290,17 @@ if ($action) {
             if ($user && !empty($pings)) {
                 $db = getDBConnection();
                 $today = date('Y-m-d');
-                $attRow = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch();
+                $attRow = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' ORDER BY (clock_out IS NULL) DESC, id DESC LIMIT 1")->fetch();
                 $attendanceId = $attRow ? (int)$attRow['id'] : 0;
 
                 if ($attendanceId > 0) {
                     $stmt = $db->prepare("
                         INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, battery_level, is_offline_sync, distance_meters, recorded_at) 
                         VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    ");
+                    $stmtPing = $db->prepare("
+                        INSERT INTO location_pings (user_id, latitude, longitude, accuracy, ping_type, session_date, created_at)
+                        VALUES (?, ?, ?, ?, 'auto_ping', ?, ?)
                     ");
 
                     $syncedCount = 0;
@@ -292,12 +311,19 @@ if ($action) {
                         $pLat = (float)($p['latitude'] ?? 0);
                         $pLng = (float)($p['longitude'] ?? 0);
                         $pSpeed = (float)($p['speed'] ?? 0);
-                        $pBattery = isset($p['battery_level']) ? (int)$p['battery_level'] : null;
+                        $pBattery = (isset($p['battery_level']) && $p['battery_level'] !== '') ? (int)$p['battery_level'] : null;
                         $pTime = !empty($p['recorded_at']) ? $p['recorded_at'] : date('Y-m-d H:i:s');
+                        if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $pTime)) {
+                            $pTime = date('Y-m-d H:i:s');
+                        }
                         $pDist = (int)($p['distance_meters'] ?? 0);
+                        $pAcc = (float)($p['accuracy'] ?? 10);
 
                         if ($pLat != 0 && $pLng != 0) {
                             $stmt->execute([$attendanceId, $user['id'], $pLat, $pLng, $pSpeed, $pBattery, $pDist, $pTime]);
+                            try {
+                                $stmtPing->execute([$user['id'], $pLat, $pLng, $pAcc, date('Y-m-d', strtotime($pTime)), $pTime]);
+                            } catch (Exception $e) {}
                             $syncedCount++;
                             $lastLat = $pLat;
                             $lastLng = $pLng;
