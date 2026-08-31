@@ -4,29 +4,25 @@ $user = authUser();
 $db = getDBConnection();
 
 $sheets = $db->query("
-    SELECT s.id, s.title, s.category, s.uploaded_by, s.created_at, 
+    SELECT s.id, s.title, s.category, s.columns_json, s.rows_json, s.uploaded_by, s.created_at, 
            u.name as uploader_name 
     FROM smart_sheet_uploads s 
-    JOIN users u ON s.uploaded_by = u.id 
-    ORDER BY s.created_at DESC
+    LEFT JOIN users u ON s.uploaded_by = u.id 
+    ORDER BY s.id ASC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-$initialSheetId = !empty($sheets) ? (int)$sheets[0]['id'] : 0;
-
-// Preload initial sheet data directly on server-side for INSTANT 0ms rendering
-$initialSheet = null;
-if ($initialSheetId > 0) {
-    $stmt = $db->prepare("SELECT id, title, columns_json, rows_json FROM smart_sheet_uploads WHERE id = ?");
-    $stmt->execute([$initialSheetId]);
-    $initialSheet = $stmt->fetch(PDO::FETCH_ASSOC);
+$allSheetsPayload = [];
+foreach ($sheets as $s) {
+    $cols = !empty($s['columns_json']) ? json_decode($s['columns_json'], true) : [];
+    $rows = !empty($s['rows_json']) ? json_decode($s['rows_json'], true) : [];
+    $allSheetsPayload[] = [
+        'id' => (int)$s['id'],
+        'title' => $s['title'] ?: ('Sheet ' . $s['id']),
+        'category' => $s['category'] ?? 'custom',
+        'columns' => $cols ?: [],
+        'rows' => $rows ?: []
+    ];
 }
-
-$initialPayload = [
-    'id' => $initialSheet ? (int)$initialSheet['id'] : 0,
-    'title' => $initialSheet ? $initialSheet['title'] : 'Excel Workbook',
-    'columns' => ($initialSheet && !empty($initialSheet['columns_json'])) ? json_decode($initialSheet['columns_json'], true) : [],
-    'rows' => ($initialSheet && !empty($initialSheet['rows_json'])) ? json_decode($initialSheet['rows_json'], true) : []
-];
 ?>
 
 <!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins (Multi-CDN High Speed) -->
@@ -390,9 +386,7 @@ body[data-page="admin-smart-sheets"] main {
     color: #107c41;
     font-weight: 700;
 }
-</style>
-
-<div class="font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($sheets)) ?>, <?= htmlspecialchars(json_encode($initialPayload)) ?>)">
+<div class="font-sans text-slate-800 w-full" x-data="msExcel2021Studio" x-init="initStudio(<?= htmlspecialchars(json_encode($allSheetsPayload)) ?>)">
     
     <!-- 🟢 MICROSOFT EXCEL 2021 TOP TITLE & RIBBON HEADER -->
     <div class="bg-[#107c41] text-white rounded-t-xl shadow-lg border border-[#0d6535] select-none w-full relative z-40 overflow-visible">
@@ -619,8 +613,8 @@ document.addEventListener('alpine:init', () => {
             return 'bg-emerald-800/80 text-emerald-100';
         },
 
-        initStudio(sheetList, initialData) {
-            this.allSheets = sheetList || [];
+        initStudio(allSheetsData) {
+            this.allSheets = allSheetsData || [];
 
             window.addEventListener('resize', () => {
                 this.resizeLuckysheet();
@@ -699,36 +693,24 @@ document.addEventListener('alpine:init', () => {
                 }
             });
 
-            // ⚡ 1. Check if Multi-Sheet Workbook is preserved in Device Vault
-            let savedMultiSheets = null;
-            if (window.HRMSCache) {
-                savedMultiSheets = window.HRMSCache.get('excel_multi_sheets_vault');
-            }
-
-            if (savedMultiSheets && Array.isArray(savedMultiSheets) && savedMultiSheets.length > 0) {
-                this.createLuckysheetInstance(savedMultiSheets);
-                return;
-            }
-
-            // ⚡ 2. Fallback to initial server preloaded data
-            let activeData = null;
-            if (initialData && initialData.id > 0) {
-                activeData = initialData;
-                if (window.HRMSCache) {
-                    window.HRMSCache.set('excel_sheet_' + initialData.id, initialData);
-                }
-            } else if (window.HRMSCache) {
-                activeData = window.HRMSCache.get('excel_last_active_sheet');
-            }
-
-            if (activeData && activeData.id > 0) {
-                this.currentSheetId = activeData.id;
-                this.currentSheetTitle = activeData.title || 'Excel Workbook';
-                this.renderLuckysheetFromData(activeData.title || 'Sheet1', activeData.columns || [], activeData.rows || []);
-                if (window.HRMSCache) window.HRMSCache.set('excel_last_active_sheet', activeData);
+            // Build multi-sheet tabs array for Luckysheet
+            let luckysheetTabs = [];
+            if (Array.isArray(allSheetsData) && allSheetsData.length > 0) {
+                allSheetsData.forEach((s, idx) => {
+                    let sheetObj = this.buildSheetConfigObject(s.title || ('Sheet ' + (idx + 1)), s.columns || [], s.rows || []);
+                    sheetObj.order = idx;
+                    sheetObj.index = idx;
+                    sheetObj.status = (idx === allSheetsData.length - 1) ? 1 : 0; // Activate the latest sheet tab
+                    luckysheetTabs.push(sheetObj);
+                });
+                let latest = allSheetsData[allSheetsData.length - 1];
+                this.currentSheetId = latest.id;
+                this.currentSheetTitle = latest.title || 'Excel Workbook';
             } else {
-                this.renderBlankLuckysheet('Sheet1');
+                luckysheetTabs.push(this.buildSheetConfigObject('Sheet 1', [], []));
             }
+
+            this.createLuckysheetInstance(luckysheetTabs);
         },
 
         resizeLuckysheet() {
@@ -843,9 +825,14 @@ document.addEventListener('alpine:init', () => {
                     if (hasData) rows.push(rowData);
                 }
 
+                const activeSheets = luckysheet.getAllSheets() || [];
+                const activeTab = activeSheets.find(s => s.status === 1) || activeSheets[0] || {};
+                const activeTitle = activeTab.name || this.currentSheetTitle;
+                this.currentSheetTitle = activeTitle;
+
                 const formData = new FormData();
                 formData.append('sheet_id', this.currentSheetId);
-                formData.append('sheet_title', this.currentSheetTitle);
+                formData.append('sheet_title', activeTitle);
                 formData.append('columns_json', JSON.stringify(columns));
                 formData.append('rows_json', JSON.stringify(rows));
 
