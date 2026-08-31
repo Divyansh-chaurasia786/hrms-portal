@@ -11,6 +11,9 @@ if (!headers_sent()) {
     header("X-Content-Type-Options: nosniff");
     header("X-XSS-Protection: 1; mode=block");
     header("Referrer-Policy: strict-origin-when-cross-origin");
+    header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
+    header("Pragma: no-cache");
+    header("Expires: 0");
 }
 
 require_once __DIR__ . '/../config/database.php';

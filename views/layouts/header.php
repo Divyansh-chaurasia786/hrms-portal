@@ -110,12 +110,21 @@
     </style>
                             <!-- 📲 PWA Installer Engine — NO auto popup, only on button click -->
     <script>
+    // Automatically purge old stale caches on load
+    if ('caches' in window) {
+        caches.keys().then(function(keys) {
+            keys.forEach(function(k) {
+                if (k.indexOf('ecofone-app-v5') === -1) caches.delete(k);
+            });
+        });
+    }
+
     // Store deferred install prompt silently — never auto-fire
     window.pwaInstallPrompt = null;
 
     // Register service worker immediately for instant PWA readiness
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js?v=5').then(function(reg) {
+        navigator.serviceWorker.register('/sw.js?v=6').then(function(reg) {
             if (reg && reg.update) reg.update();
         }).catch(function() {});
     }
