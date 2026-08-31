@@ -63,14 +63,16 @@
 
     <div class="w-full max-w-[420px] relative z-10 my-auto">
         <!-- Logo & Header -->
-        <div class="text-center mb-5">
+        <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center mb-3">
-                <img src="/logo.png" alt="EcoFone App Logo" class="h-16 w-auto object-contain bg-white/95 rounded-2xl p-2 shadow-2xl shadow-orange-500/20 ring-1 ring-white/30">
+                <div class="w-20 h-20 rounded-3xl bg-white flex items-center justify-center p-2.5 shadow-2xl shadow-orange-500/20 ring-4 ring-white/20">
+                    <img src="/logo_icon.png?v=3" alt="EcoFone App Logo" class="w-full h-full object-contain">
+                </div>
             </div>
             <h1 class="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-1.5">
-                <span>EcoFone</span> <span class="text-orange-400 font-extrabold">App</span>
+                <span>EcoFone</span> <span class="text-orange-400 font-black">App</span>
             </h1>
-            <p class="text-xs font-medium text-slate-400 mt-1">Official Workforce, CRM & Operations Portal</p>
+            <p class="text-xs font-semibold text-slate-400 mt-1">Official Workforce, CRM & Operations Portal</p>
         </div>
 
         <!-- Flash messages -->

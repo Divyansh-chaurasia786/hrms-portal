@@ -8,7 +8,7 @@
     <meta name="description" content="EcoFone App - Official Enterprise Workforce, CRM & Operations Portal.">
     <meta name="keywords" content="EcoFone App, EcoFone, ecofone portal, HRMS portal">
     <meta name="robots" content="noindex, nofollow">
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="icon" type="image/png" href="/favicon.png?v=3">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -19,12 +19,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'" />
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <!-- PWA Manifest & Mobile Standalone Icons -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/manifest.json?v=3">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="EcoFone App">
-    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-192.png?v=3">
     <meta name="theme-color" content="#4f46e5">
 
     <!-- Tailwind CSS CDN -->

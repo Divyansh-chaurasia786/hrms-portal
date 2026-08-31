@@ -20,14 +20,16 @@ $page = $_GET['page'] ?? 'dashboard';
 <!-- Sidebar -->
 <aside :class="[ sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', sidebarCollapsed ? 'lg:-translate-x-full lg:opacity-0 lg:pointer-events-none' : 'lg:translate-x-0 lg:opacity-100 lg:w-64' ]" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 ease-in-out no-scrollbar shadow-2xl lg:shadow-none">
     <!-- Brand Logo & Mobile Close -->
-    <div class="h-16 flex items-center justify-between px-4 bg-slate-950/40 border-b border-slate-800 shrink-0">
-        <a href="?page=dashboard" class="flex items-center gap-2.5 group">
-            <img src="/logo.png" alt="EcoFone App" class="w-10 h-10 object-contain rounded-xl bg-white/95 p-1 shadow-md shadow-orange-500/10 group-hover:scale-105 transition-transform shrink-0">
+    <div class="h-20 flex items-center justify-between px-4 bg-slate-950/60 border-b border-slate-800 shrink-0">
+        <a href="?page=dashboard" class="flex items-center gap-3 group py-1">
+            <div class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0">
+                <img src="/logo_icon.png?v=3" alt="EcoFone App" class="w-full h-full object-contain">
+            </div>
             <div>
-                <h1 class="text-sm font-black text-white tracking-tight flex items-center gap-1">
-                    <span>EcoFone</span> <span class="text-orange-400 font-bold">App</span>
+                <h1 class="text-base font-black text-white tracking-tight flex items-center gap-1 leading-none">
+                    <span>EcoFone</span> <span class="text-orange-400 font-black">App</span>
                 </h1>
-                <p class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase"><?= strtoupper(str_replace('_', ' ', $role)) ?> PORTAL</p>
+                <p class="text-[10px] text-emerald-400 font-bold tracking-wider uppercase mt-1"><?= strtoupper(str_replace('_', ' ', $role)) ?> PORTAL</p>
             </div>
         </a>
         <button @click="sidebarOpen = false" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" title="Close Menu">
