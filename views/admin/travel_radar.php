@@ -24,11 +24,11 @@ $fieldEmployees = $db->query("
         WHERE recorded_at >= '{$selectedDate} 00:00:00' AND recorded_at <= '{$selectedDate} 23:59:59'
         GROUP BY user_id
     ) stats ON stats.user_id = u.id
-    WHERE u.role NOT IN ('admin')
-      AND u.designation NOT LIKE '%HR%'
-      AND (u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%')
+    WHERE (u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%' OR a.clock_in IS NOT NULL OR COALESCE(stats.waypoints_count, 0) > 0)
       AND u.status = 'active'
-    ORDER BY CASE WHEN a.clock_in IS NOT NULL AND a.clock_out IS NULL THEN 1 ELSE 2 END, u.name ASC
+    ORDER BY CASE WHEN a.clock_in IS NOT NULL AND a.clock_out IS NULL THEN 1 ELSE 2 END,
+             COALESCE(stats.waypoints_count, 0) DESC,
+             u.name ASC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
 if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
