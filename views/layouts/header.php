@@ -136,6 +136,7 @@
     // Directly triggers the native install prompt on mobile — NO popup/alerts
     function triggerPwaInstall() {
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            showToast('✅ App is already installed and running on your device!');
             return;
         }
 
@@ -151,12 +152,26 @@
             return;
         }
 
-        // Fallback: If clicked before event fired, listen for next prompt event and fire immediately
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            window.pwaInstallPrompt = e;
-            e.prompt();
-        }, { once: true });
+        // If prompt not available directly in Chrome
+        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobile) {
+            var hint = document.getElementById('pwaDirectHint');
+            if (hint) {
+                hint.classList.remove('hidden');
+                if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+                setTimeout(function() { hint.classList.add('hidden'); }, 6000);
+            }
+        } else {
+            downloadDesktopLauncher();
+        }
+    }
+
+    function showToast(msg) {
+        var toast = document.createElement('div');
+        toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold border border-slate-700 animate-in fade-in slide-in-from-bottom duration-200';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.remove(); }, 3500);
     }
 
     function closePwaInstallModal() {

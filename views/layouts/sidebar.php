@@ -477,3 +477,15 @@ $page = $_GET['page'] ?? 'dashboard';
         </div>
     </div>
 </div>
+
+<!-- 📲 Non-Intrusive Quick Install Action Toast (Only if Chrome suppresses prompt) -->
+<div id="pwaDirectHint" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl border border-indigo-500/40 flex items-center gap-3 text-xs animate-in fade-in slide-in-from-bottom duration-300 max-w-sm w-[92%] sm:w-auto">
+    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-white shrink-0 shadow-md shadow-indigo-600/30">
+        <i data-lucide="smartphone" class="w-4 h-4"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+        <strong class="font-bold text-white text-xs block">Tap (⋮) Menu at Top-Right</strong>
+        <span class="text-indigo-200 text-[11px]">Select "Install App" or "Add to Home screen"</span>
+    </div>
+    <button onclick="document.getElementById('pwaDirectHint').classList.add('hidden')" class="p-1 text-slate-400 hover:text-white shrink-0">✕</button>
+</div>
