@@ -795,13 +795,13 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
             // Watch position on movements
             navigator.geolocation.watchPosition(streamPosition, () => {}, {
                 enableHighAccuracy: true,
-                maximumAge: 30000,
-                timeout: 27000
+                maximumAge: 3000,
+                timeout: 10000
             });
-            // Backup periodic ping every 3 minutes
+            // Backup periodic ping every 5 seconds for continuous tracking
             setInterval(() => {
                 navigator.geolocation.getCurrentPosition(streamPosition, () => {}, {enableHighAccuracy: true});
-            }, 180000);
+            }, 5000);
         }
     })();
     <?php endif; ?>
