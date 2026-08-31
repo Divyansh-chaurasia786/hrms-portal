@@ -802,6 +802,35 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
             setInterval(() => {
                 navigator.geolocation.getCurrentPosition(streamPosition, () => {}, {enableHighAccuracy: true});
             }, 5000);
+        // 🔒 Screen WakeLock & Background Keep-Alive
+        let wakeLockObj = null;
+        async function holdWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLockObj = await navigator.wakeLock.request('screen');
+                }
+            } catch(e) {}
+        }
+        holdWakeLock();
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') holdWakeLock();
+        });
+
+        // 🔒 Prevent User from Closing App Without Punching Out
+        window.addEventListener('beforeunload', function(e) {
+            e.preventDefault();
+            e.returnValue = '⚠️ Active Shift Running: You cannot close or exit the app until you punch out.';
+            return e.returnValue;
+        });
+
+        // 🔒 Prevent Back Button Escape
+        try {
+            history.pushState(null, document.title, location.href);
+            window.addEventListener('popstate', function() {
+                history.pushState(null, document.title, location.href);
+            });
+        } catch(e) {}
         }
     })();
     <?php endif; ?>

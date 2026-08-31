@@ -18,7 +18,7 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
 
 <?php if ($isFieldActive): ?>
 <script>
-// 🚗 High-Resilience GPS Route Tracker with Offline Caching & Battery Telemetry
+// 🚗 High-Resilience GPS Route Tracker with Background Lock & WakeLock
 (function initResilientGpsTracker() {
     let lastLat = null;
     let lastLng = null;
@@ -26,7 +26,39 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
     const attId = <?= $activeAttId ?>;
     const QUEUE_KEY = 'hrms_gps_offline_queue_' + attId;
 
-    // 1. Battery Telemetry Monitor
+    // 🔒 1. Screen WakeLock & Background Keep-Alive (Locks app from sleep/kill)
+    let wakeLockSentinel = null;
+    async function acquireWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLockSentinel = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {}
+    }
+    acquireWakeLock();
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            acquireWakeLock();
+        }
+    });
+
+    // 🔒 2. Prevent User from Closing / Removing Application Until Punch Out
+    window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = '⚠️ EcoFone App Alert: Active Shift in progress! Please punch out before closing or removing the application.';
+        return e.returnValue;
+    });
+
+    // 🔒 3. Prevent Back Button Escape During Active Shift
+    try {
+        history.pushState(null, document.title, location.href);
+        window.addEventListener('popstate', function() {
+            history.pushState(null, document.title, location.href);
+        });
+    } catch(e) {}
+
+    // 4. Battery Telemetry Monitor
     if (navigator.getBattery) {
         navigator.getBattery().then(battery => {
             currentBatteryLevel = Math.round(battery.level * 100);
