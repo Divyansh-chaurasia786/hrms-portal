@@ -121,29 +121,44 @@
 
     // Suppress browser's own install popup — store for later manual use only
     window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault(); // ← Prevents ANY automatic browser popup
+        e.preventDefault(); // ← Prevents automatic browser popup
         window.pwaInstallPrompt = e;
-        // Subtle glow on install button to signal availability — no popup
         var btn = document.getElementById('installAppNavbarBtn');
         if (btn) btn.classList.add('ring-2', 'ring-indigo-400');
     });
 
-    // Called ONLY when user explicitly clicks "Install App" button
+    window.addEventListener('appinstalled', function() {
+        window.pwaInstallPrompt = null;
+        var btn = document.getElementById('installAppNavbarBtn');
+        if (btn) btn.style.display = 'none';
+    });
+
+    // Directly triggers the native install prompt on mobile — NO guidance popup
     function triggerPwaInstall() {
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            alert('✅ App is already installed and running on your device!');
+            return;
+        }
+
         if (window.pwaInstallPrompt) {
-            // Use native browser install prompt (already deferred above)
             window.pwaInstallPrompt.prompt();
             window.pwaInstallPrompt.userChoice.then(function(choice) {
                 if (choice.outcome === 'accepted') {
                     window.pwaInstallPrompt = null;
                     var btn = document.getElementById('installAppNavbarBtn');
-                    if (btn) btn.classList.remove('ring-2', 'ring-indigo-400');
+                    if (btn) btn.style.display = 'none';
                 }
             });
+            return;
+        }
+
+        // Direct mobile instruction if browser prompt not ready
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            alert('📲 On iPhone: Tap Safari Share icon (□↑) at bottom → Tap "Add to Home Screen".');
+        } else if (/Android/i.test(navigator.userAgent)) {
+            alert('📲 On Android: Tap Chrome Menu (⋮) top-right → Tap "Install App" or "Add to Home screen".');
         } else {
-            // Fallback: show manual install guide modal
-            var modal = document.getElementById('pwaInstallModal');
-            if (modal) modal.classList.remove('hidden');
+            downloadDesktopLauncher();
         }
     }
 
@@ -162,15 +177,14 @@
             'IDList=',
             '[{000214A0-0000-0000-C000-000000000046}]',
             'Prop3=19,2'
-        ].join('\r\n');
-        var blob = new Blob([shortcutLines], { type: 'application/octet-stream' });
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'Ecofone_HRMS.url';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
+        ];
+        var blob = new Blob([shortcutLines.join('\r\n')], { type: 'application/x-mswinurl' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'Ecofone_HRMS_Portal.url';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     // Safety guard: ensure modal is always hidden on page load

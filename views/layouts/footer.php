@@ -484,67 +484,6 @@ if ($currentUser) {
         window.addEventListener('focus', checkLiveUpdates);
     })();
 </script>
-<!-- 📲 PWA 1-Tap Home Screen Shortcut Prompt & Background Shift Lock -->
-<div id="pwaInstallBanner" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-50 bg-slate-900 text-white p-4 rounded-3xl shadow-2xl border border-slate-700/80 flex items-center justify-between gap-3 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
-    <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg shrink-0 shadow-md shadow-indigo-600/40">
-            H
-        </div>
-        <div>
-            <h4 class="text-xs font-bold text-white">Add to Home Screen</h4>
-            <p class="text-[11px] text-slate-300">Install 1-Tap app for live GPS & background duty tracking.</p>
-        </div>
-    </div>
-    <div class="flex items-center gap-1.5 shrink-0">
-        <button id="pwaInstallBtn" type="button" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-xs transition">
-            Install
-        </button>
-        <button id="pwaCloseBtn" type="button" class="p-1.5 text-slate-400 hover:text-white rounded-lg">
-            ✕
-        </button>
-    </div>
-</div>
-
-<script>
-// 1. Register Service Worker
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
-        console.log('SW registration fallback:', err);
-    });
-}
-
-// 2. PWA Auto-Install Prompt Handling
-let deferredPrompt = null;
-const installBanner = document.getElementById('pwaInstallBanner');
-const installBtn = document.getElementById('pwaInstallBtn');
-const closeBtn = document.getElementById('pwaCloseBtn');
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (installBanner && !localStorage.getItem('hrms_pwa_dismissed')) {
-        installBanner.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
-    }
-});
-
-if (installBtn) {
-    installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            deferredPrompt = null;
-            if (installBanner) installBanner.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
-        }
-    });
-}
-
-if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-        localStorage.setItem('hrms_pwa_dismissed', 'true');
-        if (installBanner) installBanner.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
-    });
-}
-
 // 3. Background Shift Lock: Alert ONLY if user actually closes browser/tab, NEVER on form submit
 let isFormSubmitting = false;
 document.addEventListener('submit', () => {
