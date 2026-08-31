@@ -110,6 +110,17 @@
     </style>
                             <!-- 📲 PWA Installer Engine — NO auto popup, only on button click -->
     <script>
+    // Unregister any old Service Worker registrations to force instant live update
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (let reg of regs) {
+                if (reg.active && !reg.active.scriptURL.includes('v8')) {
+                    reg.unregister();
+                }
+            }
+        });
+    }
+
     // Automatically purge old stale caches on load
     if ('caches' in window) {
         caches.keys().then(function(keys) {
@@ -118,6 +129,13 @@
             });
         });
     }
+
+    // Clear stale local storage cache vaults
+    try {
+        Object.keys(localStorage).forEach(function(k) {
+            if (k.startsWith('ecofone_vault_')) localStorage.removeItem(k);
+        });
+    } catch(e) {}
 
     // Store deferred install prompt silently — never auto-fire
     window.pwaInstallPrompt = null;
