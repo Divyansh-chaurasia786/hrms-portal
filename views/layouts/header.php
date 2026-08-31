@@ -134,6 +134,13 @@
         if (btn) btn.style.display = 'none';
     });
 
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            var btn = document.getElementById('installAppNavbarBtn');
+            if (btn) btn.style.display = 'none';
+        }
+    });
+
     // Direct 1-click installation trigger with zero popup
     function triggerPwaInstall() {
         if (window.pwaInstallPrompt) {
