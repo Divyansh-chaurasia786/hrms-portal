@@ -815,7 +815,15 @@ if ($action) {
                 'status' => 'ok'
             ]);
             exit;
-                case 'upload-bda-leads':
+                        case 'save-lead-data':
+            requireActiveShift();
+            CallingController::saveLeadData();
+            exit;
+        case 'delete-bda-lead':
+            requireActiveShift();
+            CallingController::deleteLead();
+            exit;
+        case 'upload-bda-leads':
             requireActiveShift();
             CallingController::bulkUploadLeads();
             exit;
