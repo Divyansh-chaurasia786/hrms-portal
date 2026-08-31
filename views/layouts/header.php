@@ -89,7 +89,7 @@
             scrollbar-width: none !important;
         }
     </style>
-                        <!-- 📲 Native Standalone App Engine (Zero Blank Tabs) -->
+                            <!-- 📲 Native PWA & Desktop App Installer Engine -->
     <script>
     window.pwaInstallPrompt = null;
 
@@ -102,26 +102,45 @@
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         window.pwaInstallPrompt = e;
+        const btn = document.getElementById('installAppNavbarBtn');
+        if (btn) btn.classList.add('ring-2', 'ring-indigo-400');
     });
 
     function triggerPwaInstall() {
-        // 1. If Native PWA Install Prompt is ready, trigger it
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
-            window.pwaInstallPrompt.userChoice.then(() => {
-                window.pwaInstallPrompt = null;
+            window.pwaInstallPrompt.userChoice.then((choice) => {
+                if (choice.outcome === 'accepted') {
+                    window.pwaInstallPrompt = null;
+                }
             });
             return;
         }
 
-        // 2. Otherwise, toggle Pure Fullscreen Native App Mode on the current page (Zero Blank Tabs!)
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {});
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen().catch(() => {});
-            }
+        // Show Desktop Install Modal
+        const modal = document.getElementById('pwaInstallModal');
+        if (modal) {
+            modal.classList.remove('hidden');
         }
+    }
+
+    function closePwaInstallModal() {
+        const modal = document.getElementById('pwaInstallModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function downloadDesktopLauncher() {
+        const url = 'https://hrms-ecovista.vercel.app/?source=desktop_app';
+        const shortcutContent = `[InternetShortcut]\nURL=${url}\nIconIndex=0\nIconFile=https://hrms-ecovista.vercel.app/icon-192.png\n`;
+        const blob = new Blob([shortcutContent], { type: 'application/octet-stream' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Ecofone_HRMS_Portal.url';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
     </script>
 </head>

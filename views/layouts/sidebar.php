@@ -230,9 +230,10 @@ $page = $_GET['page'] ?? 'dashboard';
 
         <!-- Quick Punch Status & User Info -->
         <div class="flex items-center gap-3">
-            <!-- 📲 Sleek Icon-Only Native App Launcher -->
-            <button type="button" onclick="triggerPwaInstall()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 flex items-center justify-center transition shadow-2xs cursor-pointer group" title="Open / Install Standalone App">
-                <i data-lucide="smartphone" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+            <!-- 📲 Install Application Button -->
+            <button type="button" id="installAppNavbarBtn" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 hover:border-indigo-300 text-xs font-bold transition shadow-2xs cursor-pointer group" title="Install Official App on PC / Mobile">
+                <i data-lucide="download-cloud" class="w-4 h-4 text-indigo-600 group-hover:-translate-y-0.5 transition-transform"></i>
+                <span class="hidden sm:inline font-extrabold">Install App</span>
             </button>
             <?php
             $todayAtt = AttendanceController::getTodayAttendanceForUser($user['id']);
@@ -411,3 +412,57 @@ $page = $_GET['page'] ?? 'dashboard';
                 </div>
             </div>
         <?php endif; ?>
+
+<!-- 📲 OFFICIAL APP INSTALLATION MODAL -->
+<div id="pwaInstallModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-indigo-100 text-left my-auto space-y-5 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-600/30">
+                    <i data-lucide="smartphone" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-900 leading-tight">Install Ecofone HRMS App</h3>
+                    <p class="text-xs text-slate-400 font-medium">Native standalone application for PC & Mobile</p>
+                </div>
+            </div>
+            <button type="button" onclick="closePwaInstallModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+        </div>
+
+        <div class="space-y-3">
+            <!-- Method 1: Address Bar 1-Click Install -->
+            <div class="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200/70 space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center">1</span>
+                    <strong class="text-xs font-bold text-indigo-950">1-Click Browser Address Bar Install (Recommended)</strong>
+                </div>
+                <p class="text-[11px] text-indigo-900 leading-relaxed pl-7">
+                    Look at the top-right of your browser address bar above (near the URL) and click the <strong>Install App icon (⊕ or 📲)</strong> to install the native desktop application immediately.
+                </p>
+            </div>
+
+            <!-- Method 2: Download Direct Windows Desktop Launcher -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 text-white text-[10px] font-black flex items-center justify-center">2</span>
+                    <strong class="text-xs font-bold text-slate-800">Download Official Desktop App Shortcut (.url)</strong>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed pl-7">
+                    Download the official Windows desktop app shortcut icon to launch directly from your computer desktop.
+                </p>
+                <div class="pl-7 pt-1">
+                    <button type="button" onclick="downloadDesktopLauncher()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Download Desktop App Launcher</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-2 border-t border-slate-100">
+            <button type="button" onclick="closePwaInstallModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                Got It, Close
+            </button>
+        </div>
+    </div>
+</div>
