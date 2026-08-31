@@ -815,7 +815,11 @@ if ($action) {
                 'status' => 'ok'
             ]);
             exit;
-                        case 'save-lead-data':
+                        case 'update-call-status':
+            requireActiveShift();
+            CallingController::updateCallStatus();
+            exit;
+        case 'save-lead-data':
             requireActiveShift();
             CallingController::saveLeadData();
             exit;
