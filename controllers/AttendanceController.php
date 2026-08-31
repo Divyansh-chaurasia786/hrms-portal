@@ -82,7 +82,10 @@ class AttendanceController {
             setFlash('success', 'Clocked in successfully at ' . date('h:i A') . '!');
         }
 
-        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
+        // Redirect with loc_start=1 so GPS silently starts on reload after punch-in
+        $referer = $_SERVER['HTTP_REFERER'] ?? '?page=dashboard';
+        $sep = (strpos($referer, '?') !== false) ? '&' : '?';
+        header("Location: {$referer}{$sep}loc_start=1");
         exit;
     }
 

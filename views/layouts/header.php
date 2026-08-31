@@ -337,6 +337,31 @@
         // ── Start on DOM ready ────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function() {
             GPS.shiftActive = document.body.getAttribute('data-shift-active') === '1';
+
+            var storedState = '';
+            try { storedState = localStorage.getItem(GPS.grantedKey) || ''; } catch(e) {}
+
+            // Detect punch-in redirect (loc_start=1 in URL)
+            var urlParams = new URLSearchParams(window.location.search);
+            var justPunchedIn = urlParams.has('loc_start');
+
+            // Clean the loc_start param from URL without page reload
+            if (justPunchedIn && window.history && window.history.replaceState) {
+                urlParams.delete('loc_start');
+                var cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                window.history.replaceState({}, '', cleanUrl);
+            }
+
+            // If permission already granted and user just punched in — silent immediate clock_in ping
+            if (justPunchedIn && storedState === '1' && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) { GPS.sendPing(pos, 'clock_in'); },
+                    function() {},
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            }
+
+            // Start background watch tracking (silent if already granted)
             GPS.init();
         });
 
