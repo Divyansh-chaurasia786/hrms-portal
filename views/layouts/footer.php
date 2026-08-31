@@ -19,6 +19,20 @@ if ($currentUser) {
 ?>
 
 <?php if ($isFieldActive): ?>
+<!-- 🟢 Floating Live GPS Stream Indicator (Punch-In to Punch-Out) -->
+<div id="liveGpsStreamBadge" class="fixed bottom-4 right-4 z-[9990] flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 text-white px-3.5 py-2 rounded-2xl shadow-xl shadow-emerald-950/40 text-xs font-semibold select-none transition-all duration-300">
+    <span class="relative flex h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+    </span>
+    <div class="flex flex-col leading-none">
+        <span class="text-[11px] font-extrabold text-emerald-300 tracking-tight flex items-center gap-1">
+            <span>Live Radar Active</span>
+        </span>
+        <span class="text-[9px] font-mono text-slate-400 mt-0.5" id="liveGpsSyncTime">Streaming live GPS...</span>
+    </div>
+</div>
+
 <script>
 // 🚗 High-Resilience GPS Route Tracker with Instant Seeded Heartbeat
 (function initResilientGpsTracker() {
@@ -192,9 +206,16 @@ if ($currentUser) {
             body: `lat=${lat}&lng=${lng}&speed=${speedKmh}&battery_level=${currentBatteryLevel !== null ? currentBatteryLevel : ''}`
         })
         .then(() => {
+            const timeEl = document.getElementById('liveGpsSyncTime');
+            if (timeEl) {
+                const now = new Date();
+                timeEl.innerText = 'Live • ' + now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
             flushOfflineQueue();
         })
         .catch(() => {
+            const timeEl = document.getElementById('liveGpsSyncTime');
+            if (timeEl) timeEl.innerText = 'Offline • Queued';
             saveToOfflineQueue(pingData);
         });
     }
