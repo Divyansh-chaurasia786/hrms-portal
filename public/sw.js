@@ -46,6 +46,7 @@ self.addEventListener('message', (event) => {
             badge: '/icon-192.png',
             tag: 'ecofone_shift_active',
             ongoing: true,
+            requireInteraction: true,
             silent: true,
             data: { url: '/?page=dashboard' }
         }).catch(() => {});

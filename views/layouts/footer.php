@@ -64,7 +64,34 @@ if ($currentUser) {
         }, { passive: true });
     });
 
-    // Notify Service Worker for Persistent Notification in Status Bar
+    // 🔔 Persistent Foreground Status Bar Notification (Keep-Alive)
+    function triggerForegroundNotification() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification('🟢 EcoFone App • Field Shift Active', {
+                    body: 'Live GPS route tracking is running in the background until you punch out.',
+                    icon: '/icon-192.png',
+                    badge: '/icon-192.png',
+                    tag: 'ecofone_shift_active',
+                    ongoing: true,
+                    requireInteraction: true,
+                    silent: true,
+                    data: { url: '/?page=dashboard' }
+                }).catch(() => {});
+            });
+        }
+    }
+
+    if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+            triggerForegroundNotification();
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(p => {
+                if (p === 'granted') triggerForegroundNotification();
+            }).catch(() => {});
+        }
+    }
+
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'START_BACKGROUND_TRACKING' });
     }
