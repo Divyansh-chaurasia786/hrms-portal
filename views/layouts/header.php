@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>EcoFone App | Workforce & Operations Portal</title>
+    <title>EcoFone App</title>
     <meta name="description" content="EcoFone App - Official Enterprise Workforce, CRM & Operations Portal.">
     <meta name="keywords" content="EcoFone App, EcoFone, ecofone portal, HRMS portal">
     <meta name="robots" content="noindex, nofollow">

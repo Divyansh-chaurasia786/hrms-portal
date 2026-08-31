@@ -1,10 +1,13 @@
-// public/sw.js - Ecofone HRMS Enterprise Background Service Worker (v4 Persistent Keep-Alive)
-const CACHE_NAME = 'ecofone-hrms-pwa-v4';
+// public/sw.js - EcoFone App Background Service Worker (v5 Persistent Keep-Alive)
+const CACHE_NAME = 'ecofone-app-v5';
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',
+    '/logo_icon.png',
+    '/logo.png',
     '/icon-192.png',
     '/icon-512.png',
+    '/favicon.png',
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/lucide@latest',
     'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'
@@ -38,7 +41,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
     if (!event.data) return;
     if (event.data.type === 'START_BACKGROUND_TRACKING') {
-        self.registration.showNotification('🟢 Ecofone HRMS • Field Shift Active', {
+        self.registration.showNotification('🟢 EcoFone App • Field Shift Active', {
             body: 'Live GPS route tracking is running in the background until you punch out.',
             icon: '/icon-192.png',
             badge: '/icon-192.png',
