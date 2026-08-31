@@ -71,7 +71,9 @@ $user = $user ?? ['email' => ($_SESSION['pending_otp_email'] ?? 'user@company.co
             </div>
 
             <!-- OTP Form with 6 Distinct Inputs -->
-            <form action="?action=verify-otp" method="POST" id="otpForm" class="space-y-6">
+                        <form action="?action=verify-otp" method="POST" id="otpForm" class="space-y-6">
+                <input type="hidden" name="user_id" value="<?= (int)($userId ?? ($_SESSION['pending_otp_user_id'] ?? ($_COOKIE['pending_otp_uid'] ?? 0))) ?>">
+                <input type="hidden" name="user_email" value="<?= htmlspecialchars($user['email'] ?? ($_SESSION['pending_otp_email'] ?? ($_COOKIE['pending_otp_email'] ?? ''))) ?>">
                 <input type="hidden" name="otp" id="hiddenOtp">
 
                 <div>

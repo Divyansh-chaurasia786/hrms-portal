@@ -94,10 +94,12 @@ class AuthController {
                 // Send email via Brevo API
                 $mailRes = sendEmailOTP($user['email'], $user['name'], $otpCode);
 
-                // Set Pending Auth Session
+                // Set Pending Auth Session & Fallback Cookies (Resilient against serverless session recycling)
                 $_SESSION['pending_otp_user_id'] = $user['id'];
                 $_SESSION['pending_otp_email'] = $user['email'];
-                $_SESSION['otp_resend_count'] = 0; // Fresh login starts with 0 resends used
+                $_SESSION['otp_resend_count'] = 0;
+                setcookie('pending_otp_uid', (string)$user['id'], time() + 1800, '/', '', false, true);
+                setcookie('pending_otp_email', $user['email'], time() + 1800, '/', '', false, true);
 
                 setFlash('success', "A 6-digit verification code has been sent to your registered email (<strong>{$user['email']}</strong>).");
 
@@ -113,6 +115,23 @@ class AuthController {
     }
 
     public static function showVerifyOtp(): void {
+        $db = getDBConnection();
+        if (empty($_SESSION['pending_otp_user_id'])) {
+            if (!empty($_COOKIE['pending_otp_uid'])) {
+                $_SESSION['pending_otp_user_id'] = (int)$_COOKIE['pending_otp_uid'];
+                $_SESSION['pending_otp_email'] = $_COOKIE['pending_otp_email'] ?? '';
+            } elseif (!empty($_GET['email'])) {
+                $emailClean = strtolower(trim($_GET['email']));
+                $stmt = $db->prepare("SELECT id, email FROM users WHERE LOWER(email) = ?");
+                $stmt->execute([$emailClean]);
+                $uRow = $stmt->fetch();
+                if ($uRow) {
+                    $_SESSION['pending_otp_user_id'] = (int)$uRow['id'];
+                    $_SESSION['pending_otp_email'] = $uRow['email'];
+                }
+            }
+        }
+
         if (empty($_SESSION['pending_otp_user_id'])) {
             header('Location: ?page=login');
             exit;
@@ -141,12 +160,21 @@ class AuthController {
     }
 
     public static function verifyOtp(): void {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['pending_otp_user_id'])) {
+        $db = getDBConnection();
+        $userId = (int)($_SESSION['pending_otp_user_id'] ?? ($_POST['user_id'] ?? ($_COOKIE['pending_otp_uid'] ?? 0)));
+        $userEmail = strtolower(trim($_SESSION['pending_otp_email'] ?? ($_POST['user_email'] ?? ($_COOKIE['pending_otp_email'] ?? ''))));
+
+        if ($userId <= 0 && !empty($userEmail)) {
+            $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = ?");
+            $stmt->execute([$userEmail]);
+            $userId = (int)$stmt->fetchColumn();
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $userId <= 0) {
+            setFlash('error', 'Session timed out. Please enter your email to receive a new OTP.');
             header('Location: ?page=login');
             exit;
         }
-
-        $userId = (int)$_SESSION['pending_otp_user_id'];
         $otp = preg_replace('/[^0-9]/', '', trim($_POST['otp'] ?? ''));
 
         if (empty($otp) || strlen($otp) !== 6) {
