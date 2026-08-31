@@ -391,24 +391,18 @@ class AttendanceController {
 
         if ($lat != 0 && $lng != 0) {
             // Calculate distance from previous coordinate
-            $prev = $db->query("SELECT id, latitude, longitude, recorded_at FROM employee_travel_logs WHERE attendance_id = {$activeAtt['id']} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+            $prev = $db->query("SELECT latitude, longitude FROM employee_travel_logs WHERE attendance_id = {$activeAtt['id']} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
             $distMeters = 0;
             if ($prev) {
                 $distMeters = (int)calculateDistance($lat, $lng, (float)$prev['latitude'], (float)$prev['longitude']);
             }
 
             $now = date('Y-m-d H:i:s');
-            // If moved >= 10 meters or first point, insert new waypoint in trail
-            if (!$prev || $distMeters >= 10) {
-                $stmt = $db->prepare("INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters, battery_level, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$activeAtt['id'], $user['id'], $lat, $lng, $speed, $distMeters, $batteryLevel, $now]);
-            } else {
-                // If stationary, update the latest ping's speed, battery & timestamp so radar is always 100% live
-                $stmt = $db->prepare("UPDATE employee_travel_logs SET speed = ?, battery_level = COALESCE(?, battery_level), recorded_at = ? WHERE id = ?");
-                $stmt->execute([$speed, $batteryLevel, $now, $prev['id']]);
-            }
+            // Always insert new ping to ensure real-time chronology and instant radar heartbeats
+            $stmt = $db->prepare("INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters, battery_level, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$activeAtt['id'], $user['id'], $lat, $lng, $speed, $distMeters, $batteryLevel, $now]);
 
-            echo json_encode(['success' => true, 'dist' => $distMeters, 'speed' => $speed]);
+            echo json_encode(['success' => true, 'dist' => $distMeters, 'speed' => $speed, 'time' => $now]);
             exit;
         }
 
