@@ -427,12 +427,12 @@ $page = $_GET['page'] ?? 'dashboard';
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-indigo-100 text-left my-auto space-y-5 animate-in fade-in zoom-in duration-200">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-600/30">
-                    <i data-lucide="smartphone" class="w-5 h-5"></i>
+                <div class="w-11 h-11 rounded-2xl bg-white flex items-center justify-center p-1 shadow-md shadow-orange-500/20 border border-slate-100">
+                    <img src="/logo_icon.png?v=3" alt="EcoFone App" class="w-full h-full object-contain">
                 </div>
                 <div>
                     <h3 class="text-base font-extrabold text-slate-900 leading-tight">Install EcoFone App</h3>
-                    <p class="text-xs text-slate-400 font-medium">Native standalone application for Mobile & PC</p>
+                    <p class="text-xs text-slate-400 font-medium">Official Native Application for PC & Mobile</p>
                 </div>
             </div>
             <button type="button" onclick="closePwaInstallModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>

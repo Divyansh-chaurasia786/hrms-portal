@@ -134,13 +134,8 @@
         if (btn) btn.style.display = 'none';
     });
 
-    // Directly triggers the native install prompt on mobile — NO file download
+    // Directly triggers the native install prompt or opens official install modal
     function triggerPwaInstall() {
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            showToast('✅ App is already installed on your device!');
-            return;
-        }
-
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
             window.pwaInstallPrompt.userChoice.then(function(choice) {
@@ -148,20 +143,17 @@
                     window.pwaInstallPrompt = null;
                     var btn = document.getElementById('installAppNavbarBtn');
                     if (btn) btn.style.display = 'none';
-                    showToast('🎉 Installing Native App to Home Screen...');
+                    showToast('🎉 Installing EcoFone App to Home Screen...');
                 }
             });
             return;
         }
 
-        // Show direct install guidance to tap Chrome 3-dots menu
-        var hint = document.getElementById('pwaDirectHint');
-        if (hint) {
-            hint.classList.remove('hidden');
+        // Open previous official full install modal with 1-click & Windows desktop download
+        var modal = document.getElementById('pwaInstallModal');
+        if (modal) {
+            modal.classList.remove('hidden');
             if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
-            setTimeout(function() { hint.classList.add('hidden'); }, 7000);
-        } else {
-            showToast('📲 Tap (⋮) Chrome menu top-right → "Install app" to add to Home Screen');
         }
     }
 
@@ -171,6 +163,18 @@
         toast.innerText = msg;
         document.body.appendChild(toast);
         setTimeout(function() { toast.remove(); }, 4000);
+    }
+
+    function downloadDesktopLauncher() {
+        var content = "[InternetShortcut]\r\nURL=https://hrms-ecovista.vercel.app/?page=dashboard\r\nIconFile=https://hrms-ecovista.vercel.app/favicon.ico\r\nIconIndex=0\r\n";
+        var blob = new Blob([content], { type: 'application/octet-stream' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'EcoFone App.url';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('✅ EcoFone App desktop shortcut downloaded!');
     }
 
     function closePwaInstallModal() {
