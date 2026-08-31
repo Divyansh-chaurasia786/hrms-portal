@@ -1,5 +1,5 @@
-// public/sw.js - Ecofone HRMS Enterprise Service Worker
-const CACHE_NAME = 'ecofone-hrms-pwa-v1';
+// public/sw.js - Ecofone HRMS Enterprise Background Service Worker
+const CACHE_NAME = 'ecofone-hrms-pwa-v2';
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',
@@ -32,10 +32,21 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
+// Periodic background sync for GPS synchronization
+self.addEventListener('periodicsync', (event) => {
+    if (event.tag === 'sync-location-pings') {
+        event.waitUntil(
+            self.clients.matchAll().then((clients) => {
+                clients.forEach((client) => {
+                    client.postMessage({ type: 'SYNC_GPS' });
+                });
+            })
+        );
+    }
+});
+
 self.addEventListener('fetch', (event) => {
-    // Only cache GET requests, bypass POST/auth
     if (event.request.method !== 'GET') return;
-    
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request);

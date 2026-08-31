@@ -161,13 +161,16 @@
         if (modal) modal.classList.add('hidden');
     });
     </script>
-    <!-- 📍 ULTRA-FAST LIVE GPS TRACKER (2-5s Gap, Offline Sync, Instant Start, Local IST Time) -->
+    <!-- 📍 ENTERPRISE 24/7 BACKGROUND GPS ENGINE (Keep-Alive Worker, Screen-Lock Proof, Auto-Sync) -->
     <script>
     (function() {
         var GPS = {
             watchId:            null,
             timerId:            null,
-            pingIntervalMs:     4000,       // 4s live heartbeat ping (2-10s gap)
+            worker:             null,
+            wakeLock:           null,
+            audioKeepAlive:     null,
+            pingIntervalMs:     4000,       // 4s live precision tracking
             minIntervalMs:      2000,       // 2s minimum throttle gate
             offlineQueueKey:    'eco_gps_queue',
             grantedKey:         'eco_gps_granted',
@@ -178,7 +181,7 @@
             stopped:            false,
             lastPingTs:         0,
 
-            // Local Date String YYYY-MM-DD HH:MM:SS (in client's local timezone)
+            // Local Date String YYYY-MM-DD HH:MM:SS in client's local timezone
             getLocalIsoString: function() {
                 var d = new Date();
                 var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
@@ -188,6 +191,74 @@
                        pad(d.getHours()) + ':' +
                        pad(d.getMinutes()) + ':' +
                        pad(d.getSeconds());
+            },
+
+            // Keep-Alive Background Thread (Prevents Mobile OS from Freezing GPS on Lock Screen / WhatsApp)
+            startBackgroundKeepAlive: function() {
+                var self = this;
+                // 1. Silent Audio Keep-Alive
+                try {
+                    if (!this.audioKeepAlive) {
+                        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        var osc = ctx.createOscillator();
+                        var gain = ctx.createGain();
+                        gain.gain.value = 0.001; // Silent / Inaudible
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start();
+                        this.audioKeepAlive = { ctx: ctx, osc: osc };
+                    }
+                } catch(e) {}
+
+                // 2. Wake Lock API (If supported)
+                if ('wakeLock' in navigator) {
+                    try {
+                        navigator.wakeLock.request('screen').then(function(lock) {
+                            self.wakeLock = lock;
+                        }).catch(function() {});
+                    } catch(e) {}
+                }
+
+                // 3. Dedicated Web Worker Timer (Independent of tab visibility)
+                try {
+                    if (!this.worker) {
+                        var workerBlob = new Blob([
+                            "var t=null; self.onmessage=function(e){ if(e.data==='start'){ if(t)clearInterval(t); t=setInterval(function(){ self.postMessage('tick'); }, 4000); }else if(e.data==='stop'){ if(t){ clearInterval(t); t=null; } } };"
+                        ], { type: 'application/javascript' });
+                        this.worker = new Worker(URL.createObjectURL(workerBlob));
+                        this.worker.onmessage = function() {
+                            if (self.shiftActive && !self.stopped && navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition(
+                                    function(pos) { self.sendPing(pos, 'auto_ping'); },
+                                    function(err) { self.onGpsError(err); },
+                                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 2000 }
+                                );
+                            }
+                        };
+                        this.worker.postMessage('start');
+                    }
+                } catch(e) {}
+            },
+
+            stopBackgroundKeepAlive: function() {
+                if (this.audioKeepAlive) {
+                    try {
+                        this.audioKeepAlive.osc.stop();
+                        this.audioKeepAlive.ctx.close();
+                    } catch(e) {}
+                    this.audioKeepAlive = null;
+                }
+                if (this.wakeLock) {
+                    try { this.wakeLock.release(); } catch(e) {}
+                    this.wakeLock = null;
+                }
+                if (this.worker) {
+                    try {
+                        this.worker.postMessage('stop');
+                        this.worker.terminate();
+                    } catch(e) {}
+                    this.worker = null;
+                }
             },
 
             // Offline Queue Enqueue
@@ -214,7 +285,6 @@
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     if (!data || !data.success) {
-                        // Re-queue on rejection
                         q.forEach(function(p) { self.enqueue(p); });
                     }
                 })
@@ -223,7 +293,7 @@
                 });
             },
 
-            // Send Ping to Server
+            // Send Location Ping
             sendPing: function(pos, type) {
                 if (this.stopped) return;
                 var now = Date.now();
@@ -330,6 +400,7 @@
 
             stop: function() {
                 this.stopped = true;
+                this.stopBackgroundKeepAlive();
                 if (this.watchId !== null) {
                     try { navigator.geolocation.clearWatch(this.watchId); } catch(e) {}
                     this.watchId = null;
@@ -346,14 +417,17 @@
                 this.stopped = false;
                 this.shiftActive = true;
 
-                // 1. Immediate first ping (0s delay)
+                // 1. Start Background Keep-Alive (Audio + Web Worker + WakeLock)
+                this.startBackgroundKeepAlive();
+
+                // 2. Immediate first ping (0s delay)
                 navigator.geolocation.getCurrentPosition(
                     function(pos) { self.sendPing(pos, 'auto_ping'); },
                     function(err) { self.onGpsError(err); },
                     { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
                 );
 
-                // 2. Hardware watchPosition stream for active movement
+                // 3. Hardware watchPosition stream for active movement
                 if (this.watchId !== null) try { navigator.geolocation.clearWatch(this.watchId); } catch(e) {}
                 this.watchId = navigator.geolocation.watchPosition(
                     function(pos) { self.sendPing(pos, 'auto_ping'); },
@@ -361,7 +435,7 @@
                     { enableHighAccuracy: true, timeout: 8000, maximumAge: 1000 }
                 );
 
-                // 3. Heartbeat timer (every 4s) so stationary devices also ping continuously
+                // 4. Foreground Heartbeat timer (every 4s)
                 if (this.timerId !== null) clearInterval(this.timerId);
                 this.timerId = setInterval(function() {
                     if (self.stopped || !self.shiftActive) return;
@@ -372,7 +446,7 @@
                     );
                 }, this.pingIntervalMs);
 
-                // 4. Flush offline backlog
+                // 5. Flush offline backlog
                 if (navigator.onLine) this.flushQueue();
             },
 
@@ -406,8 +480,19 @@
         window.ecoStopGpsTracking = function() { GPS.stop(); };
         window.ecoStartGpsTracking = function() { GPS.startTracking(); };
         window.addEventListener('online', function() { GPS.flushQueue(); });
+
+        // Auto-resume and flush whenever tab visibility changes or device wakes up
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && navigator.onLine) GPS.flushQueue();
+            if (!document.hidden && GPS.shiftActive && !GPS.stopped) {
+                GPS.startTracking();
+                if (navigator.onLine) GPS.flushQueue();
+            }
+        });
+        window.addEventListener('focus', function() {
+            if (GPS.shiftActive && !GPS.stopped) {
+                GPS.startTracking();
+                if (navigator.onLine) GPS.flushQueue();
+            }
         });
 
         document.addEventListener('DOMContentLoaded', function() {
