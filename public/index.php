@@ -497,6 +497,14 @@ if ($action) {
             requireActiveShift();
             EmployeeController::update();
             exit;
+                case 'terminate-employee':
+            requireActiveShift();
+            EmployeeController::terminate();
+            exit;
+        case 'restore-employee':
+            requireActiveShift();
+            EmployeeController::restore();
+            exit;
         case 'delete-employee':
             requireActiveShift();
             EmployeeController::delete();

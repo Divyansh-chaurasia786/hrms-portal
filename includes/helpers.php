@@ -969,3 +969,73 @@ function parseSpreadsheetData(?string $filePath, ?string $url = null, ?string $o
 
     return ['columns' => $columns, 'rows' => $rows];
 }
+
+
+/**
+ * 🎂 Calculate Upcoming Birthdays within 30 Days with Exact Hour/Day Countdown
+ */
+function getUpcomingBirthdaysWithinDays(int $maxDays = 30): array {
+    $db = getDBConnection();
+    $users = $db->query("
+        SELECT id, name, emp_id, email, phone, whatsapp_number, avatar, designation, department_name, date_of_birth 
+        FROM users 
+        WHERE status = 'active' AND date_of_birth IS NOT NULL AND date_of_birth != ''
+    ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    $upcoming = [];
+    $now = time();
+    $currentYear = (int)date('Y', $now);
+    $todayDate = date('m-d', $now);
+
+    foreach ($users as $u) {
+        $dob = $u['date_of_birth'];
+        $dobMonthDay = date('m-d', strtotime($dob));
+
+        // Birthday this year
+        $thisYearBday = strtotime("{$currentYear}-{$dobMonthDay} 00:00:00");
+        $todayStart = strtotime(date('Y-m-d 00:00:00', $now));
+
+        if ($thisYearBday < $todayStart) {
+            // Already passed this year, next birthday is next year
+            $nextBday = strtotime(($currentYear + 1) . "-{$dobMonthDay} 00:00:00");
+        } else {
+            $nextBday = $thisYearBday;
+        }
+
+        $diffSeconds = $nextBday - $now;
+        $diffDays = (int)ceil(($nextBday - $todayStart) / 86400);
+
+        if ($diffDays >= 0 && $diffDays <= $maxDays) {
+            $isToday = ($dobMonthDay === $todayDate);
+            $hoursLeft = max(1, (int)ceil($diffSeconds / 3600));
+
+            if ($isToday) {
+                $countdownText = "🎂 Today! Happy Birthday! 🎉";
+                $urgency = 'today';
+            } elseif ($diffSeconds <= 86400 && $diffSeconds > 0) {
+                $countdownText = "in {$hoursLeft} hrs ⏰";
+                $urgency = 'hours';
+            } elseif ($diffDays === 1) {
+                $countdownText = "Tomorrow 🎈";
+                $urgency = 'tomorrow';
+            } else {
+                $countdownText = "in {$diffDays} days";
+                $urgency = 'days';
+            }
+
+            $u['next_bday_timestamp'] = $nextBday;
+            $u['days_left'] = $diffDays;
+            $u['hours_left'] = $hoursLeft;
+            $u['countdown_text'] = $countdownText;
+            $u['urgency'] = $urgency;
+            $u['bday_formatted'] = date('d M', strtotime($dob));
+            $upcoming[] = $u;
+        }
+    }
+
+    usort($upcoming, function($a, $b) {
+        return $a['next_bday_timestamp'] <=> $b['next_bday_timestamp'];
+    });
+
+    return $upcoming;
+}

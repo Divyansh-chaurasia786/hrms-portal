@@ -2,6 +2,66 @@
 // controllers/EmployeeController.php
 
 class EmployeeController {
+    public static function terminate(): void {
+        requireRole(['admin']);
+        requireActiveShift();
+        $db = getDBConnection();
+        $hrUser = authUser();
+        $userId = (int)($_POST['user_id'] ?? 0);
+        $reason = trim($_POST['reason'] ?? 'Termination by HR Management');
+
+        if ($userId <= 0 || $userId === (int)$hrUser['id']) {
+            setFlash('error', 'Invalid employee selected or cannot terminate self.');
+            header('Location: ?page=admin-employees');
+            exit;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $today = date('Y-m-d');
+
+        // 1. Terminate user status & revoke session
+        $db->prepare("
+            UPDATE users 
+            SET is_dismissed = 1, status = 'inactive', dismissal_reason = ?, 
+                is_escalated_locked = 1, force_logout_at = ?, current_session_token = NULL 
+            WHERE id = ?
+        ")->execute([$reason, $now, $userId]);
+
+        // 2. Terminate active shift if punched in today
+        $db->prepare("UPDATE attendance SET clock_out = ?, notes = CONCAT(COALESCE(notes, ''), ' [Terminated by HR]') WHERE user_id = ? AND date = ? AND clock_out IS NULL")
+           ->execute([$now, $userId, $today]);
+        $db->prepare("UPDATE attendance_sessions SET clock_out = ?, ended_by = 'terminated', ended_by_user_id = ? WHERE user_id = ? AND clock_out IS NULL")
+           ->execute([$now, $hrUser['id'], $userId]);
+
+        setFlash('success', "🚫 Employee has been TERMINATED. Login access revoked immediately.");
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=admin-employees'));
+        exit;
+    }
+
+    public static function restore(): void {
+        requireRole(['admin']);
+        requireActiveShift();
+        $db = getDBConnection();
+        $userId = (int)($_POST['user_id'] ?? 0);
+
+        if ($userId <= 0) {
+            setFlash('error', 'Invalid employee selected.');
+            header('Location: ?page=admin-employees');
+            exit;
+        }
+
+        $db->prepare("
+            UPDATE users 
+            SET is_dismissed = 0, status = 'active', dismissal_reason = NULL, 
+                is_escalated_locked = 0, hr_warning_message = NULL, force_logout_at = NULL 
+            WHERE id = ?
+        ")->execute([$userId]);
+
+        setFlash('success', "✅ Employee account RESTORED & login access re-enabled.");
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=admin-employees'));
+        exit;
+    }
+
     public static function create(): void {
         requireRole(['admin']);
         requireActiveShift();
@@ -68,10 +128,11 @@ class EmployeeController {
         }
 
         $stmt = $db->prepare("
-            INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, work_mode, department_name, phone, whatsapp_number, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+            INSERT INTO users (emp_id, name, email, role, reporting_tl_id, designation, salary_basic, employment_type, joining_date, assigned_office_location, work_mode, department_name, phone, whatsapp_number, date_of_birth, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
         ");
-        $stmt->execute([$empId, $name, $email, $role, $reportingTLId, $designation, $stipend, $empType, $joiningDate, $assignedOfficeLocation, $workMode, $deptName, $whatsappNumber, $whatsappNumber]);
+        $dob = !empty($_POST['date_of_birth']) ? trim($_POST['date_of_birth']) : null;
+        $stmt->execute([$empId, $name, $email, $role, $reportingTLId, $designation, $stipend, $empType, $joiningDate, $assignedOfficeLocation, $workMode, $deptName, $whatsappNumber, $whatsappNumber, $dob]);
         $newUserId = (int)$db->lastInsertId();
 
         // If newly created member is a Team Lead, assign selected team members
@@ -245,7 +306,7 @@ class EmployeeController {
                 department_name = ?, assigned_office_location = ?
             WHERE id = ?
         ");
-        $stmt->execute([$name, $email, $role, $designation, $phone, $whatsappNumber, $empType, $salary, $reportingTLId, $workMode, $deptName, $assignedOfficeLocation, $userId]);
+        $stmt->execute([$name, $email, $role, $designation, $phone, $whatsappNumber, $empType, $salary, $reportingTLId, $workMode, $deptName, $assignedOfficeLocation, $dob, $userId]);
 
         $currUser = authUser();
         if ($currUser && (int)$currUser['id'] === (int)$userId) {
