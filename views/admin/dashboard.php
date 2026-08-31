@@ -3,6 +3,8 @@
 $user = authUser();
 $db = getDBConnection();
 $today = date('Y-m-d');
+$userDesig = $user['designation'] ?? 'Head HR';
+$isHRSupport = (stripos($userDesig, 'hr support') !== false);
 
 $stats = $db->query("
     SELECT 
