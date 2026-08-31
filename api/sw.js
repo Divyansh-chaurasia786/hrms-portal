@@ -1,5 +1,5 @@
-// public/sw.js - EcoFone App Background Service Worker (v8 Clean Refresh)
-const CACHE_NAME = 'ecofone-app-v8';
+// public/sw.js - EcoFone App Background Service Worker (v9 Clean Refresh)
+const CACHE_NAME = 'ecofone-app-v9';
 const ASSETS_TO_CACHE = [
     '/manifest.json',
     '/logo_icon.png',

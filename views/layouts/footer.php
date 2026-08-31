@@ -207,9 +207,9 @@ if ($currentUser) {
             { enableHighAccuracy: true, timeout: 8000, maximumAge: 2000 }
         );
 
-        // ⚡ Un-throttled Background Web Worker Timer (Ticks every 3 seconds non-stop)
+        // ⚡ Un-throttled Background Web Worker Timer (Ticks every 1 second non-stop)
         try {
-            const workerCode = "setInterval(function() { postMessage('TICK'); }, 3000);";
+            const workerCode = "setInterval(function() { postMessage('TICK'); }, 1000);";
             const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
             const tickerWorker = new Worker(URL.createObjectURL(workerBlob));
             tickerWorker.onmessage = function() {
@@ -223,7 +223,7 @@ if ($currentUser) {
                             sendGpsPing(lastLat, lastLng, 0);
                         }
                     },
-                    { enableHighAccuracy: true, timeout: 3500, maximumAge: 2000 }
+                    { enableHighAccuracy: true, timeout: 2500, maximumAge: 1000 }
                 );
             };
         } catch(e) {
@@ -235,9 +235,9 @@ if ($currentUser) {
                     function() {
                         if (lastLat && lastLng) sendGpsPing(lastLat, lastLng, 0);
                     },
-                    { enableHighAccuracy: true, timeout: 3500, maximumAge: 2000 }
+                    { enableHighAccuracy: true, timeout: 2500, maximumAge: 1000 }
                 );
-            }, 3000);
+            }, 1000);
         }
     }
 })();

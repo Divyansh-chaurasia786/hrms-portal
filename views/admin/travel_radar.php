@@ -88,12 +88,12 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             this.loadStaffRoute(this.selectedUserId, this.selectedDate);
         });
 
-        // 3s live polling — ultra-fast near real-time GPS tracking
+        // 1s ultra-fast live polling — real-time 1-second GPS tracking
         this.liveTimer = setInterval(() => {
             if (this.selectedUserId && this.analytics.is_active_now) {
                 this.loadStaffRoute(this.selectedUserId, this.selectedDate, true);
             }
-        }, 3000);
+        }, 1000);
     },
 
     selectEmployee(emp) {

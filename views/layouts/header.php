@@ -114,7 +114,7 @@
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(regs) {
             for (let reg of regs) {
-                if (reg.active && !reg.active.scriptURL.includes('v8')) {
+                if (reg.active && !reg.active.scriptURL.includes('v9')) {
                     reg.unregister();
                 }
             }
@@ -125,7 +125,7 @@
     if ('caches' in window) {
         caches.keys().then(function(keys) {
             keys.forEach(function(k) {
-                if (k.indexOf('ecofone-app-v8') === -1) caches.delete(k);
+                if (k.indexOf('ecofone-app-v9') === -1) caches.delete(k);
             });
         });
     }
@@ -142,7 +142,7 @@
 
     // Register service worker immediately for instant PWA readiness
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js?v=8').then(function(reg) {
+        navigator.serviceWorker.register('/sw.js?v=9').then(function(reg) {
             if (reg && reg.update) reg.update();
         }).catch(function() {});
     }
