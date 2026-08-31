@@ -70,35 +70,35 @@ $recentAudits = $db->query("
 <div class="space-y-7 pb-8">
 
     <!-- Executive Header & Quick Actions (Floating Glass Header) -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_10px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.09)] transition-all duration-300">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold shrink-0 shadow-lg shadow-indigo-500/25 ring-4 ring-indigo-50">
-                <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm">
+        <div class="flex items-center gap-3 sm:gap-4">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold shrink-0 shadow-lg shadow-indigo-500/25 ring-2 sm:ring-4 ring-indigo-50">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 sm:w-6 sm:h-6"></i>
             </div>
-            <div>
-                <div class="flex items-center gap-2 flex-wrap">
+            <div class="min-w-0">
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     <?php 
                     $userDesig = $user['designation'] ?? 'Head HR';
                     $isHRSupport = (stripos($userDesig, 'hr support') !== false);
                     ?>
-                    <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight"><?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?></h1>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold <?= $isHRSupport ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-purple-100 text-purple-800 border border-purple-200' ?> uppercase">
+                    <h1 class="text-base sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight"><?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?></h1>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold <?= $isHRSupport ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-purple-100 text-purple-800 border border-purple-200' ?> uppercase">
                         <?= htmlspecialchars($userDesig) ?>
                     </span>
                 </div>
-                <p class="text-xs text-slate-500 mt-1 font-medium">Real-time workforce metrics, live attendance stream, leave queue, and compliance.</p>
+                <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 font-medium">Real-time workforce metrics, live attendance stream, leave queue, and compliance.</p>
             </div>
         </div>
 
-        <!-- Quick Top Buttons -->
-        <div class="flex items-center gap-2.5 flex-wrap">
-            <a href="?page=admin-employees" class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-xl text-xs font-bold transition-all duration-200 inline-flex items-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-lg hover:-translate-y-0.5">
-                <i data-lucide="user-plus" class="w-4 h-4"></i>
-                <span>Directory & Onboard</span>
+        <!-- Quick Top Buttons (Clean 2-Column Grid on Mobile, Flex on Desktop) -->
+        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+            <a href="?page=admin-employees" class="px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-xl text-[11px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                <span class="truncate">Directory & Onboard</span>
             </a>
-            <a href="?page=admin-attendance" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-xs font-bold transition-all duration-200 inline-flex items-center gap-2 border border-slate-200 shadow-2xs hover:-translate-y-0.5">
-                <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
-                <span>Attendance Audit</span>
+            <a href="?page=admin-attendance" class="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-[11px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 border border-slate-200 shadow-2xs">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500"></i>
+                <span class="truncate">Attendance Audit</span>
             </a>
         </div>
     </div>
