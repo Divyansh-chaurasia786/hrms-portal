@@ -134,22 +134,8 @@
         if (btn) btn.style.display = 'none';
     });
 
-    // Directly triggers the native install prompt or opens official install modal
+    // Always opens the official interactive install modal dialog on button click
     function triggerPwaInstall() {
-        if (window.pwaInstallPrompt) {
-            window.pwaInstallPrompt.prompt();
-            window.pwaInstallPrompt.userChoice.then(function(choice) {
-                if (choice.outcome === 'accepted') {
-                    window.pwaInstallPrompt = null;
-                    var btn = document.getElementById('installAppNavbarBtn');
-                    if (btn) btn.style.display = 'none';
-                    showToast('🎉 Installing EcoFone App to Home Screen...');
-                }
-            });
-            return;
-        }
-
-        // Open previous official full install modal with 1-click & Windows desktop download
         var modal = document.getElementById('pwaInstallModal');
         if (modal) {
             modal.classList.remove('hidden');
