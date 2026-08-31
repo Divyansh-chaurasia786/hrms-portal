@@ -36,12 +36,14 @@ $user = $user ?? ['email' => $targetEmail];
     <div class="w-full max-w-[440px] relative z-10 my-auto">
         <!-- Brand Header -->
         <div class="text-center mb-5">
-            <div class="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 items-center justify-center text-white shadow-xl shadow-indigo-600/25 ring-1 ring-white/20 mb-3">
-                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            <div class="inline-flex items-center justify-center mb-3">
+                <img src="/logo.png" alt="EcoFone App Logo" class="h-14 w-auto object-contain bg-white/95 rounded-2xl p-2 shadow-2xl shadow-orange-500/20 ring-1 ring-white/30">
             </div>
-            <h1 class="text-2xl font-extrabold text-white tracking-tight">Two-Step Verification</h1>
+            <h1 class="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-1.5">
+                <span>EcoFone</span> <span class="text-orange-400 font-extrabold">App</span>
+            </h1>
             <p class="text-xs font-medium text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
-                Enter the 6-digit security code sent to your registered company email.
+                Enter the 6-digit one-time passcode (OTP) sent to your registered email.
             </p>
         </div>
 

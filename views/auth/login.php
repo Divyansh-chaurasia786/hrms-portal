@@ -5,42 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <!-- Primary SEO Metadata -->
-    <title>Ecofone HRMS | Enterprise Human Resource & Operations Management Portal</title>
-    <meta name="title" content="Ecofone HRMS | Enterprise Human Resource & Operations Management Portal">
-    <meta name="description" content="Official Ecofone HRMS Portal - Enterprise Human Resource Management System for Ecofone. Live attendance tracking, team task reporting, cloud drive storage, and operations management.">
-    <meta name="keywords" content="Ecofone HRMS, Ecofone, HRMS Ecofone, ecofone portal, ecofone hrms login, ecofone employee login, ecofone attendance, ecofone operations, HRMS portal">
-    <meta name="author" content="Ecofone">
+    <title>EcoFone App | Official Enterprise Workforce & Operations Portal</title>
+    <meta name="title" content="EcoFone App | Official Enterprise Workforce & Operations Portal">
+    <meta name="description" content="Official EcoFone App - Enterprise Workforce Management, Live Attendance, CRM, and Operations Portal.">
+    <meta name="keywords" content="EcoFone App, EcoFone, ecofone portal, ecofone login, ecofone attendance, ecofone operations">
+    <meta name="author" content="EcoFone">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="canonical" href="https://hrms-ecovista.vercel.app">
 
     <!-- Open Graph / Facebook / LinkedIn / WhatsApp Preview -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://hrms-ecovista.vercel.app">
-    <meta property="og:title" content="Ecofone HRMS - Enterprise Portal">
-    <meta property="og:description" content="Official Ecofone HRMS Portal - Live attendance, task management, team cloud drive, and operations.">
-    <meta property="og:site_name" content="Ecofone HRMS">
-    <meta property="og:image" content="https://ui-avatars.com/api/?name=Ecofone+HRMS&background=4f46e5&color=fff&size=512">
+    <meta property="og:title" content="EcoFone App - Official Portal">
+    <meta property="og:description" content="Official EcoFone App - Live attendance, CRM, and workforce operations.">
+    <meta property="og:site_name" content="EcoFone App">
+    <meta property="og:image" content="/icon-512.png">
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://hrms-ecovista.vercel.app">
-    <meta name="twitter:title" content="Ecofone HRMS - Enterprise Portal">
-    <meta name="twitter:description" content="Official Ecofone HRMS Portal - Attendance, team operations, and employee management.">
+    <meta name="twitter:title" content="EcoFone App - Official Portal">
+    <meta name="twitter:description" content="Official EcoFone App - Attendance, CRM, and employee management.">
 
     <!-- Schema.org JSON-LD Structured Data for Google Search Knowledge Graph -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "Ecofone HRMS",
-      "alternateName": ["HRMS Ecofone", "Ecofone Portal", "Ecofone Human Resource Management System"],
+      "name": "EcoFone App",
+      "alternateName": ["EcoFone", "EcoFone Portal", "EcoFone HRMS"],
       "url": "https://hrms-ecovista.vercel.app",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "All",
-      "description": "Official Ecofone HRMS Enterprise Portal for attendance, shift management, task submissions, and workforce operations.",
+      "description": "Official EcoFone App Enterprise Portal for attendance, shift management, task submissions, and workforce operations.",
       "publisher": {
         "@type": "Organization",
-        "name": "Ecofone",
+        "name": "EcoFone",
         "url": "https://hrms-ecovista.vercel.app"
       }
     }
@@ -63,11 +64,13 @@
     <div class="w-full max-w-[420px] relative z-10 my-auto">
         <!-- Logo & Header -->
         <div class="text-center mb-5">
-            <div class="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 items-center justify-center text-white shadow-xl shadow-indigo-600/30 ring-1 ring-white/20 mb-3">
-                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            <div class="inline-flex items-center justify-center mb-3">
+                <img src="/logo.png" alt="EcoFone App Logo" class="h-16 w-auto object-contain bg-white/95 rounded-2xl p-2 shadow-2xl shadow-orange-500/20 ring-1 ring-white/30">
             </div>
-            <h1 class="text-2xl font-extrabold text-white tracking-tight">Ecofone HRMS</h1>
-            <p class="text-xs font-medium text-slate-400 mt-1">Sign in to access your organization portal & operations</p>
+            <h1 class="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-1.5">
+                <span>EcoFone</span> <span class="text-orange-400 font-extrabold">App</span>
+            </h1>
+            <p class="text-xs font-medium text-slate-400 mt-1">Official Workforce, CRM & Operations Portal</p>
         </div>
 
         <!-- Flash messages -->
@@ -122,8 +125,8 @@
             </div>
         </div>
 
-        <div class="text-center mt-6 text-xs text-slate-500">
-            &copy; <?= date('Y') ?> Ecofone HRMS & Operations Platform. All rights reserved.
+        <div class="text-center mt-6 text-[11px] text-slate-500 font-medium">
+            &copy; <?= date('Y') ?> EcoFone App & Operations Platform. All rights reserved.
         </div>
     </div>
 

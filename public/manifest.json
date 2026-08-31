@@ -1,7 +1,7 @@
 {
-    "name": "Ecofone HRMS Portal",
-    "short_name": "Ecofone HRMS",
-    "description": "Enterprise Workforce Attendance, CRM, and Operations Management",
+    "name": "EcoFone App",
+    "short_name": "EcoFone App",
+    "description": "EcoFone App - Official Workforce, CRM, Attendance & Operations Portal",
     "id": "/",
     "start_url": "/?source=pwa_installed",
     "scope": "/",

@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ecofone HRMS | Workforce & Operations Portal</title>
-    <meta name="description" content="Ecofone HRMS - Enterprise Human Resource & Team Operations Management System.">
-    <meta name="keywords" content="Ecofone HRMS, Ecofone, HRMS Ecofone, ecofone portal, HRMS portal">
+    <title>EcoFone App | Workforce & Operations Portal</title>
+    <meta name="description" content="EcoFone App - Official Enterprise Workforce, CRM & Operations Portal.">
+    <meta name="keywords" content="EcoFone App, EcoFone, ecofone portal, HRMS portal">
     <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -22,8 +23,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Ecofone HRMS">
-    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Ecofone+HRMS&background=4f46e5&color=fff&size=192&rounded=true&bold=true">
+    <meta name="apple-mobile-web-app-title" content="EcoFone App">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <meta name="theme-color" content="#4f46e5">
 
     <!-- Tailwind CSS CDN -->

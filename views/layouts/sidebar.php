@@ -20,16 +20,16 @@ $page = $_GET['page'] ?? 'dashboard';
 <!-- Sidebar -->
 <aside :class="[ sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', sidebarCollapsed ? 'lg:-translate-x-full lg:opacity-0 lg:pointer-events-none' : 'lg:translate-x-0 lg:opacity-100 lg:w-64' ]" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 ease-in-out no-scrollbar shadow-2xl lg:shadow-none">
     <!-- Brand Logo & Mobile Close -->
-    <div class="h-16 flex items-center justify-between px-5 bg-slate-950/40 border-b border-slate-800 shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 font-bold text-lg">
-                H
-            </div>
+    <div class="h-16 flex items-center justify-between px-4 bg-slate-950/40 border-b border-slate-800 shrink-0">
+        <a href="?page=dashboard" class="flex items-center gap-2.5 group">
+            <img src="/logo.png" alt="EcoFone App" class="w-10 h-10 object-contain rounded-xl bg-white/95 p-1 shadow-md shadow-orange-500/10 group-hover:scale-105 transition-transform shrink-0">
             <div>
-                <h1 class="text-sm font-bold text-white tracking-wide">Ecofone HRMS</h1>
-                <p class="text-[11px] text-indigo-400 font-medium tracking-wider uppercase"><?= strtoupper(str_replace('_', ' ', $role)) ?> PORTAL</p>
+                <h1 class="text-sm font-black text-white tracking-tight flex items-center gap-1">
+                    <span>EcoFone</span> <span class="text-orange-400 font-bold">App</span>
+                </h1>
+                <p class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase"><?= strtoupper(str_replace('_', ' ', $role)) ?> PORTAL</p>
             </div>
-        </div>
+        </a>
         <button @click="sidebarOpen = false" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" title="Close Menu">
             <i data-lucide="x" class="w-5 h-5"></i>
         </button>
@@ -429,7 +429,7 @@ $page = $_GET['page'] ?? 'dashboard';
                     <i data-lucide="smartphone" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h3 class="text-base font-extrabold text-slate-900 leading-tight">Install Ecofone HRMS App</h3>
+                    <h3 class="text-base font-extrabold text-slate-900 leading-tight">Install EcoFone App</h3>
                     <p class="text-xs text-slate-400 font-medium">Native standalone application for Mobile & PC</p>
                 </div>
             </div>
