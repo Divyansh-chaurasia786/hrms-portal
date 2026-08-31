@@ -8,20 +8,22 @@ $activeAttId = 0;
 if ($currentUser) {
     $dbTracker = getDBConnection();
     $todayDate = date('Y-m-d');
-    $attRow = $dbTracker->query("SELECT id FROM attendance WHERE user_id = {$currentUser['id']} AND date = '{$todayDate}' AND clock_in IS NOT NULL AND clock_out IS NULL")->fetch();
+    $attRow = $dbTracker->query("SELECT id, punch_in_lat, punch_in_lng FROM attendance WHERE user_id = {$currentUser['id']} AND date = '{$todayDate}' AND clock_in IS NOT NULL AND clock_out IS NULL")->fetch();
     if ($attRow) {
         $isFieldActive = true;
         $activeAttId = (int)$attRow['id'];
+        $activePunchInLat = (float)($attRow['punch_in_lat'] ?? 0);
+        $activePunchInLng = (float)($attRow['punch_in_lng'] ?? 0);
     }
 }
 ?>
 
 <?php if ($isFieldActive): ?>
 <script>
-// 🚗 High-Resilience GPS Route Tracker with Unthrottled WebWorker Heartbeat
+// 🚗 High-Resilience GPS Route Tracker with Instant Seeded Heartbeat
 (function initResilientGpsTracker() {
-    let lastLat = null;
-    let lastLng = null;
+    let lastLat = <?= ($activePunchInLat ?? 0) > 0 ? $activePunchInLat : 'null' ?>;
+    let lastLng = <?= ($activePunchInLng ?? 0) > 0 ? $activePunchInLng : 'null' ?>;
     let currentBatteryLevel = null;
     const attId = <?= $activeAttId ?>;
     const QUEUE_KEY = 'hrms_gps_offline_queue_' + attId;
