@@ -570,9 +570,10 @@ class SmartSheetController {
         elseif ($module === 'attendance') $category = 'attendance';
         elseif ($module === 'leaves') $category = 'leaves';
 
-        // Upsert into smart_sheet_uploads: update if title exists, else insert
-        $existingSheet = $db->query("SELECT id FROM smart_sheet_uploads WHERE title = " . $db->quote($sheetTitle))->fetch(PDO::FETCH_ASSOC);
+        // Robust Lookup: Find existing sheet by category OR title so even if the user renames the sheet, it updates in-place!
+        $existingSheet = $db->query("SELECT id, title FROM smart_sheet_uploads WHERE category = '{$category}' OR title = " . $db->quote($sheetTitle) . " ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
         if ($existingSheet) {
+            $sheetTitle = $existingSheet['title'] ?: $sheetTitle; // Retain user's custom renamed title!
             $stmt = $db->prepare("UPDATE smart_sheet_uploads SET category = ?, columns_json = ?, rows_json = ?, created_at = NOW() WHERE id = ?");
             $stmt->execute([
                 $category,
