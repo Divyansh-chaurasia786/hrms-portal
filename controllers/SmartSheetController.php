@@ -565,18 +565,24 @@ class SmartSheetController {
             }
         }
 
+        $category = 'custom';
+        if ($module === 'employees') $category = 'employees';
+        elseif ($module === 'attendance') $category = 'attendance';
+        elseif ($module === 'leaves') $category = 'leaves';
+
         // Upsert into smart_sheet_uploads: update if title exists, else insert
         $existingSheet = $db->query("SELECT id FROM smart_sheet_uploads WHERE title = " . $db->quote($sheetTitle))->fetch(PDO::FETCH_ASSOC);
         if ($existingSheet) {
-            $stmt = $db->prepare("UPDATE smart_sheet_uploads SET columns_json = ?, rows_json = ?, created_at = NOW() WHERE id = ?");
+            $stmt = $db->prepare("UPDATE smart_sheet_uploads SET category = ?, columns_json = ?, rows_json = ?, created_at = NOW() WHERE id = ?");
             $stmt->execute([
+                $category,
                 json_encode($columns, JSON_UNESCAPED_UNICODE),
                 json_encode($rows, JSON_UNESCAPED_UNICODE),
                 $existingSheet['id']
             ]);
             $sheetId = (int)$existingSheet['id'];
         } else {
-            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (uploaded_by, title, category, columns_json, rows_json, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (uploaded_by, title, file_type, category, columns_json, rows_json, created_at) VALUES (?, ?, 'xlsx', ?, ?, ?, NOW())");
             $stmt->execute([
                 $user['id'],
                 $sheetTitle,
