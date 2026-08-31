@@ -22,8 +22,8 @@ $page = $_GET['page'] ?? 'dashboard';
     <!-- Brand Logo & Mobile Close -->
     <div class="h-20 flex items-center justify-between px-4 bg-slate-950/60 border-b border-slate-800 shrink-0">
         <a href="?page=dashboard" class="flex items-center gap-3 group py-1">
-            <div class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0">
-                <img src="/logo_icon.png?v=3" alt="EcoFone App" class="w-full h-full object-contain">
+            <div class="w-11 h-11 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <img src="/logo_icon.png?v=3" alt="EcoFone App" class="w-full h-full object-contain drop-shadow-md">
             </div>
             <div>
                 <h1 class="text-base font-black text-white tracking-tight flex items-center gap-1 leading-none">
