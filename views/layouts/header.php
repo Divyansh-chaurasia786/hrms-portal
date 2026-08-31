@@ -115,7 +115,7 @@
 
     // Register service worker immediately for instant PWA readiness
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(function(reg) {
+        navigator.serviceWorker.register('/sw.js?v=5').then(function(reg) {
             if (reg && reg.update) reg.update();
         }).catch(function() {});
     }
