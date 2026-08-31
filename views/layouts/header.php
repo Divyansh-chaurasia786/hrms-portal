@@ -419,31 +419,8 @@
                 if (err.code === 1) {
                     try { localStorage.setItem(this.grantedKey, 'denied'); } catch(e) {}
                 }
-                if (err.code === 1 || err.code === 2) {
-                    this.consecutiveErrors++;
-                    if (this.consecutiveErrors >= this.maxConsecutiveErrors && this.shiftActive) {
-                        this.triggerAutoPunchOut();
-                    }
-                }
-            },
-
-            triggerAutoPunchOut: function() {
-                if (!this.shiftActive) return;
-                this.stop();
-                fetch('/api/auto-punchout.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: 'gps_disabled' })
-                }).then(function(r) { return r.json(); }).then(function(res) {
-                    if (res.success) {
-                        GPS.shiftActive = false;
-                        var b = document.createElement('div');
-                        b.innerHTML = '📍 <strong>Auto Punch-Out:</strong> GPS was turned off. Shift auto-ended. Total: <strong>' + (res.hours || 0) + ' hrs</strong>';
-                        b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;';
-                        document.body.prepend(b);
-                        setTimeout(function() { window.location.reload(); }, 3500);
-                    }
-                }).catch(function() {});
+                // Do NOT auto-punchout employee on temporary GPS signal loss/indoor timeouts
+                console.warn('GPS signal lookup retry:', err.message);
             },
 
             stop: function() {
@@ -601,14 +578,16 @@ function handlePunchOutGeo(form) {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             function(pos) {
-                document.getElementById('punchOutLat').value = pos.coords.latitude;
-                document.getElementById('punchOutLng').value = pos.coords.longitude;
+                var latEl = document.getElementById('punchOutLat');
+                var lngEl = document.getElementById('punchOutLng');
+                if (latEl) latEl.value = pos.coords.latitude;
+                if (lngEl) lngEl.value = pos.coords.longitude;
                 form.submit();
             },
             function(err) {
                 form.submit();
             },
-            { timeout: 4000, enableHighAccuracy: true }
+            { timeout: 3000, enableHighAccuracy: true }
         );
     } else {
         form.submit();
