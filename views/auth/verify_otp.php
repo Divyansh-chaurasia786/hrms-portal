@@ -2,7 +2,8 @@
 <?php
 $resendCount = (int)($resendCount ?? ($_SESSION['otp_resend_count'] ?? 0));
 $cooldownRemaining = (int)($cooldownRemaining ?? 60);
-$user = $user ?? ['email' => ($_SESSION['pending_otp_email'] ?? 'user@company.com')];
+$targetEmail = !empty($_GET['email']) ? strtolower(trim($_GET['email'])) : (!empty($_SESSION['pending_otp_email']) ? $_SESSION['pending_otp_email'] : (!empty($_COOKIE['pending_otp_email']) ? $_COOKIE['pending_otp_email'] : 'chaurasiadivyansh86@gmail.com'));
+$user = $user ?? ['email' => $targetEmail];
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-950 text-slate-100">
