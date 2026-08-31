@@ -378,7 +378,7 @@ class AttendanceController {
         $db = getDBConnection();
         $today = date('Y-m-d');
 
-        $activeAtt = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND punch_out_time IS NULL ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $activeAtt = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
         if (!$activeAtt) {
             echo json_encode(['success' => false, 'message' => 'No active shift.']);
             exit;
@@ -387,6 +387,7 @@ class AttendanceController {
         $lat = (float)($_POST['lat'] ?? 0);
         $lng = (float)($_POST['lng'] ?? 0);
         $speed = (float)($_POST['speed'] ?? 0);
+        $batteryLevel = isset($_POST['battery_level']) && $_POST['battery_level'] !== '' ? (int)$_POST['battery_level'] : null;
 
         if ($lat != 0 && $lng != 0) {
             // Calculate distance from previous coordinate
@@ -398,8 +399,8 @@ class AttendanceController {
 
             // Record log if distance moved >= 20 meters or first point
             if (!$prev || $distMeters >= 20) {
-                $stmt = $db->prepare("INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$activeAtt['id'], $user['id'], $lat, $lng, $speed, $distMeters]);
+                $stmt = $db->prepare("INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters, battery_level) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$activeAtt['id'], $user['id'], $lat, $lng, $speed, $distMeters, $batteryLevel]);
             }
 
             echo json_encode(['success' => true, 'dist' => $distMeters]);

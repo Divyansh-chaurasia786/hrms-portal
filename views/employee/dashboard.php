@@ -768,15 +768,28 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
     // Silent Background GPS Travel Streamer for Field Staff
     <?php if (!empty($isCurrentlyIn) && (($userProfile['work_mode'] ?? '') === 'field')): ?>
     (function initSilentTracker() {
+        let currentBattery = null;
+
+        // Get battery level if supported
+        if (navigator.getBattery) {
+            navigator.getBattery().then(function(batt) {
+                currentBattery = Math.round(batt.level * 100);
+                batt.addEventListener('levelchange', function() {
+                    currentBattery = Math.round(batt.level * 100);
+                });
+            }).catch(function() {});
+        }
+
         if ('geolocation' in navigator) {
             function streamPosition(pos) {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 const speed = pos.coords.speed || 0;
+                const batteryVal = currentBattery !== null ? currentBattery : '';
                 fetch('?action=log-travel-coordinate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `lat=${lat}&lng=${lng}&speed=${speed}`
+                    body: `lat=${lat}&lng=${lng}&speed=${speed}&battery_level=${batteryVal}`
                 }).catch(() => {});
             }
             // Watch position on movements
