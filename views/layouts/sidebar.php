@@ -425,58 +425,61 @@ $page = $_GET['page'] ?? 'dashboard';
                 </div>
                 <div>
                     <h3 class="text-base font-extrabold text-slate-900 leading-tight">Install Ecofone HRMS App</h3>
-                    <p class="text-xs text-slate-400 font-medium">Native standalone application for PC & Mobile</p>
+                    <p class="text-xs text-slate-400 font-medium">Native standalone application for Mobile & PC</p>
                 </div>
             </div>
             <button type="button" onclick="closePwaInstallModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
         </div>
 
-        <div class="space-y-3">
-            <!-- Method 1: Address Bar 1-Click Install -->
-            <div class="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200/70 space-y-2">
-                <div class="flex items-center gap-2">
-                    <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center">1</span>
-                    <strong class="text-xs font-bold text-indigo-950">1-Click Browser Address Bar Install (Recommended)</strong>
+        <!-- 1-Click Mobile Direct Install Banner -->
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white space-y-2.5 shadow-md shadow-indigo-600/20">
+            <div class="flex items-center gap-2.5">
+                <span class="text-xl">📲</span>
+                <div>
+                    <h4 class="text-xs font-bold leading-tight">1-Click Direct Mobile Install</h4>
+                    <p class="text-[11px] text-indigo-100 mt-0.5">Installs official app with full screen & zero URL bar</p>
                 </div>
-                <p class="text-[11px] text-indigo-900 leading-relaxed pl-7">
-                    Look at the top-right of your browser address bar above (near the URL) and click the <strong>Install App icon (⊕ or 📲)</strong> to install the native desktop application immediately.
+            </div>
+            <button type="button" onclick="if(window.pwaInstallPrompt){ window.pwaInstallPrompt.prompt(); closePwaInstallModal(); } else { alert('On Android: tap ⋮ Chrome Menu → Add to Home Screen.\nOn iPhone: tap Share (□↑) → Add to Home Screen.'); }" class="w-full py-2.5 px-4 bg-white text-indigo-700 hover:bg-indigo-50 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Direct Install Native App (Mobile)</span>
+            </button>
+        </div>
+
+        <div class="space-y-2.5">
+            <!-- Method 1: Android & iPhone Guide -->
+            <div class="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200/70 space-y-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-emerald-700 text-white text-[10px] font-black flex items-center justify-center">1</span>
+                    <strong class="text-xs font-bold text-emerald-950">Android & iPhone (Manual Fallback)</strong>
+                </div>
+                <p class="text-[11px] text-emerald-800 leading-relaxed pl-7">
+                    • <strong>Android:</strong> Chrome ⋮ Menu → <strong>Add to Home Screen / Install</strong><br>
+                    • <strong>iPhone:</strong> Safari Share (□↑) → <strong>Add to Home Screen</strong>
                 </p>
             </div>
 
             <!-- Method 2: Download Direct Windows Desktop Launcher -->
-            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <div class="flex items-center gap-2">
-                    <span class="w-5 h-5 rounded-full bg-slate-800 text-white text-[10px] font-black flex items-center justify-center">2</span>
-                    <strong class="text-xs font-bold text-slate-800">Download Official Desktop App Shortcut (.url)</strong>
-                </div>
-                <p class="text-[11px] text-slate-500 leading-relaxed pl-7">
-                    Download the official Windows desktop app shortcut icon to launch directly from your computer desktop.
-                </p>
-                <div class="pl-7 pt-1">
-                    <button type="button" onclick="downloadDesktopLauncher()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-slate-800 text-white text-[10px] font-black flex items-center justify-center">2</span>
+                        <strong class="text-xs font-bold text-slate-800">Windows PC Desktop Icon</strong>
+                    </div>
+                    <button type="button" onclick="downloadDesktopLauncher()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer">
                         <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                        <span>⬇️ Download for Windows (Desktop Shortcut)</span>
+                        <span>Download .url</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        
-            <!-- Method 3: Android / iOS -->
-            <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 space-y-2">
-                <div class="flex items-center gap-2">
-                    <span class="w-5 h-5 rounded-full bg-emerald-700 text-white text-[10px] font-black flex items-center justify-center">3</span>
-                    <strong class="text-xs font-bold text-emerald-950">Android & iPhone – Add to Home Screen</strong>
-                </div>
-                <p class="text-[11px] text-emerald-800 leading-relaxed pl-7">
-                    Android: Chrome → ⋮ Menu → <strong>Add to Home Screen</strong><br>
-                    iPhone: Safari → Share (□↑) → <strong>Add to Home Screen</strong>
-                </p>
-            </div>
         <div class="flex justify-end pt-2 border-t border-slate-100">
             <button type="button" onclick="closePwaInstallModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
                 Got It, Close
             </button>
         </div>
+    </div>
+</div>
     </div>
 </div>
