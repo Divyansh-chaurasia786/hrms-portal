@@ -63,7 +63,7 @@ if (preg_match('#^/(google[a-z0-9]+\.html)$#', $uri, $m)) {
 }
 if ($uri === '/robots.txt') {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "User-agent: *\nAllow: /\nAllow: /?page=login\nDisallow: /api/\nDisallow: /config/\n\nSitemap: https://hrms-ecofone.vercel.app/sitemap.xml\n";
+    echo "User-agent: *\nAllow: /\nAllow: /?page=login\nDisallow: /api/\nDisallow: /config/\n\nSitemap: https://hrms-ecovista.vercel.app/sitemap.xml\n";
     exit;
 }
 if ($uri === '/sitemap.xml') {
@@ -71,13 +71,13 @@ if ($uri === '/sitemap.xml') {
     echo '<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://hrms-ecofone.vercel.app/</loc>
+    <loc>https://hrms-ecovista.vercel.app/</loc>
     <lastmod>' . date('Y-m-d') . '</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://hrms-ecofone.vercel.app/?page=login</loc>
+    <loc>https://hrms-ecovista.vercel.app/?page=login</loc>
     <lastmod>' . date('Y-m-d') . '</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>

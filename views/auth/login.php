@@ -11,11 +11,11 @@
     <meta name="keywords" content="Ecofone HRMS, Ecofone, HRMS Ecofone, ecofone portal, ecofone hrms login, ecofone employee login, ecofone attendance, ecofone operations, HRMS portal">
     <meta name="author" content="Ecofone">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <link rel="canonical" href="https://hrms-ecofone.vercel.app">
+    <link rel="canonical" href="https://hrms-ecovista.vercel.app">
 
     <!-- Open Graph / Facebook / LinkedIn / WhatsApp Preview -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://hrms-ecofone.vercel.app">
+    <meta property="og:url" content="https://hrms-ecovista.vercel.app">
     <meta property="og:title" content="Ecofone HRMS - Enterprise Portal">
     <meta property="og:description" content="Official Ecofone HRMS Portal - Live attendance, task management, team cloud drive, and operations.">
     <meta property="og:site_name" content="Ecofone HRMS">
@@ -23,7 +23,7 @@
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://hrms-ecofone.vercel.app">
+    <meta name="twitter:url" content="https://hrms-ecovista.vercel.app">
     <meta name="twitter:title" content="Ecofone HRMS - Enterprise Portal">
     <meta name="twitter:description" content="Official Ecofone HRMS Portal - Attendance, team operations, and employee management.">
 
@@ -34,14 +34,14 @@
       "@type": "WebApplication",
       "name": "Ecofone HRMS",
       "alternateName": ["HRMS Ecofone", "Ecofone Portal", "Ecofone Human Resource Management System"],
-      "url": "https://hrms-ecofone.vercel.app",
+      "url": "https://hrms-ecovista.vercel.app",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "All",
       "description": "Official Ecofone HRMS Enterprise Portal for attendance, shift management, task submissions, and workforce operations.",
       "publisher": {
         "@type": "Organization",
         "name": "Ecofone",
-        "url": "https://hrms-ecofone.vercel.app"
+        "url": "https://hrms-ecovista.vercel.app"
       }
     }
     </script>

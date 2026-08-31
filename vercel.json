@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "alias": ["hrms-ecofone.vercel.app"],
+  "alias": ["hrms-ecovista.vercel.app"],
   "regions": ["sin1"],
   "functions": {
     "api/index.php": {
