@@ -133,10 +133,10 @@
         if (btn) btn.style.display = 'none';
     });
 
-    // Directly triggers the native install prompt on mobile — NO popup/alerts
+    // Directly triggers the native install prompt on mobile — NO file download
     function triggerPwaInstall() {
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            showToast('✅ App is already installed and running on your device!');
+            showToast('✅ App is already installed on your device!');
             return;
         }
 
@@ -147,56 +147,34 @@
                     window.pwaInstallPrompt = null;
                     var btn = document.getElementById('installAppNavbarBtn');
                     if (btn) btn.style.display = 'none';
+                    showToast('🎉 Installing Native App to Home Screen...');
                 }
             });
             return;
         }
 
-        // If prompt not available directly in Chrome
-        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isMobile) {
-            var hint = document.getElementById('pwaDirectHint');
-            if (hint) {
-                hint.classList.remove('hidden');
-                if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
-                setTimeout(function() { hint.classList.add('hidden'); }, 6000);
-            }
+        // Show direct install guidance to tap Chrome 3-dots menu
+        var hint = document.getElementById('pwaDirectHint');
+        if (hint) {
+            hint.classList.remove('hidden');
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+            setTimeout(function() { hint.classList.add('hidden'); }, 7000);
         } else {
-            downloadDesktopLauncher();
+            showToast('📲 Tap (⋮) Chrome menu top-right → "Install app" to add to Home Screen');
         }
     }
 
     function showToast(msg) {
         var toast = document.createElement('div');
-        toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold border border-slate-700 animate-in fade-in slide-in-from-bottom duration-200';
+        toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold border border-slate-700 animate-in fade-in slide-in-from-bottom duration-200 text-center max-w-[90%]';
         toast.innerText = msg;
         document.body.appendChild(toast);
-        setTimeout(function() { toast.remove(); }, 3500);
+        setTimeout(function() { toast.remove(); }, 4000);
     }
 
     function closePwaInstallModal() {
         var modal = document.getElementById('pwaInstallModal');
         if (modal) modal.classList.add('hidden');
-    }
-
-    function downloadDesktopLauncher() {
-        var shortcutLines = [
-            '[InternetShortcut]',
-            'URL=https://hrms-ecovista.vercel.app/?source=desktop_shortcut',
-            'IconFile=https://hrms-ecovista.vercel.app/icon-192.png',
-            'IconIndex=0',
-            'HotKey=0',
-            'IDList=',
-            '[{000214A0-0000-0000-C000-000000000046}]',
-            'Prop3=19,2'
-        ];
-        var blob = new Blob([shortcutLines.join('\r\n')], { type: 'application/x-mswinurl' });
-        var link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'Ecofone_HRMS_Portal.url';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
     }
 
     // Safety guard: ensure modal is always hidden on page load
