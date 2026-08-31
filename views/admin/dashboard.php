@@ -71,36 +71,33 @@ $recentAudits = $db->query("
 
 <div class="space-y-6 pb-8">
 
-    <!-- Executive Header & Quick Actions (Clean Modern White Enterprise Bar) -->
-    <div class="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md shadow-indigo-600/20">
-                <img src="/logo_icon.png?v=3" alt="EF" class="w-7 h-7 object-contain">
+    <!-- Seamless Modern Page Header (No dark badge, pure clean enterprise typography) -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-1">
+        <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    <?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?>
+                </h1>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wide">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <?= htmlspecialchars($userDesig) ?>
+                </span>
             </div>
-            <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-                        <?= $isHRSupport ? 'HR Support Administration Hub' : 'HR Administration Overview' ?>
-                    </h1>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wide">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <?= htmlspecialchars($userDesig) ?>
-                    </span>
-                </div>
-                <p class="text-xs text-slate-500 mt-0.5 font-medium">
-                    Real-time workforce intelligence • <span class="text-slate-700 font-semibold"><?= date('l, d F Y') ?></span>
-                </p>
-            </div>
+            <p class="text-xs text-slate-500 mt-1 font-medium flex items-center gap-2 flex-wrap">
+                <span>Real-time workforce intelligence & operations</span>
+                <span class="text-slate-300">•</span>
+                <span class="text-slate-700 font-semibold"><?= date('l, d F Y') ?></span>
+            </p>
         </div>
 
         <!-- Quick Top Action Buttons -->
         <div class="flex items-center gap-2.5 shrink-0">
-            <a href="?page=admin-employees" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+            <a href="?page=admin-employees" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer hover:scale-[1.02]">
                 <i data-lucide="user-plus" class="w-4 h-4 text-indigo-200"></i>
                 <span>Directory & Onboard</span>
             </a>
-            <a href="?page=admin-attendance" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-200 shadow-2xs cursor-pointer">
-                <i data-lucide="calendar-check" class="w-4 h-4 text-slate-500"></i>
+            <a href="?page=admin-attendance" class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-200 shadow-2xs cursor-pointer hover:scale-[1.02]">
+                <i data-lucide="calendar-check" class="w-4 h-4 text-emerald-600"></i>
                 <span>Attendance Audit</span>
             </a>
         </div>
