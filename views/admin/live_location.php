@@ -13,6 +13,7 @@ $liveLocations = $db->query("
         SELECT user_id, MAX(id) as max_id FROM location_pings WHERE session_date = '{$today}' GROUP BY user_id
     ) latest ON lp.id = latest.max_id
     JOIN users u ON u.id = lp.user_id
+    WHERE u.role NOT IN ('admin') AND u.designation NOT LIKE '%HR%'
     ORDER BY lp.created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 ?>

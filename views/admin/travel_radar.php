@@ -24,7 +24,10 @@ $fieldEmployees = $db->query("
         WHERE recorded_at >= '{$selectedDate} 00:00:00' AND recorded_at <= '{$selectedDate} 23:59:59'
         GROUP BY user_id
     ) stats ON stats.user_id = u.id
-    WHERE ((u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%') OR (a.clock_in IS NOT NULL)) AND u.status = 'active'
+    WHERE u.role NOT IN ('admin')
+      AND u.designation NOT LIKE '%HR%'
+      AND (u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%')
+      AND u.status = 'active'
     ORDER BY CASE WHEN a.clock_in IS NOT NULL AND a.clock_out IS NULL THEN 1 ELSE 2 END, u.name ASC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
