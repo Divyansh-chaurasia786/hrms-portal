@@ -73,12 +73,12 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             this.loadStaffRoute(this.selectedUserId, this.selectedDate);
         });
 
-        // 10s silent polling for live staff
+        // 5s silent polling — matches 5s GPS ping interval for near-instant live tracking
         this.liveTimer = setInterval(() => {
             if (this.selectedUserId && this.analytics.is_active_now) {
                 this.loadStaffRoute(this.selectedUserId, this.selectedDate, true);
             }
-        }, 10000);
+        }, 5000);
     },
 
     selectEmployee(emp) {

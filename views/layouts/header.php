@@ -161,83 +161,98 @@
         if (modal) modal.classList.add('hidden');
     });
     </script>
-    <!-- 📍 GPS Live Tracker — Offline Queue, Auto Sync, Auto Punch-Out on GPS Off -->
+
+    <!-- 📍 GPS LIVE TRACKER — 5s interval, employee_travel_logs endpoint, offline queue -->
     <script>
     (function() {
         var GPS = {
-            watchId: null,
-            interval: null,
-            pingIntervalMs: 5 * 60 * 1000,  // Live ping every 5 minutes
-            offlineQueueKey: 'eco_gps_queue',
-            grantedKey: 'eco_gps_granted',
-            shiftActive: document.body ? document.body.getAttribute('data-shift-active') === '1' : false,
-            consecutiveErrors: 0,
-            maxConsecutiveErrors: 3,         // After 3 GPS errors → auto punch-out
-            stopped: false,
+            watchId:            null,
+            pingIntervalMs:     5000,       // ← LIVE: 5-second interval
+            offlineQueueKey:    'eco_gps_queue',
+            grantedKey:         'eco_gps_granted',
+            shiftActive:        false,
+            attendanceId:       0,
+            consecutiveErrors:  0,
+            maxConsecutiveErrors: 3,
+            stopped:            false,
+            lastPingTs:         0,
 
-            // ── Offline Queue ──────────────────────────────────────────────
-            enqueue: function(payload) {
+            enqueue: function(p) {
                 var q = [];
                 try { q = JSON.parse(localStorage.getItem(this.offlineQueueKey) || '[]'); } catch(e) {}
-                q.push(payload);
-                // Keep last 100 pings max
-                if (q.length > 100) q = q.slice(-100);
+                q.push(p);
+                if (q.length > 1000) q = q.slice(-1000);
                 try { localStorage.setItem(this.offlineQueueKey, JSON.stringify(q)); } catch(e) {}
             },
 
             flushQueue: function() {
+                var self = this;
                 var q = [];
                 try { q = JSON.parse(localStorage.getItem(this.offlineQueueKey) || '[]'); } catch(e) {}
-                if (q.length === 0) return;
-                var self = this;
-                var toSend = q.slice();
-                try { localStorage.setItem(self.offlineQueueKey, '[]'); } catch(e) {}
-                toSend.forEach(function(p) {
-                    fetch('/api/track-location.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(p)
-                    }).catch(function() {
-                        self.enqueue(p); // Re-queue if still failing
-                    });
-                });
+                if (!q.length || !this.attendanceId) return;
+                try { localStorage.setItem(this.offlineQueueKey, '[]'); } catch(e) {}
+                fetch('?action=sync-offline-gps-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pings: q })
+                }).catch(function() { q.forEach(function(p) { self.enqueue(p); }); });
             },
 
-            // ── Send One Ping ──────────────────────────────────────────────
             sendPing: function(pos, type) {
-                var payload = {
-                    lat:      pos.coords.latitude,
-                    lng:      pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                    type:     type || 'auto_ping',
-                    device:   navigator.userAgent.substring(0, 200),
-                    address:  '',
-                    ts:       new Date().toISOString()
-                };
+                var now = Date.now();
+                // Throttle by interval unless clock_in or clock_out
+                if (type !== 'clock_in' && type !== 'clock_out' && (now - this.lastPingTs < this.pingIntervalMs)) return;
+                this.lastPingTs = now;
+
+                var lat         = pos.coords.latitude;
+                var lng         = pos.coords.longitude;
+                var speedMs     = pos.coords.speed || 0;
+                var speedKmh    = Math.round(speedMs * 3.6 * 10) / 10;
+                var recordedAt  = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
                 try { localStorage.setItem(this.grantedKey, '1'); } catch(e) {}
                 this.consecutiveErrors = 0;
 
-                if (!navigator.onLine) {
-                    this.enqueue(payload);
-                    return;
-                }
+                var self = this;
+                var doSend = function(battery) {
+                    if (!navigator.onLine) {
+                        self.enqueue({
+                            attendance_id: self.attendanceId,
+                            latitude: lat, longitude: lng,
+                            speed: speedKmh, battery_level: battery,
+                            recorded_at: recordedAt, distance_meters: 0, is_offline: 1
+                        });
+                        return;
+                    }
+                    var fd = new FormData();
+                    fd.append('attendance_id', self.attendanceId);
+                    fd.append('latitude', lat);
+                    fd.append('longitude', lng);
+                    fd.append('speed', speedKmh);
+                    fd.append('battery_level', battery || '');
+                    fd.append('recorded_at', recordedAt);
+                    fetch('?action=record-travel-gps', { method: 'POST', body: fd })
+                        .catch(function() {
+                            self.enqueue({
+                                attendance_id: self.attendanceId,
+                                latitude: lat, longitude: lng,
+                                speed: speedKmh, battery_level: battery,
+                                recorded_at: recordedAt, distance_meters: 0, is_offline: 1
+                            });
+                        });
+                };
 
-                fetch('/api/track-location.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                }).catch(function() {
-                    // Offline while sending — queue it
-                    GPS.enqueue(payload);
-                });
+                if (navigator.getBattery) {
+                    navigator.getBattery().then(function(b) {
+                        doSend(Math.round(b.level * 100));
+                    }).catch(function() { doSend(null); });
+                } else {
+                    doSend(null);
+                }
             },
 
-            // ── GPS Error Handler ──────────────────────────────────────────
             onGpsError: function(err) {
-                // PERMISSION_DENIED (1) OR POSITION_UNAVAILABLE (2) = GPS turned off
-                if (err.code === 1) {
-                    try { localStorage.setItem(this.grantedKey, 'denied'); } catch(e) {}
-                }
+                if (err.code === 1) try { localStorage.setItem(this.grantedKey, 'denied'); } catch(e) {}
                 if (err.code === 1 || err.code === 2) {
                     this.consecutiveErrors++;
                     if (this.consecutiveErrors >= this.maxConsecutiveErrors && this.shiftActive) {
@@ -246,7 +261,6 @@
                 }
             },
 
-            // ── Auto Punch-Out ─────────────────────────────────────────────
             triggerAutoPunchOut: function() {
                 if (!this.shiftActive) return;
                 this.stop();
@@ -257,83 +271,57 @@
                 }).then(function(r) { return r.json(); }).then(function(res) {
                     if (res.success) {
                         GPS.shiftActive = false;
-                        // Show a subtle notification
-                        var banner = document.createElement('div');
-                        banner.innerHTML = '📍 <strong>Auto Punch-Out:</strong> GPS location was disabled. Your shift has been automatically ended. Total: <strong>' + (res.hours || 0) + ' hrs</strong>';
-                        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;';
-                        document.body.prepend(banner);
+                        var b = document.createElement('div');
+                        b.innerHTML = '📍 <strong>Auto Punch-Out:</strong> GPS disabled. Shift auto-ended. Total: <strong>' + (res.hours || 0) + ' hrs</strong>';
+                        b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;';
+                        document.body.prepend(b);
                         setTimeout(function() { window.location.reload(); }, 4000);
                     }
                 }).catch(function() {});
             },
 
-            // ── Stop All Tracking ──────────────────────────────────────────
             stop: function() {
                 this.stopped = true;
                 if (this.watchId !== null) {
-                    navigator.geolocation.clearWatch(this.watchId);
+                    try { navigator.geolocation.clearWatch(this.watchId); } catch(e) {}
                     this.watchId = null;
-                }
-                if (this.interval) {
-                    clearInterval(this.interval);
-                    this.interval = null;
                 }
             },
 
-            // ── Start Live watchPosition ───────────────────────────────────
             startWatch: function() {
                 var self = this;
                 if (!navigator.geolocation || this.stopped) return;
-                if (this.watchId !== null) navigator.geolocation.clearWatch(this.watchId);
+                if (this.watchId !== null) try { navigator.geolocation.clearWatch(this.watchId); } catch(e) {}
 
                 this.watchId = navigator.geolocation.watchPosition(
                     function(pos) { self.sendPing(pos, 'auto_ping'); },
                     function(err) { self.onGpsError(err); },
-                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
                 );
-
-                // Throttle to send max 1 ping per pingIntervalMs using interval gate
-                if (this.interval) clearInterval(this.interval);
-                var lastSentTs = 0;
-                var origSend = this.sendPing.bind(this);
-                this.sendPing = function(pos, type) {
-                    var now = Date.now();
-                    if (now - lastSentTs < self.pingIntervalMs && type !== 'clock_in' && type !== 'clock_out') return;
-                    lastSentTs = now;
-                    origSend(pos, type);
-                };
             },
 
-            // ── Init ───────────────────────────────────────────────────────
             init: function() {
                 if (!navigator.geolocation) return;
                 var self = this;
-                var storedState = '';
-                try { storedState = localStorage.getItem(this.grantedKey) || ''; } catch(e) {}
-
-                if (storedState === 'denied') return;
+                var st = '';
+                try { st = localStorage.getItem(this.grantedKey) || ''; } catch(e) {}
+                if (st === 'denied') return;
 
                 var doStart = function() {
                     self.startWatch();
-                    // Flush offline queue on init
                     if (navigator.onLine) self.flushQueue();
                 };
 
-                if (storedState === '1') {
-                    doStart();
-                    return;
-                }
+                if (st === '1') { doStart(); return; }
 
-                // First time — check Permissions API
                 if (navigator.permissions && navigator.permissions.query) {
-                    navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
-                        if (result.state === 'granted') {
+                    navigator.permissions.query({ name: 'geolocation' }).then(function(r) {
+                        if (r.state === 'granted') {
                             try { localStorage.setItem(self.grantedKey, '1'); } catch(e) {}
                             doStart();
-                        } else if (result.state === 'prompt') {
-                            doStart(); // Triggers ONE-TIME browser popup
+                        } else if (r.state === 'prompt') {
+                            doStart();
                         }
-                        // denied — do nothing
                     }).catch(function() { doStart(); });
                 } else {
                     doStart();
@@ -341,53 +329,46 @@
             }
         };
 
-        // ── Global: Called from punch-out buttons to stop tracking ──────────
         window.ecoStopGpsTracking = function() { GPS.stop(); };
-
-        // ── Online: flush queued offline pings ────────────────────────────
         window.addEventListener('online', function() { GPS.flushQueue(); });
-
-        // ── Tab visible: re-check ─────────────────────────────────────────
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden && navigator.onLine) GPS.flushQueue();
         });
 
-        // ── Start on DOM ready ────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function() {
-            GPS.shiftActive = document.body.getAttribute('data-shift-active') === '1';
+            GPS.shiftActive    = document.body.getAttribute('data-shift-active') === '1';
+            GPS.attendanceId   = parseInt(document.body.getAttribute('data-attendance-id') || '0', 10);
 
-            var storedState = '';
-            try { storedState = localStorage.getItem(GPS.grantedKey) || ''; } catch(e) {}
+            var st = '';
+            try { st = localStorage.getItem(GPS.grantedKey) || ''; } catch(e) {}
 
-            // Detect punch-in redirect (loc_start=1 in URL)
+            // Detect punch-in redirect — fire silent clock_in ping immediately
             var urlParams = new URLSearchParams(window.location.search);
-            var justPunchedIn = urlParams.has('loc_start');
-
-            // Clean the loc_start param from URL without page reload
-            if (justPunchedIn && window.history && window.history.replaceState) {
-                urlParams.delete('loc_start');
-                var cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-                window.history.replaceState({}, '', cleanUrl);
+            if (urlParams.has('loc_start')) {
+                if (window.history && window.history.replaceState) {
+                    urlParams.delete('loc_start');
+                    window.history.replaceState({}, '', window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : ''));
+                }
+                if (st === '1' && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function(pos) { GPS.sendPing(pos, 'clock_in'); },
+                        function() {},
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    );
+                }
             }
 
-            // If permission already granted and user just punched in — silent immediate clock_in ping
-            if (justPunchedIn && storedState === '1' && navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(pos) { GPS.sendPing(pos, 'clock_in'); },
-                    function() {},
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
+            // Only track when shift is active — saves battery when off-duty
+            if (GPS.shiftActive && GPS.attendanceId > 0) {
+                GPS.init();
             }
-
-            // Start background watch tracking (silent if already granted)
-            GPS.init();
         });
 
         window._ecoGPS = GPS;
     })();
     </script>
 </head>
-<body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
+<body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" data-attendance-id="<?php $todayAtt = getDBConnection()->query('SELECT id FROM attendance WHERE user_id = ' . (int)(authUser()['id'] ?? 0) . ' AND date = \'' . date('Y-m-d') . '\' AND clock_out IS NULL ORDER BY id DESC LIMIT 1')?->fetch(PDO::FETCH_ASSOC); echo (int)($todayAtt['id'] ?? 0); ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
 <script>
 function handlePunchOutGeo(form) {
