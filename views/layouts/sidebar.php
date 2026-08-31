@@ -203,11 +203,9 @@ $page = $_GET['page'] ?? 'dashboard';
 
         <!-- Quick Punch Status & User Info -->
         <div class="flex items-center gap-3">
-            <!-- 📲 Prominent 1-Click Install / Download App Button -->
-            <button type="button" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-black shadow-md shadow-indigo-600/30 transition cursor-pointer border border-indigo-400/30">
-                <i data-lucide="download-cloud" class="w-4 h-4 text-white"></i>
-                <span class="hidden sm:inline">Install / Download App</span>
-                <span class="sm:hidden">Install</span>
+            <!-- 📲 Sleek Icon-Only Native App Launcher -->
+            <button type="button" onclick="triggerPwaInstall()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 flex items-center justify-center transition shadow-2xs cursor-pointer group" title="Open / Install Standalone App">
+                <i data-lucide="smartphone" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
             </button>
             <?php
             $todayAtt = AttendanceController::getTodayAttendanceForUser($user['id']);

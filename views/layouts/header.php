@@ -89,15 +89,13 @@
             scrollbar-width: none !important;
         }
     </style>
-                <!-- 📲 Native App Engine & Standalone Window Launcher -->
+                    <!-- 📲 Native Standalone App Engine -->
     <script>
     window.pwaInstallPrompt = null;
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').then((reg) => {
-                console.log('PWA ServiceWorker registered');
-            }).catch(() => {});
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
         });
     }
 
@@ -106,30 +104,31 @@
         window.pwaInstallPrompt = e;
     });
 
-    window.addEventListener('appinstalled', () => {
-        window.pwaInstallPrompt = null;
-    });
-
     function triggerPwaInstall() {
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
-            window.pwaInstallPrompt.userChoice.then((choice) => {
-                if (choice.outcome === 'accepted') {
-                    window.pwaInstallPrompt = null;
-                }
+            window.pwaInstallPrompt.userChoice.then(() => {
+                window.pwaInstallPrompt = null;
             });
             return;
         }
 
-        // Open in Standalone Native App Window Mode (Frameless Desktop App)
-        const currentUrl = window.location.href;
-        const appWindow = window.open(
-            currentUrl,
-            'EcofoneHRMS_NativeApp',
-            'toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1366,height=850,top=50,left=100'
+        // Launch in Pure Standalone Frameless Native App Window (No browser address bar or tabs)
+        const appUrl = window.location.origin + '/?source=standalone_app';
+        const screenW = window.screen.availWidth || 1366;
+        const screenH = window.screen.availHeight || 850;
+        const w = Math.min(1366, screenW - 40);
+        const h = Math.min(850, screenH - 40);
+        const left = Math.max(0, (screenW - w) / 2);
+        const top = Math.max(0, (screenH - h) / 2);
+
+        const appWin = window.open(
+            appUrl,
+            'Ecofone_HRMS_App',
+            `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${w},height=${h},top=${top},left=${left}`
         );
-        if (appWindow) {
-            appWindow.focus();
+        if (appWin) {
+            appWin.focus();
         }
     }
     </script>
