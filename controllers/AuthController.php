@@ -411,7 +411,9 @@ class AuthController {
 
     public static function logout(): void {
         if (isset($_SESSION['user']['id'])) {
-            TaskController::autoSubmitOnShiftEnd((int)$_SESSION['user']['id']);
+            try {
+                TaskController::autoSubmitOnShiftEnd((int)$_SESSION['user']['id']);
+            } catch (Throwable $e) {}
         }
         
         // 1. Clear session array & destroy session

@@ -456,9 +456,11 @@ if ($action) {
             echo $sqlDump;
             exit;
         case 'clock-in':
+        case 'punch-in':
             AttendanceController::clockIn();
             exit;
         case 'clock-out':
+        case 'punch-out':
             AttendanceController::clockOut();
             exit;
         case 'tl-approve-attendance':

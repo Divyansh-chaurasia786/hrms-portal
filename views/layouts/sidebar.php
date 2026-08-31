@@ -252,14 +252,23 @@ $page = $_GET['page'] ?? 'dashboard';
                         outLng: 0,
                         doPunchOut() {
                             this.outState = 'saving';
+                            let submitted = false;
                             const submitWithCoords = (lat, lng) => {
+                                if (submitted) return;
+                                submitted = true;
                                 const form = this.$refs.punchOutForm;
                                 if (form) {
-                                    if (form.querySelector('input[name=latitude]')) form.querySelector('input[name=latitude]').value = lat || '';
-                                    if (form.querySelector('input[name=longitude]')) form.querySelector('input[name=longitude]').value = lng || '';
+                                    const latInp = form.querySelector('input[name=latitude]');
+                                    const lngInp = form.querySelector('input[name=longitude]');
+                                    if (latInp && lat) latInp.value = lat;
+                                    if (lngInp && lng) lngInp.value = lng;
                                     form.submit();
                                 }
                             };
+
+                            // Hard 800ms safety timeout: If browser location hangs or is blocked, submit immediately!
+                            setTimeout(() => { submitWithCoords(null, null); }, 800);
+
                             if (navigator.geolocation) {
                                 navigator.geolocation.getCurrentPosition(
                                     (p) => {
@@ -268,7 +277,7 @@ $page = $_GET['page'] ?? 'dashboard';
                                     (e) => {
                                         submitWithCoords(null, null);
                                     },
-                                    { timeout: 3000, enableHighAccuracy: true }
+                                    { timeout: 700, enableHighAccuracy: true, maximumAge: 5000 }
                                 );
                             } else {
                                 submitWithCoords(null, null);
