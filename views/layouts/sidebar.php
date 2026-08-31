@@ -199,7 +199,36 @@ $page = $_GET['page'] ?? 'dashboard';
         </a>
     </nav>
 
-        
+    <!-- Logout / Footer of Sidebar -->
+    <div class="p-3 border-t border-slate-800/80">
+        <a href="?action=logout" class="flex items-center gap-3 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition text-sm">
+            <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+        </a>
+    </div>
+</aside>
+
+<!-- Main Wrapper -->
+<div class="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out" :class="sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'">
+    <!-- Top Navbar -->
+    <header id="top-header-navbar" class="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+        <div class="flex items-center gap-3">
+            <!-- Mobile Menu Toggle -->
+            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Desktop Fullscreen / Collapse Sidebar Button -->
+            <button @click="sidebarCollapsed = !sidebarCollapsed" class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer shadow-2xs" :title="sidebarCollapsed ? 'Show Sidebar Menu' : 'Collapse Sidebar (Full Width View)'">
+                <i data-lucide="panel-left-close" class="w-4 h-4 text-slate-600" x-show="!sidebarCollapsed"></i>
+                <i data-lucide="panel-left-open" class="w-4 h-4 text-emerald-600" x-show="sidebarCollapsed" style="display: none;"></i>
+                <span x-text="sidebarCollapsed ? 'Show Sidebar' : 'Full Screen'"></span>
+            </button>
+
+            <div class="hidden sm:block pl-2 border-l border-slate-200">
+                <span class="text-xs font-medium text-slate-500">Today: </span>
+                <span class="text-xs font-semibold text-slate-700"><?= date('l, d F Y') ?></span>
+            </div>
+        </div>
 
         <!-- Quick Punch Status & User Info -->
         <div class="flex items-center gap-3">
