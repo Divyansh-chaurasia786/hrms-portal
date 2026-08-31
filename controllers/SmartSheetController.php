@@ -459,4 +459,141 @@ class SmartSheetController {
         echo json_encode(['success' => true, 'title' => 'Master Workforce Directory (Live)', 'columns' => $columns, 'rows' => $rows]);
         exit;
     }
+
+    public static function pushToSmartSheet(): void {
+        requireAuth('admin');
+        $user = authUser();
+        $db = getDBConnection();
+        $module = $_POST['module'] ?? ($_GET['module'] ?? 'employees');
+        $date = $_POST['date'] ?? ($_GET['date'] ?? date('Y-m-d'));
+
+        header('Content-Type: application/json');
+
+        $sheetTitle = '';
+        $category = 'hrms_sync';
+        $columns = [];
+        $rows = [];
+
+        if ($module === 'employees') {
+            $sheetTitle = 'Master Workforce Directory';
+            $employees = $db->query("
+                SELECT u.emp_id, u.name, u.email, u.phone, u.designation, u.department_name, u.role, u.work_mode, u.joining_date, u.date_of_birth, u.salary_basic
+                FROM users u
+                WHERE u.status = 'active'
+                ORDER BY u.emp_id ASC
+            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $columns = ['Emp ID', 'Full Name', 'Work Email', 'Phone Number', 'Designation', 'Department', 'Portal Role', 'Work Mode', 'Joining Date', 'Date of Birth', 'Basic Salary (₹)'];
+            foreach ($employees as $e) {
+                $rows[] = [
+                    $e['emp_id'], $e['name'], $e['email'], $e['phone'] ?: '-', $e['designation'], $e['department_name'] ?: 'Operations',
+                    $e['role'], $e['work_mode'] ?: 'office', $e['joining_date'] ?: '-', $e['date_of_birth'] ?: '-', (string)($e['salary_basic'] ?: '0')
+                ];
+            }
+        } elseif ($module === 'attendance') {
+            $sheetTitle = 'Attendance Register';
+            // Check if existing Attendance sheet has previous dates
+            $existing = $db->query("SELECT id, columns_json, rows_json FROM smart_sheet_uploads WHERE title = 'Attendance Register' ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+            $existingRows = [];
+            if ($existing && !empty($existing['rows_json'])) {
+                $existingRows = json_decode($existing['rows_json'], true) ?: [];
+            }
+
+            $columns = ['Date', 'Emp ID', 'Employee Name', 'Designation', 'Department', 'Status', 'Clock In', 'Clock Out', 'Total Hours', 'Notes'];
+
+            $records = $db->query("
+                SELECT a.date, u.emp_id, u.name, u.designation, u.department_name,
+                       a.status,
+                       COALESCE(TIME(a.clock_in), '-') as clock_in,
+                       COALESCE(TIME(a.clock_out), '-') as clock_out,
+                       COALESCE(a.total_hours, 0) as total_hours,
+                       COALESCE(a.notes, '-') as notes
+                FROM attendance a
+                JOIN users u ON a.user_id = u.id
+                WHERE a.date = '{$date}'
+                ORDER BY u.name ASC
+            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            // Filter out existing rows for this date to avoid duplicate insertion and update them cleanly
+            $newDateRows = [];
+            foreach ($records as $r) {
+                $newDateRows[] = [
+                    $r['date'], $r['emp_id'], $r['name'], $r['designation'], $r['department_name'] ?: 'Operations',
+                    ucfirst($r['status']), $r['clock_in'], $r['clock_out'], (string)$r['total_hours'], $r['notes']
+                ];
+            }
+
+            // Keep records from OTHER dates and append/update today's records
+            $mergedRows = [];
+            foreach ($existingRows as $er) {
+                if (isset($er[0]) && $er[0] !== $date) {
+                    $mergedRows[] = $er;
+                }
+            }
+            $rows = array_merge($mergedRows, $newDateRows);
+        } elseif ($module === 'leaves') {
+            $sheetTitle = 'Leave Applications Master';
+            $leaves = $db->query("
+                SELECT l.id, u.emp_id, u.name, u.designation, l.leave_type, l.start_date, l.end_date, l.total_days, l.status, l.reason, l.created_at
+                FROM leave_applications l
+                JOIN users u ON l.user_id = u.id
+                ORDER BY l.created_at DESC
+            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $columns = ['Application ID', 'Emp ID', 'Employee Name', 'Designation', 'Leave Type', 'Start Date', 'End Date', 'Days', 'Status', 'Reason', 'Applied At'];
+            foreach ($leaves as $lv) {
+                $rows[] = [
+                    '#LV-' . $lv['id'], $lv['emp_id'], $lv['name'], $lv['designation'], ucfirst(str_replace('_', ' ', $lv['leave_type'])),
+                    $lv['start_date'], $lv['end_date'], (string)$lv['total_days'], ucfirst(str_replace('_', ' ', $lv['status'])), $lv['reason'], $lv['created_at']
+                ];
+            }
+        } elseif ($module === 'leads') {
+            $sheetTitle = 'BDA Calling Leads Master';
+            $leads = $db->query("
+                SELECT l.id, l.phone, l.lead_name, l.source, l.status, l.notes, u.name as assigned_to_name, l.updated_at
+                FROM calling_leads l
+                LEFT JOIN users u ON l.assigned_to = u.id
+                ORDER BY l.id DESC
+            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $columns = ['Lead ID', 'Phone Number', 'Lead Name', 'Source', 'Status', 'Assigned Executive', 'Notes', 'Last Activity'];
+            foreach ($leads as $ld) {
+                $rows[] = [
+                    '#LD-' . $ld['id'], $ld['phone'], $ld['lead_name'] ?: '-', $ld['source'] ?: 'Manual', ucfirst($ld['status']),
+                    $ld['assigned_to_name'] ?: 'Unassigned', $ld['notes'] ?: '-', $ld['updated_at']
+                ];
+            }
+        }
+
+        // Upsert into smart_sheet_uploads: update if title exists, else insert
+        $existingSheet = $db->query("SELECT id FROM smart_sheet_uploads WHERE title = " . $db->quote($sheetTitle))->fetch(PDO::FETCH_ASSOC);
+        if ($existingSheet) {
+            $stmt = $db->prepare("UPDATE smart_sheet_uploads SET columns_json = ?, rows_json = ?, created_at = NOW() WHERE id = ?");
+            $stmt->execute([
+                json_encode($columns, JSON_UNESCAPED_UNICODE),
+                json_encode($rows, JSON_UNESCAPED_UNICODE),
+                $existingSheet['id']
+            ]);
+            $sheetId = (int)$existingSheet['id'];
+        } else {
+            $stmt = $db->prepare("INSERT INTO smart_sheet_uploads (uploaded_by, title, category, columns_json, rows_json, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+            $stmt->execute([
+                $user['id'],
+                $sheetTitle,
+                $category,
+                json_encode($columns, JSON_UNESCAPED_UNICODE),
+                json_encode($rows, JSON_UNESCAPED_UNICODE)
+            ]);
+            $sheetId = (int)$db->lastInsertId();
+        }
+
+        echo json_encode([
+            'success' => true,
+            'sheet_id' => $sheetId,
+            'title' => $sheetTitle,
+            'count' => count($rows),
+            'message' => "Successfully synced " . count($rows) . " rows to Smart Sheet ({$sheetTitle})!"
+        ]);
+        exit;
+    }
 }

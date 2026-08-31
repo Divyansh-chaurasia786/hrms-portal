@@ -904,6 +904,9 @@ if ($action) {
             requireActiveShift();
             ReportController::reviewReport();
             exit;
+        case 'push-to-smart-sheet':
+            SmartSheetController::pushToSmartSheet();
+            exit;
     }
 }
 

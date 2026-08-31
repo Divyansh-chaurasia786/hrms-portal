@@ -226,6 +226,10 @@ onboardModalOpen: false,
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" onclick="pushModuleToSmartSheet('employees')" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="Push & Sync All Employees to Smart Sheet (Excel)">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                <span>Push to Excel</span>
+            </button>
             <button type="button" @click="onboardModalOpen = true" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
                 <i data-lucide="user-plus" class="w-4 h-4"></i> Onboard Member
             </button>

@@ -443,42 +443,8 @@ body[data-page="admin-smart-sheets"] main {
                 </div>
             </div>
 
-            <!-- Right: Pull Live Data, Fullscreen, Upload -->
+            <!-- Right: Fullscreen, Upload -->
             <div class="flex items-center gap-1.5 relative">
-                <!-- 🔄 Live Data Pull Dropdown -->
-                <div class="relative">
-                    <button type="button" @click="liveMenuOpen = !liveMenuOpen" class="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded-md font-semibold text-xs border border-emerald-600 transition flex items-center gap-1 cursor-pointer">
-                        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-                        <span>Pull Live HRMS Data</span>
-                        <i data-lucide="chevron-down" class="w-3 h-3"></i>
-                    </button>
-                    
-                    <!-- Floating Dropdown Menu (Strictly hidden when liveMenuOpen is false) -->
-                    <div x-show="liveMenuOpen" 
-                         x-cloak
-                         @click.away="liveMenuOpen = false" 
-                         class="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-50 text-slate-800 text-xs font-medium divide-y divide-slate-100">
-                        <button type="button" @click="pullLivePortalData('employees'); liveMenuOpen = false;" class="w-full px-3.5 py-2.5 text-left hover:bg-emerald-50 hover:text-emerald-900 flex items-center gap-2.5 text-slate-700 transition cursor-pointer">
-                            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                                <i data-lucide="users" class="w-4 h-4"></i>
-                            </div>
-                            <div>
-                                <div class="font-bold text-slate-900">Pull All Live Employees</div>
-                                <div class="text-[10px] text-slate-400">Master Workforce Directory</div>
-                            </div>
-                        </button>
-                        <button type="button" @click="pullLivePortalData('attendance'); liveMenuOpen = false;" class="w-full px-3.5 py-2.5 text-left hover:bg-indigo-50 hover:text-indigo-900 flex items-center gap-2.5 text-slate-700 transition cursor-pointer">
-                            <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                                <i data-lucide="clock" class="w-4 h-4"></i>
-                            </div>
-                            <div>
-                                <div class="font-bold text-slate-900">Pull Today's Attendance</div>
-                                <div class="text-[10px] text-slate-400">Live punch status & hours</div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
                 <button type="button" @click="toggleFullscreen()" class="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded-md font-semibold text-xs border border-emerald-600 transition flex items-center gap-1 cursor-pointer">
                     <i data-lucide="maximize-2" class="w-3 h-3" x-show="!sidebarCollapsed"></i>
                     <i data-lucide="minimize-2" class="w-3 h-3" x-show="sidebarCollapsed" style="display: none;"></i>

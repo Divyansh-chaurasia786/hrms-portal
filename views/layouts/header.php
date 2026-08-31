@@ -614,4 +614,35 @@ function handlePunchOutGeo(form) {
         form.submit();
     }
 }
+
+async function pushModuleToSmartSheet(module, date) {
+    var toast = document.createElement('div');
+    toast.className = 'fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-emerald-500/50 flex items-center gap-3 text-xs font-bold transition-all';
+    toast.innerHTML = '<svg class="animate-spin w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Syncing ' + module + ' to Smart Sheet...</span>';
+    document.body.appendChild(toast);
+
+    try {
+        var formData = new FormData();
+        formData.append('module', module);
+        if (date) formData.append('date', date);
+
+        var res = await fetch('?action=push-to-smart-sheet', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        });
+        var data = await res.json();
+        if (data && data.success) {
+            toast.className = 'fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500 flex items-center gap-3 text-xs font-bold';
+            toast.innerHTML = '<span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black shrink-0">✓</span><div class="flex-1"><div>' + data.message + '</div><div class="text-[10px] text-slate-400 font-normal mt-0.5">Updated in Smart Sheet</div></div><a href="?page=admin-smart-sheets" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-extrabold transition shrink-0">Open Sheet &rarr;</a><button onclick="this.parentElement.remove()" class="p-1 text-slate-400 hover:text-white">✕</button>';
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 6000);
+        } else {
+            toast.innerHTML = '❌ Failed to sync to Smart Sheet';
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 3000);
+        }
+    } catch(e) {
+        toast.innerHTML = '❌ Network error during sync';
+        setTimeout(function() { if (toast.parentElement) toast.remove(); }, 3000);
+    }
+}
 </script>

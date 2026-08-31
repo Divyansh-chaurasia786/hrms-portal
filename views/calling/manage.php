@@ -81,6 +81,11 @@ $unassignedCount = (int)$db->query("SELECT COUNT(*) FROM calling_leads WHERE ass
                 </form>
             <?php endif; ?>
 
+            <button type="button" onclick="pushModuleToSmartSheet('leads')" class="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="Push & Sync All Leads to Smart Sheet (Excel)">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                <span>Push to Excel</span>
+            </button>
+
             <a href="?action=export-calling-history" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer">
                 <i data-lucide="download" class="w-4 h-4"></i>
                 <span>Export CSV</span>

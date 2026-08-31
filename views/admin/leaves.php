@@ -97,7 +97,11 @@ foreach ($leaveHistory as $h) {
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <span class="px-3 py-1.5 bg-amber-50 text-amber-800 text-xs font-bold rounded-xl border border-amber-200 flex items-center gap-1.5">
+            <button type="button" onclick="pushModuleToSmartSheet('leaves')" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="Push & Sync All Leaves to Smart Sheet (Excel)">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                <span>Push to Excel</span>
+            </button>
+            <span class="px-3 py-2 bg-amber-50 text-amber-800 text-xs font-bold rounded-xl border border-amber-200 flex items-center gap-1.5">
                 <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i> <?= $totalPending ?> Total Pending
             </span>
         </div>

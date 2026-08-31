@@ -206,6 +206,10 @@ $orgAvgCompliance = ($totalOrgEntries > 0) ? round(($totalOrgPresent / max(1, $t
                 <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none"></i>
                 <input type="date" name="date" value="<?= htmlspecialchars($selectedDate) ?>" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">
             </div>
+            <button type="button" onclick="pushModuleToSmartSheet('attendance', '<?= htmlspecialchars($selectedDate) ?>')" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="Push & Sync Attendance to Smart Sheet (Excel)">
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span class="hidden sm:inline">Push to Excel</span>
+            </button>
             <button type="button" onclick="window.print()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition flex items-center gap-1">
                 <i data-lucide="printer" class="w-3.5 h-3.5"></i> Print
             </button>
