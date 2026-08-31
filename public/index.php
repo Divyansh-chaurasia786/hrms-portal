@@ -61,6 +61,26 @@ if (preg_match('#^/(google[a-z0-9]+\.html)$#', $uri, $m)) {
     }
     exit;
 }
+if ($uri === '/manifest.json') {
+    header('Content-Type: application/manifest+json; charset=utf-8');
+    echo file_get_contents(__DIR__ . '/manifest.json');
+    exit;
+}
+if ($uri === '/sw.js') {
+    header('Content-Type: application/javascript; charset=utf-8');
+    header('Service-Worker-Allowed: /');
+    echo file_get_contents(__DIR__ . '/sw.js');
+    exit;
+}
+if ($uri === '/icon-192.png' || $uri === '/icon-512.png') {
+    $iconFile = __DIR__ . $uri;
+    if (file_exists($iconFile)) {
+        header('Content-Type: image/png');
+        header('Content-Length: ' . filesize($iconFile));
+        readfile($iconFile);
+        exit;
+    }
+}
 if ($uri === '/robots.txt') {
     header('Content-Type: text/plain; charset=utf-8');
     echo "User-agent: *\nAllow: /\nAllow: /?page=login\nDisallow: /api/\nDisallow: /config/\n\nSitemap: https://hrms-ecovista.vercel.app/sitemap.xml\n";

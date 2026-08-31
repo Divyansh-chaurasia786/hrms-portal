@@ -13,12 +13,20 @@
       "dest": "/public/$1"
     },
     {
-      "src": "/robots.txt",
-      "dest": "/public/robots.txt"
+      "src": "/manifest.json",
+      "dest": "/public/manifest.json"
     },
     {
-      "src": "/sitemap.xml",
-      "dest": "/public/sitemap.xml"
+      "src": "/sw.js",
+      "dest": "/public/sw.js"
+    },
+    {
+      "src": "/icon-192.png",
+      "dest": "/public/icon-192.png"
+    },
+    {
+      "src": "/icon-512.png",
+      "dest": "/public/icon-512.png"
     },
     {
       "src": "/uploads/(.*)",
