@@ -14,17 +14,26 @@ $fieldEmployees = $db->query("
            tl.name as tl_name,
            COALESCE(stats.waypoints_count, 0) as waypoints_count,
            COALESCE(stats.total_distance_meters, 0) as total_distance_meters,
-           COALESCE(stats.current_speed, 0) as current_speed
+           COALESCE(latest.last_speed, 0) as current_speed
     FROM users u
     LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$selectedDate}'
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
     LEFT JOIN (
-        SELECT user_id, COUNT(*) as waypoints_count, SUM(distance_meters) as total_distance_meters,
-               (SELECT l2.speed FROM employee_travel_logs l2 WHERE l2.user_id = employee_travel_logs.user_id AND l2.recorded_at >= '{$selectedDate} 00:00:00' AND l2.recorded_at <= '{$selectedDate} 23:59:59' ORDER BY l2.id DESC LIMIT 1) as current_speed
+        SELECT user_id, COUNT(*) as waypoints_count, SUM(distance_meters) as total_distance_meters
         FROM employee_travel_logs
         WHERE recorded_at >= '{$selectedDate} 00:00:00' AND recorded_at <= '{$selectedDate} 23:59:59'
         GROUP BY user_id
     ) stats ON stats.user_id = u.id
+    LEFT JOIN (
+        SELECT l1.user_id, l1.speed as last_speed
+        FROM employee_travel_logs l1
+        INNER JOIN (
+            SELECT user_id, MAX(id) as max_id
+            FROM employee_travel_logs
+            WHERE recorded_at >= '{$selectedDate} 00:00:00' AND recorded_at <= '{$selectedDate} 23:59:59'
+            GROUP BY user_id
+        ) l2 ON l1.id = l2.max_id
+    ) latest ON latest.user_id = u.id
     WHERE u.role NOT IN ('admin', 'hr')
       AND u.designation NOT LIKE '%HR%'
       AND (u.work_mode = 'field' OR u.department_name = 'Field Operations' OR u.designation LIKE '%Field%')
@@ -326,7 +335,7 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                         <div class="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-200/60 text-center text-[10px]">
                             <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Distance</span>
-                                <strong class="text-slate-800 font-mono text-[10px]" x-text="(Number(emp.total_distance_meters || 0) / 1000).toFixed(1) + ' km'"></strong>
+                                <strong class="text-slate-800 font-mono text-[10px]" x-text="(Number(emp.total_distance_meters || 0) / 1000).toFixed(2) + ' km'"></strong>
                             </div>
                             <div class="bg-white p-1 rounded-lg border border-slate-100">
                                 <span class="text-slate-400 block text-[9px]">Speed</span>
