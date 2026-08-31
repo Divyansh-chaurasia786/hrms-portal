@@ -51,6 +51,33 @@ if ($uri === '/webhook/whatsapp' || $uri === '/api/webhook') {
     exit;
 }
 
+// Static Asset Fallback Streamer (logo.png, favicon.png, icon-192.png, icon-512.png, manifest.json, sw.js)
+if (preg_match('#^/([a-zA-Z0-9_\-]+\.(png|jpg|jpeg|svg|ico|webp|json|js|css))$#i', $uri, $m)) {
+    $filename = $m[1];
+    $filePath = __DIR__ . '/' . $filename;
+    if (!file_exists($filePath)) {
+        $filePath = __DIR__ . '/../' . $filename;
+    }
+    if (file_exists($filePath)) {
+        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $mimes = [
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'svg' => 'image/svg+xml',
+            'ico' => 'image/x-icon',
+            'webp' => 'image/webp',
+            'json' => 'application/json',
+            'js' => 'application/javascript',
+            'css' => 'text/css'
+        ];
+        header('Content-Type: ' . ($mimes[$ext] ?? 'application/octet-stream'));
+        header('Cache-Control: public, max-age=86400');
+        readfile($filePath);
+        exit;
+    }
+}
+
 if (preg_match('#^/(google[a-z0-9]+\.html)$#', $uri, $m)) {
     header('Content-Type: text/html; charset=utf-8');
     $filePath = __DIR__ . '/' . $m[1];

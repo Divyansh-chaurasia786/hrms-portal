@@ -21,6 +21,18 @@
       "dest": "/public/sw.js"
     },
     {
+      "src": "/logo.png",
+      "dest": "/public/logo.png"
+    },
+    {
+      "src": "/favicon.png",
+      "dest": "/public/favicon.png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "dest": "/public/apple-touch-icon.png"
+    },
+    {
       "src": "/icon-192.png",
       "dest": "/public/icon-192.png"
     },
@@ -31,6 +43,10 @@
     {
       "src": "/uploads/(.*)",
       "dest": "/public/uploads/$1"
+    },
+    {
+      "src": "/(.*\\.(?:png|jpg|jpeg|svg|gif|ico|webp|json|js|css|txt))",
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
