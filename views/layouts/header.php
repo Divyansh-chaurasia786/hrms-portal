@@ -144,60 +144,111 @@
     }
     </script>
 
-    <!-- 📍 GPS Background Location Tracker -->
+    <!-- 📍 GPS Location Tracker (Permission asked ONCE, never again) -->
     <script>
     var _ecoGpsInterval = null;
     var _ecoLastPing = 0;
-    var _ecoPingIntervalMs = 30 * 60 * 1000; // 30 min auto-ping interval
+    var _ecoPingIntervalMs = 30 * 60 * 1000; // 30-min auto ping
 
+    // Silent GPS ping — no prompt shown, called only when permission already granted
     function _ecoSendLocationPing(type) {
         if (!navigator.geolocation) return;
-        navigator.geolocation.getCurrentPosition(function(pos) {
-            var payload = {
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-                accuracy: pos.coords.accuracy,
-                type: type || 'auto_ping',
-                device: navigator.userAgent.substring(0, 200),
-                address: ''
-            };
-            // Try reverse geocode via browser-side (no API key needed)
-            fetch('/api/track-location.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(function() {});
-            _ecoLastPing = Date.now();
-        }, function(err) {}, { enableHighAccuracy: true, timeout: 10000 });
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                fetch('/api/track-location.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat:      pos.coords.latitude,
+                        lng:      pos.coords.longitude,
+                        accuracy: pos.coords.accuracy,
+                        type:     type || 'auto_ping',
+                        device:   navigator.userAgent.substring(0, 200),
+                        address:  ''
+                    })
+                }).catch(function() {});
+                _ecoLastPing = Date.now();
+                // Mark permission as permanently granted in localStorage
+                try { localStorage.setItem('eco_gps_granted', '1'); } catch(e) {}
+            },
+            function(err) {
+                // If explicitly denied, remember so we never ask again
+                if (err.code === 1) {
+                    try { localStorage.setItem('eco_gps_granted', 'denied'); } catch(e) {}
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
     }
 
-    function _ecoStartGpsTracking() {
-        // Send initial ping on page load
-        if (Date.now() - _ecoLastPing > 60000) {
-            _ecoSendLocationPing('auto_ping');
-        }
-        // Auto ping every 30 mins
+    function _ecoStartIntervalPing() {
         if (_ecoGpsInterval) clearInterval(_ecoGpsInterval);
         _ecoGpsInterval = setInterval(function() {
             _ecoSendLocationPing('auto_ping');
         }, _ecoPingIntervalMs);
     }
 
-    // Start GPS tracking for field employees
-    document.addEventListener('DOMContentLoaded', function() {
-        if (navigator.geolocation) {
-            _ecoStartGpsTracking();
-        }
-    });
+    function _ecoInitGpsTracking() {
+        if (!navigator.geolocation) return;
 
-    // On visibility restore (tab switch back), re-ping
+        var storedState = '';
+        try { storedState = localStorage.getItem('eco_gps_granted') || ''; } catch(e) {}
+
+        // If user already denied — never ask again, never ping
+        if (storedState === 'denied') return;
+
+        // If already granted in a previous session — track silently, no popup
+        if (storedState === '1') {
+            _ecoSendLocationPing('auto_ping');
+            _ecoStartIntervalPing();
+            return;
+        }
+
+        // First time: use Permissions API to check status before calling anything
+        if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
+                if (result.state === 'granted') {
+                    // Already granted by browser — silently track
+                    try { localStorage.setItem('eco_gps_granted', '1'); } catch(e) {}
+                    _ecoSendLocationPing('auto_ping');
+                    _ecoStartIntervalPing();
+
+                } else if (result.state === 'prompt') {
+                    // Ask ONCE — after this the browser remembers the choice
+                    // We only ask if we have never stored a decision
+                    _ecoSendLocationPing('auto_ping'); // This triggers the ONE-TIME browser popup
+                    _ecoStartIntervalPing();
+
+                }
+                // state === 'denied': do nothing, never ask
+            }).catch(function() {
+                // Permissions API not supported — fallback: ask once
+                if (storedState !== 'denied') {
+                    _ecoSendLocationPing('auto_ping');
+                    _ecoStartIntervalPing();
+                }
+            });
+        } else {
+            // Older browser — ask once, store result
+            if (storedState !== 'denied') {
+                _ecoSendLocationPing('auto_ping');
+                _ecoStartIntervalPing();
+            }
+        }
+    }
+
+    // On visibility restore (tab switch back) — silent ping only if already granted
     document.addEventListener('visibilitychange', function() {
-        if (!document.hidden && navigator.geolocation) {
-            if (Date.now() - _ecoLastPing > 5 * 60 * 1000) {
+        if (!document.hidden) {
+            var st = '';
+            try { st = localStorage.getItem('eco_gps_granted') || ''; } catch(e) {}
+            if (st === '1' && Date.now() - _ecoLastPing > 5 * 60 * 1000) {
                 _ecoSendLocationPing('auto_ping');
             }
         }
     });
+
+    document.addEventListener('DOMContentLoaded', _ecoInitGpsTracking);
     </script>
 </head>
 <body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
