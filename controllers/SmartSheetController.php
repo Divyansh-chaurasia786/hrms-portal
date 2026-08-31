@@ -550,17 +550,17 @@ class SmartSheetController {
         } elseif ($module === 'leads') {
             $sheetTitle = 'BDA Calling Leads Master';
             $leads = $db->query("
-                SELECT l.id, l.phone, l.lead_name, l.source, l.status, l.notes, u.name as assigned_to_name, l.updated_at
+                SELECT l.id, l.phone, l.lead_name, l.source, l.status, l.notes, u.name as assigned_to_name, l.created_at
                 FROM calling_leads l
                 LEFT JOIN users u ON l.assigned_to = u.id
                 ORDER BY l.id DESC
             ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-            $columns = ['Lead ID', 'Phone Number', 'Lead Name', 'Source', 'Status', 'Assigned Executive', 'Notes', 'Last Activity'];
+            $columns = ['Lead ID', 'Phone Number', 'Lead Name', 'Source', 'Status', 'Assigned Executive', 'Notes', 'Created At'];
             foreach ($leads as $ld) {
                 $rows[] = [
                     '#LD-' . $ld['id'], $ld['phone'], $ld['lead_name'] ?: '-', $ld['source'] ?: 'Manual', ucfirst($ld['status']),
-                    $ld['assigned_to_name'] ?: 'Unassigned', $ld['notes'] ?: '-', $ld['updated_at']
+                    $ld['assigned_to_name'] ?: 'Unassigned', $ld['notes'] ?: '-', $ld['created_at']
                 ];
             }
         }

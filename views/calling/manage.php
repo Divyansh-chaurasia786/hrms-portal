@@ -38,7 +38,7 @@ $allLeads = $db->query("
     SELECT l.*, u.name as executive_name, u.emp_id as executive_emp_id
     FROM calling_leads l
     LEFT JOIN users u ON l.assigned_to = u.id
-    ORDER BY l.updated_at DESC, l.id DESC
+    ORDER BY l.id DESC
 ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
 $unassignedCount = (int)$db->query("SELECT COUNT(*) FROM calling_leads WHERE assigned_to IS NULL OR assigned_to = 0")->fetchColumn();

@@ -699,7 +699,7 @@ document.addEventListener('alpine:init', () => {
                 allSheetsData.forEach((s, idx) => {
                     let sheetObj = this.buildSheetConfigObject(s.title || ('Sheet ' + (idx + 1)), s.columns || [], s.rows || []);
                     sheetObj.order = idx;
-                    sheetObj.index = idx;
+                    sheetObj.index = String(idx);
                     sheetObj.status = (idx === allSheetsData.length - 1) ? 1 : 0; // Activate the latest sheet tab
                     luckysheetTabs.push(sheetObj);
                 });
@@ -707,7 +707,10 @@ document.addEventListener('alpine:init', () => {
                 this.currentSheetId = latest.id;
                 this.currentSheetTitle = latest.title || 'Excel Workbook';
             } else {
-                luckysheetTabs.push(this.buildSheetConfigObject('Sheet 1', [], []));
+                let blankObj = this.buildSheetConfigObject('Sheet 1', [], []);
+                blankObj.status = 1;
+                blankObj.index = '0';
+                luckysheetTabs.push(blankObj);
             }
 
             this.createLuckysheetInstance(luckysheetTabs);
@@ -1022,14 +1025,14 @@ document.addEventListener('alpine:init', () => {
             return {
                 name: sheetName,
                 color: '#107c41',
-                status: 1,
+                status: 0,
                 order: 0,
                 data: [],
                 config: {
                     columnlen: customColLen,
                     rowlen: { 0: 32 }
                 },
-                index: 0,
+                index: '0',
                 celldata: celldata,
                 row: rowCount,
                 column: colCount
