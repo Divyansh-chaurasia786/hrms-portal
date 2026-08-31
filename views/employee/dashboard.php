@@ -756,6 +756,7 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
 </div>
 
 <script>
+    // Live Digital Clock
     function updateClock() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -764,113 +765,4 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
     setInterval(updateClock, 1000);
     updateClock();
-
-    // Silent Background GPS Travel Streamer for Field Staff
-    <?php if (!empty($isCurrentlyIn) && (($userProfile['work_mode'] ?? '') === 'field')): ?>
-    (function initSilentTracker() {
-        let currentBattery = null;
-
-        // Get battery level if supported
-        if (navigator.getBattery) {
-            navigator.getBattery().then(function(batt) {
-                currentBattery = Math.round(batt.level * 100);
-                batt.addEventListener('levelchange', function() {
-                    currentBattery = Math.round(batt.level * 100);
-                });
-            }).catch(function() {});
-        }
-
-        const OFFLINE_KEY = 'hrms_field_gps_offline_queue';
-        function saveOffline(data) {
-            try {
-                let q = JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]');
-                q.push(data);
-                if (q.length > 500) q.shift();
-                localStorage.setItem(OFFLINE_KEY, JSON.stringify(q));
-            } catch(e) {}
-        }
-
-        function flushOffline() {
-            if (!navigator.onLine) return;
-            try {
-                let q = JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]');
-                if (q.length === 0) return;
-                fetch('?action=sync-offline-gps-batch', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ pings: q })
-                }).then(r => r.json()).then(d => {
-                    if (d.success) localStorage.removeItem(OFFLINE_KEY);
-                }).catch(() => {});
-            } catch(e) {}
-        }
-        window.addEventListener('online', flushOffline);
-
-        if ('geolocation' in navigator) {
-            function streamPosition(pos) {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                const speed = (pos.coords.speed !== null && pos.coords.speed >= 0) ? Math.round(pos.coords.speed * 3.6) : 0;
-                const batteryVal = currentBattery !== null ? currentBattery : '';
-                
-                // ⚡ Instant Live Direct Share (No queue delay when online)
-                if (navigator.onLine) {
-                    fetch('?action=log-travel-coordinate', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: `lat=${lat}&lng=${lng}&speed=${speed}&battery_level=${batteryVal}`
-                    }).then(() => {
-                        flushOffline();
-                    }).catch(() => {
-                        saveOffline({ latitude: lat, longitude: lng, speed: speed, battery_level: batteryVal, recorded_at: new Date().toISOString() });
-                    });
-                } else {
-                    // Store in offline storage ONLY if internet is unavailable
-                    saveOffline({ latitude: lat, longitude: lng, speed: speed, battery_level: batteryVal, recorded_at: new Date().toISOString() });
-                }
-            }
-
-            // Real-time position tracking on movement
-            navigator.geolocation.watchPosition(streamPosition, () => {}, {
-                enableHighAccuracy: true,
-                maximumAge: 2000,
-                timeout: 8000
-            });
-
-            // Active 3-second live continuous ping
-            setInterval(() => {
-                navigator.geolocation.getCurrentPosition(streamPosition, () => {}, {enableHighAccuracy: true, timeout: 5000, maximumAge: 0});
-            }, 3000);
-        // 🔒 Screen WakeLock & Background Keep-Alive
-        let wakeLockObj = null;
-        async function holdWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLockObj = await navigator.wakeLock.request('screen');
-                }
-            } catch(e) {}
-        }
-        holdWakeLock();
-
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'visible') holdWakeLock();
-        });
-
-        // 🔒 Prevent User from Closing App Without Punching Out
-        window.addEventListener('beforeunload', function(e) {
-            e.preventDefault();
-            e.returnValue = '⚠️ Active Shift Running: You cannot close or exit the app until you punch out.';
-            return e.returnValue;
-        });
-
-        // 🔒 Prevent Back Button Escape
-        try {
-            history.pushState(null, document.title, location.href);
-            window.addEventListener('popstate', function() {
-                history.pushState(null, document.title, location.href);
-            });
-        } catch(e) {}
-        }
-    })();
-    <?php endif; ?>
 </script>

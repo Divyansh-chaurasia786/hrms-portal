@@ -142,44 +142,32 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
     function sendGpsPing(lat, lng, speed, isEmergency = false) {
         if (!lat || !lng) return;
 
-        if (lastLat !== null && lastLng !== null && !isEmergency) {
-            const dist = Math.sqrt(Math.pow(lat - lastLat, 2) + Math.pow(lng - lastLng, 2)) * 111000;
-            if (dist < 8) return; // Ignore under 8 meters movement
-        }
-
         lastLat = lat;
         lastLng = lng;
 
+        const speedKmh = (speed !== null && speed >= 0) ? (speed * 3.6).toFixed(1) : 0;
         const pingData = {
             attendance_id: attId,
             latitude: lat,
             longitude: lng,
-            speed: speed ? (speed * 3.6).toFixed(1) : 0,
+            speed: speedKmh,
             battery_level: currentBatteryLevel,
             recorded_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
         };
 
         if (!navigator.onLine) {
-            // Save to offline queue
+            // Save to offline queue ONLY when no internet
             saveToOfflineQueue(pingData);
             return;
         }
 
-        const fd = new FormData();
-        fd.append('attendance_id', attId);
-        fd.append('latitude', lat);
-        fd.append('longitude', lng);
-        fd.append('speed', pingData.speed);
-        if (currentBatteryLevel !== null) fd.append('battery_level', currentBatteryLevel);
-        fd.append('recorded_at', pingData.recorded_at);
-
-        fetch('?action=record-travel-gps', {
+        // ⚡ Direct Live Real-Time POST to Server
+        fetch('?action=log-travel-coordinate', {
             method: 'POST',
-            body: fd,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `lat=${lat}&lng=${lng}&speed=${speedKmh}&battery_level=${currentBatteryLevel !== null ? currentBatteryLevel : ''}`
         })
         .then(() => {
-            // Also flush any previous offline queue
             flushOfflineQueue();
         })
         .catch(err => {
@@ -188,23 +176,25 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
     }
 
     if (navigator.geolocation) {
+        // Immediate movement watcher
         navigator.geolocation.watchPosition(
             function(pos) {
                 sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
             },
-            function(err) { console.log('Location watch error:', err); },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+            function(err) {},
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 2000 }
         );
 
+        // Continuous 3-second live heartbeat ping
         setInterval(function() {
             navigator.geolocation.getCurrentPosition(
                 function(pos) {
                     sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
                 },
                 function(err) {},
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
-        }, 25000);
+        }, 3000);
     }
 })();
 </script>
