@@ -30,15 +30,15 @@ $initialPayload = [
 ?>
 
 <!-- Luckysheet Full MS Excel 2021 Core CSS & Plugins (Multi-CDN High Speed) -->
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' onerror="this.href='https://unpkg.com/luckysheet/dist/plugins/css/pluginsCss.css'" />
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' onerror="this.href='https://unpkg.com/luckysheet/dist/plugins/plugins.css'" />
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' onerror="this.href='https://unpkg.com/luckysheet/dist/css/luckysheet.css'" />
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/assets/iconfont/iconfont.css' onerror="this.href='https://unpkg.com/luckysheet/dist/assets/iconfont/iconfont.css'" />
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' />
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' />
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' />
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/assets/iconfont/iconfont.css' />
 
 <!-- High-Speed Luckysheet Scripts with Auto-Fallback -->
-<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js" onerror="this.src='https://unpkg.com/luckysheet/dist/plugins/js/plugin.js'"></script>
-<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js" onerror="this.src='https://unpkg.com/luckysheet/dist/luckysheet.umd.js'"></script>
-<script src="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js" onerror="this.src='https://unpkg.com/luckyexcel/dist/luckyexcel.umd.js'"></script>
+<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luckyexcel/dist/luckyexcel.umd.js"></script>
 
 <style>
 /* 📗 MICROSOFT EXCEL 2021 AUTHENTIC FLUENT DESIGN SYSTEM */
@@ -1070,10 +1070,22 @@ document.addEventListener('alpine:init', () => {
             this.createLuckysheetInstance(sheetConfig);
         },
 
-        createLuckysheetInstance(sheetsData) {
+        createLuckysheetInstance(sheetsData, retryCount = 0) {
             if (typeof luckysheet === 'undefined' || !luckysheet.create) {
+                if (retryCount > 40 && !window._backupCdnInjected) {
+                    window._backupCdnInjected = true;
+                    const s1 = document.createElement('script');
+                    s1.src = 'https://unpkg.com/luckysheet/dist/plugins/js/plugin.js';
+                    document.head.appendChild(s1);
+                    const s2 = document.createElement('script');
+                    s2.src = 'https://unpkg.com/luckysheet/dist/luckysheet.umd.js';
+                    s2.onload = () => {
+                        setTimeout(() => this.createLuckysheetInstance(sheetsData, 0), 100);
+                    };
+                    document.head.appendChild(s2);
+                }
                 this.isEngineLoading = true;
-                setTimeout(() => this.createLuckysheetInstance(sheetsData), 50);
+                setTimeout(() => this.createLuckysheetInstance(sheetsData, retryCount + 1), 100);
                 return;
             }
 
