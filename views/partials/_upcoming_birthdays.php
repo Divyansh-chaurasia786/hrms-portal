@@ -18,7 +18,7 @@ if (!empty($upcomingBirthdays)):
     </div>
 
     <!-- Compact Horizontal List of Birthday Chips -->
-    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1 w-full sm:w-auto">
         <?php foreach ($upcomingBirthdays as $b): ?>
             <?php
             $isToday = ($b['urgency'] === 'today');

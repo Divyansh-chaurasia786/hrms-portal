@@ -74,6 +74,24 @@
             width: 0 !important;
             overflow: hidden !important;
         }
+        /* Universal Mobile Screen Responsive Enforcer */
+        html, body {
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            position: relative;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-text-size-adjust: 100%;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        #top-header-navbar, #main-content, aside, header, footer {
+            max-width: 100vw;
+            box-sizing: border-box;
+        }
         /* Hide scrollbars completely while keeping scrollability */
         .no-scrollbar::-webkit-scrollbar,
         aside::-webkit-scrollbar,
