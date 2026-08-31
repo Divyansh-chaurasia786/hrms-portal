@@ -1,5 +1,5 @@
 <?php
-// public/index.php
+// public/index.php - Live Production Build 2026.08.31-v8.2
 date_default_timezone_set('Asia/Kolkata');
 
 // ⚡ Instant Output Compression
