@@ -442,10 +442,11 @@ class AttendanceController {
         }
 
                 // 2. Fetch Raw Waypoints for $date (including Battery & Offline flags)
+        $attIdFilter = !empty($emp['attendance_id']) ? "OR attendance_id = " . (int)$emp['attendance_id'] : "";
         $logs = $db->query("
             SELECT id, user_id, latitude, longitude, speed, battery_level, is_offline_sync, distance_meters, recorded_at 
             FROM employee_travel_logs 
-            WHERE user_id = {$userId} AND DATE(recorded_at) = '{$date}' 
+            WHERE (user_id = {$userId} AND DATE(recorded_at) = '{$date}') {$attIdFilter}
             ORDER BY id ASC
         ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -458,7 +459,7 @@ class AttendanceController {
         $lastAddedWp = null;
 
         // If punch in coordinates exist, ensure first anchor point
-        if (!empty($emp['punch_in_lat']) && !empty($emp['punch_in_lng'])) {
+        if (!empty($emp['punch_in_lat']) && !empty($emp['punch_in_lng']) && (float)$emp['punch_in_lat'] != 0) {
             $punchInWp = [
                 'lat' => (float)$emp['punch_in_lat'],
                 'lng' => (float)$emp['punch_in_lng'],
@@ -486,36 +487,51 @@ class AttendanceController {
                 $speedSamples++;
             }
 
-            // Identify stoppage if stationary for >= 3 minutes
-            if ($lastPt) {
-                $distDelta = (int)calculateDistance($lat, $lng, (float)$lastPt['latitude'], (float)$lastPt['longitude']);
-                $timeDeltaSeconds = strtotime($l['recorded_at']) - strtotime($lastPt['recorded_at']);
-                if ($distDelta < 25 && $timeDeltaSeconds >= 180) {
-                    $rawStops[] = [
-                        'lat' => $lat,
-                        'lng' => $lng,
-                        'arrival_ts' => strtotime($lastPt['recorded_at']),
-                        'departure_ts' => strtotime($l['recorded_at']),
-                        'arrival_time' => date('h:i A', strtotime($lastPt['recorded_at'])),
-                        'departure_time' => $timeStr,
-                        'duration_mins' => round($timeDeltaSeconds / 60)
-                    ];
-                }
-            }
-
-            // GPS Deadband / Noise Filter: Only add point to route trail if moved >= 20 meters from last added point
-            $distFromLastWp = $lastAddedWp ? (int)calculateDistance($lat, $lng, $lastAddedWp['lat'], $lastAddedWp['lng']) : 999;
-            if (!$lastAddedWp || $distFromLastWp >= 20) {
-                $wp = [
+            // If cleanWaypoints is still empty, add this first valid point
+            if (empty($cleanWaypoints)) {
+                $firstWp = [
                     'lat' => $lat,
                     'lng' => $lng,
                     'speed' => $speed,
                     'time' => $timeStr,
                     'distance_meters' => (int)$l['distance_meters'],
-                    'type' => 'waypoint'
+                    'type' => 'start',
+                    'title' => 'First Ping'
                 ];
-                $cleanWaypoints[] = $wp;
-                $lastAddedWp = $wp;
+                $cleanWaypoints[] = $firstWp;
+                $lastAddedWp = $firstWp;
+            } else {
+                // Identify stoppage if stationary for >= 3 minutes
+                if ($lastPt) {
+                    $distDelta = (int)calculateDistance($lat, $lng, (float)$lastPt['latitude'], (float)$lastPt['longitude']);
+                    $timeDeltaSeconds = strtotime($l['recorded_at']) - strtotime($lastPt['recorded_at']);
+                    if ($distDelta < 25 && $timeDeltaSeconds >= 180) {
+                        $rawStops[] = [
+                            'lat' => $lat,
+                            'lng' => $lng,
+                            'arrival_ts' => strtotime($lastPt['recorded_at']),
+                            'departure_ts' => strtotime($l['recorded_at']),
+                            'arrival_time' => date('h:i A', strtotime($lastPt['recorded_at'])),
+                            'departure_time' => $timeStr,
+                            'duration_mins' => round($timeDeltaSeconds / 60)
+                        ];
+                    }
+                }
+
+                // GPS Deadband / Noise Filter: Only add point to route trail if moved >= 20 meters from last added point
+                $distFromLastWp = $lastAddedWp ? (int)calculateDistance($lat, $lng, $lastAddedWp['lat'], $lastAddedWp['lng']) : 999;
+                if ($distFromLastWp >= 20) {
+                    $wp = [
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'speed' => $speed,
+                        'time' => $timeStr,
+                        'distance_meters' => (int)$l['distance_meters'],
+                        'type' => 'waypoint'
+                    ];
+                    $cleanWaypoints[] = $wp;
+                    $lastAddedWp = $wp;
+                }
             }
 
             $lastPt = $l;
