@@ -477,5 +477,3 @@ $page = $_GET['page'] ?? 'dashboard';
         </div>
     </div>
 </div>
-    </div>
-</div>

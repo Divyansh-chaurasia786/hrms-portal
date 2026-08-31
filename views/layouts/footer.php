@@ -1,3 +1,6 @@
+    </main>
+</div>
+
 <?php
 $currentUser = authUser();
 $isFieldActive = false;
