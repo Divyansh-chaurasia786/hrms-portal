@@ -419,18 +419,21 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
         const latLngs = waypoints.map(wp => [wp.lat, wp.lng]);
 
-        // Calculate max spread to avoid drawing jittery polyline knots when stationary
+        // Calculate max geographic spread using standard Leaflet distanceTo
         let maxSpreadMeters = 0;
         if (latLngs.length > 1) {
-            const first = latLngs[0];
+            const firstPt = L.latLng(latLngs[0][0], latLngs[0][1]);
             for (let i = 1; i < latLngs.length; i++) {
-                const d = m.distance(first, latLngs[i]);
+                const pt = L.latLng(latLngs[i][0], latLngs[i][1]);
+                const d = firstPt.distanceTo(pt);
                 if (d > maxSpreadMeters) maxSpreadMeters = d;
             }
         }
 
-        // 1. Draw Clean Crisp Polyline (Google Maps Blue) ONLY if actual movement occurred (> 30 meters)
-        if (latLngs.length > 1 && maxSpreadMeters >= 30) {
+        const isActuallyTraveling = maxSpreadMeters >= 40;
+
+        // 1. Draw Clean Crisp Polyline (Google Maps Blue) ONLY if actual movement occurred (> 40 meters)
+        if (latLngs.length > 1 && isActuallyTraveling) {
             // Shadow under polyline for depth
             L.polyline(latLngs, {
                 color: '#1d4ed8',
@@ -465,19 +468,21 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             if (!isSilent && latLngs.length > 0) m.setView(latLngs[latLngs.length - 1], 17);
         }
 
-        // 2. Start Pin 🟢 (Clean Google Style Origin Dot with Pulse)
-        const startPoint = latLngs[0];
-        const startPin = L.divIcon({
-            html: `<div style="position:relative;width:24px;height:24px;background:#10b981;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:10px;">A</div>`,
-            className: 'clean-start-pin',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
-        L.marker(startPoint, { icon: startPin }).addTo(currentLayerGroup)
-         .bindPopup(`<strong>🚩 Start Point (Punch In)</strong><br>${emp ? emp.name : 'Staff'}<br>Time: ${emp && emp.clock_in ? emp.clock_in : 'Logged'}`);
+        // 2. Start Pin 🟢 (Only show when actual route was traveled)
+        if (isActuallyTraveling) {
+            const startPoint = latLngs[0];
+            const startPin = L.divIcon({
+                html: `<div style="position:relative;width:24px;height:24px;background:#10b981;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:10px;">A</div>`,
+                className: 'clean-start-pin',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+            L.marker(startPoint, { icon: startPin }).addTo(currentLayerGroup)
+             .bindPopup(`<strong>🚩 Start Point (Punch In)</strong><br>${emp ? emp.name : 'Staff'}<br>Time: ${emp && emp.clock_in ? emp.clock_in : 'Logged'}`);
+        }
 
-        // 3. Stoppage Pins 🛑 (Clean Numbered Badges - No big text boxes!)
-        if (stops && stops.length > 0) {
+        // 3. Stoppage Pins 🛑 (Only show when traveling and stops exist outside base)
+        if (isActuallyTraveling && stops && stops.length > 0) {
             stops.forEach(st => {
                 const stopPin = L.divIcon({
                     html: `<div style="width:20px;height:20px;background:#f59e0b;border:2px solid #ffffff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:10px;">${st.stop_number}</div>`,
