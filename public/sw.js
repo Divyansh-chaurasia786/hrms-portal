@@ -1,8 +1,10 @@
-// public/sw.js - Ecofone HRMS Enterprise Background Service Worker (v3 Persistent Keep-Alive)
-const CACHE_NAME = 'ecofone-hrms-pwa-v3';
+// public/sw.js - Ecofone HRMS Enterprise Background Service Worker (v4 Persistent Keep-Alive)
+const CACHE_NAME = 'ecofone-hrms-pwa-v4';
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',
+    '/icon-192.png',
+    '/icon-512.png',
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/lucide@latest',
     'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'
