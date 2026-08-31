@@ -134,34 +134,28 @@
         if (btn) btn.style.display = 'none';
     });
 
-    // Always opens the official interactive install modal dialog on button click
+    // Direct 1-click installation trigger with zero popup
     function triggerPwaInstall() {
-        var modal = document.getElementById('pwaInstallModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
-        }
-    }
-
-    function executePwaDirectInstall() {
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
             window.pwaInstallPrompt.userChoice.then(function(choice) {
                 if (choice.outcome === 'accepted') {
                     window.pwaInstallPrompt = null;
-                    closePwaInstallModal();
-                    showToast('🎉 Installing EcoFone App...');
+                    var btn = document.getElementById('installAppNavbarBtn');
+                    if (btn) btn.style.display = 'none';
+                    showToast('🎉 EcoFone App installed successfully!');
                 }
             });
+            return;
+        }
+
+        // Direct Windows desktop launcher download or mobile install action (0 popups)
+        if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            downloadDesktopLauncher();
+        } else if (/Android/i.test(navigator.userAgent)) {
+            showToast('📲 Tap (⋮) Chrome Menu top-right → "Install app"');
         } else {
-            if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                downloadDesktopLauncher();
-                closePwaInstallModal();
-            } else if (/Android/i.test(navigator.userAgent)) {
-                alert('📲 On Android: Tap Chrome Menu (⋮) top-right → Tap "Install App" or "Add to Home screen".');
-            } else {
-                alert('📲 On iPhone: Tap Safari Share icon (□↑) at bottom → Tap "Add to Home Screen".');
-            }
+            showToast('📲 Tap Safari Share (□↑) → "Add to Home Screen"');
         }
     }
 
