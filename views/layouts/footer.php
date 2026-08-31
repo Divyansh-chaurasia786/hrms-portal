@@ -26,7 +26,7 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
     const attId = <?= $activeAttId ?>;
     const QUEUE_KEY = 'hrms_gps_offline_queue_' + attId;
 
-    // 🔒 1. Screen WakeLock & Background Keep-Alive (Locks app from sleep/kill)
+    // 🔒 1. Screen WakeLock & Background Audio Keep-Alive (Prevents OS from killing app)
     let wakeLockSentinel = null;
     async function acquireWakeLock() {
         try {
@@ -37,11 +37,37 @@ if ($currentUser && (($currentUser['work_mode'] ?? '') === 'field' || stripos($c
     }
     acquireWakeLock();
 
-    document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
+    // Silent Audio Keep-Alive (Marks PWA as Active Foreground Media Service in Android/OS)
+    let audioContextKeepAlive = null;
+    function startAudioKeepAlive() {
+        if (audioContextKeepAlive) return;
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                audioContextKeepAlive = new AudioCtx();
+                const osc = audioContextKeepAlive.createOscillator();
+                const gain = audioContextKeepAlive.createGain();
+                gain.gain.value = 0.00001; // Silent / Inaudible
+                osc.connect(gain);
+                gain.connect(audioContextKeepAlive.destination);
+                osc.start();
+            }
+        } catch(e) {}
+    }
+
+    // Trigger keep-alive on load and any user interaction
+    startAudioKeepAlive();
+    ['click', 'touchstart', 'visibilitychange'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            startAudioKeepAlive();
             acquireWakeLock();
-        }
+        }, { passive: true });
     });
+
+    // Notify Service Worker for Persistent Notification in Status Bar
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'START_BACKGROUND_TRACKING' });
+    }
 
     // 🔒 2. Prevent User from Closing / Removing Application Until Punch Out
     window.addEventListener('beforeunload', function(e) {
