@@ -215,108 +215,144 @@ $recentAudits = $db->query("
     </div>
 
     <!-- Main Content Grid (Balanced Two-Column Architecture) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-        <!-- Left Column (7 Cols): Today Live Attendance Check-Ins -->
-        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-            <!-- Header -->
-            <div class="p-4 sm:p-5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0 border border-emerald-200">
-                        <i data-lucide="radio" class="w-4 h-4 animate-pulse"></i>
+        <!-- Left Column (7 Cols): Live Attendance + Security Audit Logs -->
+        <div class="lg:col-span-7 space-y-5">
+            <!-- Card 1: Today Live Attendance Check-Ins -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+                <!-- Header -->
+                <div class="p-4 sm:p-5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0 border border-emerald-200">
+                            <i data-lucide="radio" class="w-4 h-4 animate-pulse"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-900">
+                                Today's Live Check-Ins & Shifts
+                            </h2>
+                            <p class="text-[11px] text-slate-500">Real-time attendance stream for <?= date('d M Y') ?>.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 class="text-sm font-bold text-slate-900">
-                            Today's Live Check-Ins & Shifts
-                        </h2>
-                        <p class="text-[11px] text-slate-500">Real-time attendance stream for <?= date('d M Y') ?>.</p>
-                    </div>
+                    <a href="?page=admin-attendance" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-indigo-600 text-xs font-bold border border-slate-200 shadow-2xs transition inline-flex items-center gap-1 shrink-0">
+                        <span>Full Register</span> &rarr;
+                    </a>
                 </div>
-                <a href="?page=admin-attendance" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-indigo-600 text-xs font-bold border border-slate-200 shadow-2xs transition inline-flex items-center gap-1 shrink-0">
-                    <span>Full Register</span> &rarr;
-                </a>
+
+                <!-- Table content -->
+                <div class="overflow-x-auto no-scrollbar p-2 sm:p-3">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="text-slate-400 text-[10px] uppercase tracking-wider font-bold border-b border-slate-100">
+                            <tr>
+                                <th class="py-3 px-3">Employee</th>
+                                <th class="py-3 px-2 whitespace-nowrap">Line / Role</th>
+                                <th class="py-3 px-2 whitespace-nowrap">Punch In</th>
+                                <th class="py-3 px-2 text-center whitespace-nowrap">Status</th>
+                                <th class="py-3 px-2 text-center whitespace-nowrap">Location</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            <?php if (empty($recentAtt)): ?>
+                                <tr>
+                                    <td colspan="5" class="text-center py-8 text-slate-400">
+                                        <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 mx-auto flex items-center justify-center mb-1.5 border border-slate-100">
+                                            <i data-lucide="clock" class="w-5 h-5"></i>
+                                        </div>
+                                        <p class="text-xs font-bold text-slate-700">No punches logged yet today</p>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                            <?php foreach ($recentAtt as $r): ?>
+                                <tr class="hover:bg-slate-50 transition rounded-xl">
+                                    <td class="py-3 px-3 align-middle">
+                                        <div class="flex items-center gap-2.5">
+                                            <img src="<?= $r['avatar'] ?: 'https://ui-avatars.com/api/?name=' . urlencode($r['name']) ?>" class="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 shrink-0" alt="Avatar">
+                                            <div class="min-w-0">
+                                                <div class="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-[150px] text-xs"><?= htmlspecialchars($r['name']) ?></div>
+                                                <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($r['emp_id']) ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-2 align-middle text-[11px] font-medium text-slate-700 truncate max-w-[100px]">
+                                        <?= htmlspecialchars($r['tl_name'] ?: ($r['role'] === 'team_lead' ? 'Direct HR' : ($r['role'] === 'admin' ? 'Head HR' : 'HR'))) ?>
+                                    </td>
+                                    <td class="py-3 px-2 align-middle font-mono text-[11px] font-semibold text-slate-800 whitespace-nowrap">
+                                        <?= formatTime($r['clock_in']) ?>
+                                    </td>
+                                    <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
+                                        <?= getStatusBadge($r['status']) ?>
+                                    </td>
+                                    <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
+                                        <?php 
+                                        $isExemptUser = (($r['role'] ?? '') === 'admin' || ($r['work_mode'] ?? '') === 'field' || ($r['work_mode'] ?? '') === 'wfh' || ($r['status'] ?? '') === 'wfh');
+                                        $sessCount = !empty($allTodaySessions[$r['id']]) ? count($allTodaySessions[$r['id']]) : 1;
+                                        ?>
+                                        <?php if ($isExemptUser): ?>
+                                            <button type="button" @click="$dispatch('open-loc-modal', {
+                                                attId: <?= (int)$r['id'] ?>,
+                                                name: '<?= addslashes($r['name'] ?? 'Staff') ?>',
+                                                date: '<?= date('d M Y') ?>',
+                                                total_hours: '<?= $r['total_hours'] ?? '' ?>',
+                                                clock_in: '<?= $r['clock_in'] ? date('h:i A', strtotime($r['clock_in'])) : '-' ?>',
+                                                clock_in_raw: '<?= $r['clock_in'] ?? '' ?>',
+                                                clock_out: '<?= !empty($r['clock_out']) ? date('h:i A', strtotime($r['clock_out'])) : '' ?>',
+                                                clock_out_raw: '<?= $r['clock_out'] ?? '' ?>',
+                                                in_lat: '<?= $r['punch_in_lat'] ?? $r['latitude'] ?? '' ?>',
+                                                in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
+                                                out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
+                                                out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
+                                            })" class="px-2 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center gap-1.5 font-bold text-[10px] border border-indigo-100" title="View <?= $sessCount ?> Sessions">
+                                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                                <span>GPS</span>
+                                                <span class="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full font-mono text-[9px]"><?= $sessCount ?></span>
+                                            </button>
+                                        <?php else: ?>
+                                            <span class="text-[11px] text-slate-400 font-mono">Office Biometric</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Table content -->
-            <div class="overflow-x-auto no-scrollbar p-2 sm:p-3">
-                <table class="w-full text-left text-xs text-slate-600">
-                    <thead class="text-slate-400 text-[10px] uppercase tracking-wider font-bold border-b border-slate-100">
-                        <tr>
-                            <th class="py-3 px-3">Employee</th>
-                            <th class="py-3 px-2 whitespace-nowrap">Line / Role</th>
-                            <th class="py-3 px-2 whitespace-nowrap">Punch In</th>
-                            <th class="py-3 px-2 text-center whitespace-nowrap">Status</th>
-                            <th class="py-3 px-2 text-center whitespace-nowrap">Location</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-50">
-                        <?php if (empty($recentAtt)): ?>
-                            <tr>
-                                <td colspan="5" class="text-center py-10 text-slate-400">
-                                    <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 mx-auto flex items-center justify-center mb-2 border border-slate-100">
-                                        <i data-lucide="clock" class="w-5 h-5"></i>
-                                    </div>
-                                    <p class="text-xs font-bold text-slate-700">No punches logged yet today</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Check back once employees clock in for their shift.</p>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                        <?php foreach ($recentAtt as $r): ?>
-                            <tr class="hover:bg-slate-50 transition rounded-xl">
-                                <td class="py-3 px-3 align-middle">
-                                    <div class="flex items-center gap-2.5">
-                                        <img src="<?= $r['avatar'] ?: 'https://ui-avatars.com/api/?name=' . urlencode($r['name']) ?>" class="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 shrink-0" alt="Avatar">
-                                        <div class="min-w-0">
-                                            <div class="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-[150px] text-xs"><?= htmlspecialchars($r['name']) ?></div>
-                                            <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($r['emp_id']) ?></div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-3 px-2 align-middle text-[11px] font-medium text-slate-700 truncate max-w-[100px]">
-                                    <?= htmlspecialchars($r['tl_name'] ?: ($r['role'] === 'team_lead' ? 'Direct HR' : ($r['role'] === 'admin' ? 'Head HR' : 'HR'))) ?>
-                                </td>
-                                <td class="py-3 px-2 align-middle font-mono text-[11px] font-semibold text-slate-800 whitespace-nowrap">
-                                    <?= formatTime($r['clock_in']) ?>
-                                </td>
-                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
-                                    <?= getStatusBadge($r['status']) ?>
-                                </td>
-                                <td class="py-3 px-2 align-middle text-center whitespace-nowrap">
-                                    <?php 
-                                    $isExemptUser = (($r['role'] ?? '') === 'admin' || ($r['work_mode'] ?? '') === 'field' || ($r['work_mode'] ?? '') === 'wfh' || ($r['status'] ?? '') === 'wfh');
-                                    $sessCount = !empty($allTodaySessions[$r['id']]) ? count($allTodaySessions[$r['id']]) : 1;
-                                    ?>
-                                    <?php if ($isExemptUser): ?>
-                                        <button type="button" @click="$dispatch('open-loc-modal', {
-                                            attId: <?= (int)$r['id'] ?>,
-                                            name: '<?= addslashes($r['name'] ?? 'Staff') ?>',
-                                            date: '<?= date('d M Y') ?>',
-                                            total_hours: '<?= $r['total_hours'] ?? '' ?>',
-                                            clock_in: '<?= $r['clock_in'] ? date('h:i A', strtotime($r['clock_in'])) : '-' ?>',
-                                            clock_in_raw: '<?= $r['clock_in'] ?? '' ?>',
-                                            clock_out: '<?= !empty($r['clock_out']) ? date('h:i A', strtotime($r['clock_out'])) : '' ?>',
-                                            clock_out_raw: '<?= $r['clock_out'] ?? '' ?>',
-                                            in_lat: '<?= $r['punch_in_lat'] ?? $r['latitude'] ?? '' ?>',
-                                            in_lng: '<?= $r['punch_in_lng'] ?? $r['longitude'] ?? '' ?>',
-                                            out_lat: '<?= $r['punch_out_lat'] ?? '' ?>',
-                                            out_lng: '<?= $r['punch_out_lng'] ?? '' ?>'
-                                        })" class="px-2 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer shadow-2xs inline-flex items-center gap-1.5 font-bold text-[10px] border border-indigo-100" title="View <?= $sessCount ?> Sessions">
-                                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600"></i>
-                                            <span>GPS</span>
-                                            <span class="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full font-mono text-[9px]"><?= $sessCount ?></span>
-                                        </button>
-                                    <?php else: ?>
-                                        <span class="text-[11px] text-slate-400 font-mono">Office Biometric</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
+            <!-- Card 2: Security & Session Audit Logs (Placed under live attendance on Left Column) -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 space-y-3.5">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0 border border-purple-100">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900">
+                            Security & Session Logs
+                        </h3>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400 font-bold uppercase bg-slate-100 px-2 py-0.5 rounded-md">Audit Trail</span>
+                </div>
+
+                <?php if (empty($recentAudits)): ?>
+                    <div class="text-center py-5 bg-slate-50/70 rounded-xl border border-slate-100">
+                        <p class="text-xs font-bold text-slate-700">No session anomalies recorded</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">All team active sessions operational.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="space-y-2">
+                        <?php foreach ($recentAudits as $ra): ?>
+                            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
+                                <div class="min-w-0">
+                                    <span class="font-bold text-slate-900"><?= htmlspecialchars($ra['employee_name']) ?></span>
+                                    <span class="text-[10px] text-slate-400 block truncate">By TL: <?= htmlspecialchars($ra['tl_name']) ?> • <?= htmlspecialchars($ra['reason']) ?></span>
+                                </div>
+                                <span class="text-[10px] font-mono text-slate-400 shrink-0"><?= date('h:i A', strtotime($ra['created_at'])) ?></span>
+                            </div>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
-        <!-- Right Column (5 Cols): Clean Action Widgets -->
+        <!-- Right Column (5 Cols): Leave Review Queue + Upcoming Birthdays -->
         <div class="lg:col-span-5 space-y-5">
 
             <!-- Card 1: Leave Review Queue -->
@@ -336,22 +372,22 @@ $recentAudits = $db->query("
                 </div>
 
                 <?php if (empty($pendingLeavesList)): ?>
-                    <div class="text-center py-6 bg-slate-50/70 rounded-xl border border-slate-100">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-1.5 border border-emerald-100">
-                            <i data-lucide="check-circle-2" class="w-4.5 h-4.5"></i>
+                    <div class="text-center py-5 bg-slate-50/70 rounded-xl border border-slate-100">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-1 border border-emerald-100">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
                         </div>
                         <p class="text-xs font-bold text-slate-700">All leave applications reviewed</p>
                         <p class="text-[10px] text-slate-400 mt-0.5">Zero pending leave requests in queue.</p>
                     </div>
                 <?php else: ?>
-                    <div class="space-y-2.5">
+                    <div class="space-y-2">
                         <?php foreach ($pendingLeavesList as $lv): ?>
-                            <div class="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/40 border border-slate-200/80 flex items-center justify-between gap-3 text-xs transition">
+                            <div class="p-2.5 rounded-xl bg-slate-50 hover:bg-indigo-50/40 border border-slate-200/80 flex items-center justify-between gap-2 text-xs transition">
                                 <div class="min-w-0">
                                     <div class="font-bold text-slate-900 truncate"><?= htmlspecialchars($lv['name']) ?></div>
                                     <div class="text-[10px] text-slate-500 font-mono"><?= formatDate($lv['start_date']) ?> → <?= formatDate($lv['end_date']) ?></div>
                                 </div>
-                                <a href="?page=admin-leaves" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold transition shadow-sm shrink-0">
+                                <a href="?page=admin-leaves" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm shrink-0">
                                     Review
                                 </a>
                             </div>
@@ -362,40 +398,6 @@ $recentAudits = $db->query("
 
             <!-- Card 2: 🎂 INTEGRATED WORKFORCE BIRTHDAYS & CELEBRATIONS -->
             <?php include __DIR__ . '/../partials/_upcoming_birthdays.php'; ?>
-
-            <!-- Card 3: Recent Security & Session Audit -->
-            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 space-y-3.5">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0 border border-purple-100">
-                            <i data-lucide="shield-check" class="w-4 h-4"></i>
-                        </div>
-                        <h3 class="text-sm font-bold text-slate-900">
-                            Security & Session Logs
-                        </h3>
-                    </div>
-                    <span class="text-[10px] font-mono text-slate-400 font-bold uppercase bg-slate-100 px-2 py-0.5 rounded-md">Audit Trail</span>
-                </div>
-
-                <?php if (empty($recentAudits)): ?>
-                    <div class="text-center py-6 bg-slate-50/70 rounded-xl border border-slate-100">
-                        <p class="text-xs font-bold text-slate-700">No session anomalies recorded</p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">All team active sessions operational.</p>
-                    </div>
-                <?php else: ?>
-                    <div class="space-y-2.5">
-                        <?php foreach ($recentAudits as $ra): ?>
-                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 text-xs">
-                                <div class="min-w-0">
-                                    <span class="font-bold text-slate-900"><?= htmlspecialchars($ra['employee_name']) ?></span>
-                                    <span class="text-[10px] text-slate-400 block truncate">By TL: <?= htmlspecialchars($ra['tl_name']) ?> • <?= htmlspecialchars($ra['reason']) ?></span>
-                                </div>
-                                <span class="text-[10px] font-mono text-slate-400 shrink-0"><?= date('h:i A', strtotime($ra['created_at'])) ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
 
         </div>
 
