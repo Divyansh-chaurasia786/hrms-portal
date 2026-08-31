@@ -590,7 +590,7 @@
     })();
     </script>
 </head>
-<body class="h-full antialiased text-slate-800 flex" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" data-is-field="<?php $cu = authUser(); echo (($cu['work_mode'] ?? '') === 'field' || stripos($cu['department_name'] ?? '', 'Field') !== false || stripos($cu['designation'] ?? '', 'Field') !== false) ? '1' : '0'; ?>" data-attendance-id="<?php $todayAtt = getDBConnection()->query('SELECT id FROM attendance WHERE user_id = ' . (int)(authUser()['id'] ?? 0) . ' AND date = \'' . date('Y-m-d') . '\' AND clock_out IS NULL ORDER BY id DESC LIMIT 1')?->fetch(PDO::FETCH_ASSOC); echo (int)($todayAtt['id'] ?? 0); ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
+<body class="min-h-screen bg-slate-50 antialiased text-slate-800" data-page="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" data-shift-active="<?= isInActiveShift() ? '1' : '0' ?>" data-is-field="<?php $cu = authUser(); echo (($cu['work_mode'] ?? '') === 'field' || stripos($cu['department_name'] ?? '', 'Field') !== false || stripos($cu['designation'] ?? '', 'Field') !== false) ? '1' : '0'; ?>" data-attendance-id="<?php $todayAtt = getDBConnection()->query('SELECT id FROM attendance WHERE user_id = ' . (int)(authUser()['id'] ?? 0) . ' AND date = \'' . date('Y-m-d') . '\' AND clock_out IS NULL ORDER BY id DESC LIMIT 1')?->fetch(PDO::FETCH_ASSOC); echo (int)($todayAtt['id'] ?? 0); ?>" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
 <script>
 function handlePunchOutGeo(form) {

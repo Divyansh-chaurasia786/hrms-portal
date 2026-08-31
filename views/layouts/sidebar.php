@@ -206,7 +206,7 @@ $page = $_GET['page'] ?? 'dashboard';
 </aside>
 
 <!-- Main Wrapper -->
-<div class="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out" :class="sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'">
+<div class="min-h-screen flex flex-col min-w-0 w-full transition-all duration-300 ease-in-out" :class="sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'">
     <!-- Top Navbar -->
     <header id="top-header-navbar" class="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div class="flex items-center gap-3">
