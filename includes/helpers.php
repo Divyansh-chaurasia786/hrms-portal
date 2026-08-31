@@ -979,7 +979,7 @@ function getUpcomingBirthdaysWithinDays(int $maxDays = 30): array {
     $users = $db->query("
         SELECT id, name, emp_id, email, phone, whatsapp_number, avatar, designation, department_name, date_of_birth 
         FROM users 
-        WHERE status = 'active' AND date_of_birth IS NOT NULL AND date_of_birth != ''
+        WHERE status = 'active' AND date_of_birth IS NOT NULL AND date_of_birth > '1900-01-01'
     ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
     $upcoming = [];
