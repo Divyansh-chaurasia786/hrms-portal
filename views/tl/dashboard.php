@@ -295,6 +295,9 @@ $isTLSupport = (stripos($tlDesig, 'tl support') !== false || stripos($tlDesig, '
         </a>
     </div>
 
+        <!-- 🎂 INTEGRATED WORKFORCE BIRTHDAYS & CELEBRATIONS (NEXT 30 DAYS) -->
+    <?php include __DIR__ . '/../partials/_upcoming_birthdays.php'; ?>
+
     <!-- 👥 TEAM LIVE ROSTER & RECENT ACTIVITIES -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         

@@ -211,6 +211,9 @@ $recentAudits = $db->query("
         </a>
     </div>
 
+        <!-- 🎂 INTEGRATED WORKFORCE BIRTHDAYS & CELEBRATIONS (NEXT 30 DAYS) -->
+    <?php include __DIR__ . '/../partials/_upcoming_birthdays.php'; ?>
+
     <!-- Main Two-Column Content Grid (Floating Elevated Layout) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
 
