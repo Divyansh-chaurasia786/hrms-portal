@@ -1,17 +1,17 @@
 <!-- views/partials/_upcoming_birthdays.php (Elegant Right-Column Widget Card) -->
 <?php
 $upcomingBirthdays = getUpcomingBirthdaysWithinDays(30);
-if (!empty($upcomingBirthdays)):
+$displayedBirthdays = array_slice($upcomingBirthdays, 0, 2);
+if (!empty($displayedBirthdays)):
 ?>
-<div class="bg-white rounded-3xl border border-slate-200/90 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.06),0_4px_12px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.1)] transition-all duration-300 p-5 sm:p-6 space-y-3.5">
-    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center text-sm font-bold shrink-0 border border-pink-200/60 shadow-2xs">
+<div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center text-xs font-bold shrink-0 border border-pink-200">
                 🎂
             </div>
             <div>
-                <h3 class="text-sm font-bold text-slate-900">Upcoming Birthdays</h3>
-                <p class="text-[10px] text-slate-400 font-medium">Workforce celebrations in next 30 days</p>
+                <h3 class="text-xs sm:text-sm font-bold text-slate-900">Upcoming Birthdays</h3>
             </div>
         </div>
         <a href="?page=admin-birthdays" class="text-xs font-bold text-pink-600 hover:text-pink-700 transition inline-flex items-center gap-1">
@@ -19,9 +19,9 @@ if (!empty($upcomingBirthdays)):
         </a>
     </div>
 
-    <!-- Vertical List of Birthday Cards with WhatsApp 1-Click Wish -->
-    <div class="space-y-2 max-h-56 overflow-y-auto no-scrollbar pr-0.5">
-        <?php foreach ($upcomingBirthdays as $b): ?>
+    <!-- Short List of Birthday Cards -->
+    <div class="space-y-2">
+        <?php foreach ($displayedBirthdays as $b): ?>
             <?php
             $isToday = ($b['urgency'] === 'today');
             $isHours = ($b['urgency'] === 'hours');

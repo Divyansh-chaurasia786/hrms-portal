@@ -29,7 +29,7 @@ $recentAtt = $db->query("
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
     WHERE a.date = '$today'
     ORDER BY a.clock_in DESC
-    LIMIT 10
+    LIMIT 3
 ")->fetchAll();
 
 $allTodaySessions = [];
@@ -48,24 +48,24 @@ if (!empty($recentAtt)) {
 </script>
 <?php
 
-// Pending Leaves Preview
+// Pending Leaves Preview (Top 2 Short Card)
 $pendingLeavesList = $db->query("
     SELECT l.*, u.name, u.emp_id, u.avatar, u.designation
     FROM leave_applications l
     JOIN users u ON l.user_id = u.id
     WHERE l.status = 'pending_tl_review' OR l.status = 'pending_hr_approval' OR l.status = 'pending'
     ORDER BY l.created_at DESC
-    LIMIT 3
+    LIMIT 2
 ")->fetchAll();
 
-// Recent Session Terminations / Audits
+// Recent Session Terminations / Audits (Top 2 Short Card)
 $recentAudits = $db->query("
     SELECT st.*, u.name as employee_name, u.emp_id, tl.name as tl_name
     FROM session_terminations st
     JOIN users u ON st.user_id = u.id
     JOIN users tl ON st.terminated_by = tl.id
     ORDER BY st.created_at DESC
-    LIMIT 4
+    LIMIT 2
 ")->fetchAll();
 ?>
 
