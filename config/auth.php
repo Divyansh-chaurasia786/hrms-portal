@@ -1,12 +1,13 @@
 <?php
-// config/auth.php
+// config/auth.php - Permanent Multi-Month Persistence Engine
 
 if (session_status() === PHP_SESSION_NONE) {
     if (!headers_sent()) {
-        // High-Security Ephemeral Session (Strictly destroyed when browser is closed)
-        @ini_set('session.cookie_lifetime', 0);
+        $thirtyDays = 86400 * 365; // 1 Year Persistent Lifetime
+        @ini_set('session.cookie_lifetime', $thirtyDays);
+        @ini_set('session.gc_maxlifetime', $thirtyDays);
         @session_set_cookie_params([
-            'lifetime' => 0, // 0 = Strict Session Cookie (Destroyed on browser close)
+            'lifetime' => $thirtyDays,
             'path' => '/',
             'httponly' => true,
             'samesite' => 'Lax'
@@ -45,7 +46,7 @@ function verifyAuthToken(string $token): ?array {
 
 function setAuthCookie(array $user, string $sessionToken): void {
     $token = generateAuthToken($user, $sessionToken);
-    $expire = 0; // 0 = Browser Session Only (Auto-logout on browser close)
+    $expire = time() + (86400 * 365); // 1 Year Persistent Signed Token (Never logs out on app close)
     $secure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     setcookie('hrms_auth_token', $token, [
         'expires' => $expire,

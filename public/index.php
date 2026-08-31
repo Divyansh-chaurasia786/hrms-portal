@@ -143,40 +143,11 @@ $page = $_GET['page'] ?? null;
 if ($action) {
     switch ($action) {
         case 'location-disabled-logout':
-            if (isset($_SESSION['user'])) {
-                $user = $_SESSION['user'];
-                $db = getDBConnection();
-                $today = date('Y-m-d');
-                $now = date('Y-m-d H:i:s');
-
-                // Check and auto clock-out active shift
-                $att = $db->query("SELECT * FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND clock_out IS NULL")->fetch(PDO::FETCH_ASSOC);
-                if ($att) {
-                    $inTs = strtotime($att['clock_in']);
-                    $outTs = strtotime($now);
-                    $totalHours = round(($outTs - $inTs) / 3600, 2);
-                    if ($totalHours < 0) $totalHours = 0;
-
-                    $stmt = $db->prepare("
-                        UPDATE attendance 
-                        SET clock_out = ?, total_hours = ?, notes = 'Auto Shift-Out: Location/GPS turned off during active shift', hr_alert_message = 'Security Alert: GPS/Location disabled by user' 
-                        WHERE id = ?
-                    ");
-                    $stmt->execute([$now, $totalHours, $att['id']]);
-                }
-
-                // Destroy session
-                unset($_SESSION['user']);
-                session_destroy();
-                session_start();
-                setFlash('error', '🚨 Security Alert: You have been automatically logged out because your GPS/Location services were turned off during active duty. Please enable device Location to sign back in.');
-            }
-
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                echo json_encode(['success' => true, 'redirect' => '?page=login']);
+                echo json_encode(['success' => true]);
                 exit;
             }
-            header('Location: ?page=login');
+            header('Location: ?page=dashboard');
             exit;
         case 'admin-run-archival':
             requireRole(['admin']);
