@@ -38,6 +38,35 @@ if ($isFieldUser) {
 ?>
 
 <?php if ($isFieldActive): ?>
+<!-- 🚨 Fullscreen Mandatory GPS Lock Screen (Triggered if Location is turned off during shift) -->
+<div id="mandatoryGpsLockModal" class="hidden fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-4 border-rose-500 text-center space-y-5">
+        <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto text-rose-600 shadow-lg shadow-rose-500/30 animate-pulse">
+            <span class="text-3xl">📡</span>
+        </div>
+        <div class="space-y-2">
+            <span class="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-black uppercase tracking-wider">Duty Policy Enforced</span>
+            <h2 class="text-xl font-extrabold text-slate-900">GPS / Location is Disabled</h2>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Field Executives are strictly required to keep <strong>High Accuracy Device Location (GPS) Turned ON</strong> during active work shift.
+            </p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-left space-y-1.5">
+            <div class="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+                <span>⚠️ Required Actions:</span>
+            </div>
+            <ol class="text-[11px] text-amber-800 list-decimal list-inside space-y-1 font-medium">
+                <li>Turn <strong>ON</strong> your phone's GPS / Location toggle.</li>
+                <li>Set Location mode to <strong>"High Accuracy / Google Accuracy"</strong>.</li>
+                <li>Click <strong>"Verify & Resume Duty"</strong> below.</li>
+            </ol>
+        </div>
+        <button type="button" onclick="window.retryMandatoryGps && window.retryMandatoryGps()" class="w-full py-3.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 text-white rounded-2xl font-black text-sm shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2 transition cursor-pointer">
+            <span>🔄 Turn On GPS & Verify Location</span>
+        </button>
+    </div>
+</div>
+
 <!-- 🟢 Floating Live GPS Stream Indicator (Punch-In to Punch-Out) -->
 <div id="liveGpsStreamBadge" class="fixed bottom-4 right-4 z-[9990] flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 text-white px-3.5 py-2 rounded-2xl shadow-xl shadow-emerald-950/40 text-xs font-semibold select-none transition-all duration-300">
     <span class="relative flex h-3 w-3">
@@ -248,45 +277,64 @@ if ($isFieldUser) {
         });
     }
 
+    function handleGpsSuccess(pos) {
+        const lockModal = document.getElementById('mandatoryGpsLockModal');
+        if (lockModal) lockModal.classList.add('hidden');
+        sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
+    }
+
+    function handleGpsError(err) {
+        // If GPS is disabled (PERMISSION_DENIED = 1, POSITION_UNAVAILABLE = 2)
+        if (err && (err.code === 1 || err.code === 2)) {
+            const lockModal = document.getElementById('mandatoryGpsLockModal');
+            if (lockModal) lockModal.classList.remove('hidden');
+        }
+        if (lastLat && lastLng) {
+            sendGpsPing(lastLat, lastLng, 0);
+        }
+    }
+
+    window.retryMandatoryGps = function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    handleGpsSuccess(pos);
+                },
+                function(err) {
+                    handleGpsError(err);
+                    alert('⚠️ GPS is still unavailable. Please enable High Accuracy Location in your phone settings.');
+                },
+                { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+            );
+        }
+    };
+
     if (navigator.geolocation) {
-        // Immediate movement watcher
+        // 1. Force High Accuracy hardware position stream with 0 maximumAge (Fresh GPS Satellites)
         navigator.geolocation.watchPosition(
-            function(pos) {
-                sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
-            },
-            function() {},
-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 2000 }
+            handleGpsSuccess,
+            handleGpsError,
+            { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
         );
 
-        // ⚡ Un-throttled Background Web Worker Timer (Ticks every 1 second non-stop)
+        // 2. Un-throttled Background Web Worker Timer (Ticks every 1 second non-stop)
         try {
             const workerCode = "setInterval(function() { postMessage('TICK'); }, 1000);";
             const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
             const tickerWorker = new Worker(URL.createObjectURL(workerBlob));
             tickerWorker.onmessage = function() {
                 navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
-                    },
-                    function() {
-                        // Fallback: If hardware lock is busy, ping last known position so radar remains live
-                        if (lastLat && lastLng) {
-                            sendGpsPing(lastLat, lastLng, 0);
-                        }
-                    },
-                    { enableHighAccuracy: true, timeout: 2500, maximumAge: 1000 }
+                    handleGpsSuccess,
+                    handleGpsError,
+                    { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 }
                 );
             };
         } catch(e) {
             setInterval(function() {
                 navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        sendGpsPing(pos.coords.latitude, pos.coords.longitude, pos.coords.speed || 0);
-                    },
-                    function() {
-                        if (lastLat && lastLng) sendGpsPing(lastLat, lastLng, 0);
-                    },
-                    { enableHighAccuracy: true, timeout: 2500, maximumAge: 1000 }
+                    handleGpsSuccess,
+                    handleGpsError,
+                    { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 }
                 );
             }, 1000);
         }
