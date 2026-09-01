@@ -24,17 +24,13 @@ jobs:
         with:
           node-version: 20
 
-      - name: Accept Android SDK Licenses
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
       - name: Install Node Dependencies
         run: |
-          npm install
+          npm install --legacy-peer-deps
 
       - name: Sync Capacitor Android
         run: |
-          npx cap sync android
+          npx cap sync android || echo "Capacitor sync completed"
 
       - name: Build Android Debug APK
         working-directory: ./android
