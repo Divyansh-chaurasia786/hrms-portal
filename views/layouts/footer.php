@@ -341,9 +341,10 @@ if ($isFieldUser) {
         try {
             const bgPlugin = window.Capacitor.Plugins.BackgroundGeolocation || (window.CapacitorCommunity && window.CapacitorCommunity.BackgroundGeolocation);
             if (bgPlugin && bgPlugin.addWatcher) {
+                const battStr = currentBatteryLevel ? (" • 🔋 " + currentBatteryLevel + "%") : "";
                 bgPlugin.addWatcher(
                     {
-                        backgroundMessage: "Tracking On Duty • Sharing with HR",
+                        backgroundMessage: "📍 Live GPS" + battStr + " • Sharing with HR",
                         backgroundTitle: "🟢 EcoFone Live Radar Active",
                         requestPermissions: true,
                         stale: false,
