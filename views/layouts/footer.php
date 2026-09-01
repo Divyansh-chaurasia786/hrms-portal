@@ -67,8 +67,8 @@ if ($isFieldUser) {
     </div>
 </div>
 
-<!-- 🟢 Floating Live GPS Stream Indicator (Punch-In to Punch-Out) -->
-<div id="liveGpsStreamBadge" class="fixed bottom-4 right-4 z-[9990] flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 text-white px-3.5 py-2 rounded-2xl shadow-xl shadow-emerald-950/40 text-xs font-semibold select-none transition-all duration-300">
+<!-- 🟢 Live GPS Stream Indicator (Minimized) -->
+<div id="liveGpsStreamBadge" class="hidden fixed bottom-4 right-4 z-[9990] flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 text-white px-3.5 py-2 rounded-2xl shadow-xl shadow-emerald-950/40 text-xs font-semibold select-none transition-all duration-300">
     <span class="relative flex h-3 w-3">
         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
         <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
@@ -305,7 +305,8 @@ if ($isFieldUser) {
                 navigator.serviceWorker.controller.postMessage({
                     type: 'UPDATE_LIVE_STATUS',
                     battery: currentBatteryLevel,
-                    time: now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' })
+                    speed: speedKmh,
+                    time: formattedTime
                 });
             }
 

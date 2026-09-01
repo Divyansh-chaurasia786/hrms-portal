@@ -40,10 +40,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
     if (!event.data) return;
     if (event.data.type === 'START_BACKGROUND_TRACKING' || event.data.type === 'UPDATE_LIVE_STATUS') {
-        const time = event.data.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const time = event.data.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
         const batt = event.data.battery ? ` • 🔋 ${event.data.battery}%` : '';
+        const spd = (event.data.speed && Number(event.data.speed) >= 3) ? ` • 🚗 ${event.data.speed} km/h` : '';
         self.registration.showNotification('🟢 EcoFone Live Radar Active', {
-            body: `📍 On-Duty Live GPS Active • ${time}${batt} • Background Tracking`,
+            body: `📍 Live • ${time}${batt}${spd} • Sharing with HR`,
             icon: '/icon-192.png',
             badge: '/icon-192.png',
             tag: 'ecofone_shift_active',
