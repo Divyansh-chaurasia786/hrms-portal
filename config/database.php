@@ -129,9 +129,16 @@ function getDBConnection(bool $forceNew = false): PDO {
         $dbUser = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? ($_SERVER['DB_USER'] ?? '2P59qqNczcBgyLg.root'));
         $dbPass = getenv('DB_PASS') ?: ($_ENV['DB_PASS'] ?? ($_SERVER['DB_PASS'] ?? 'mgGPzRZeGnCvE8Lb'));
         
-        // 🧪 Smart Database Selector: Staging / Testing uses hrms_test, Production uses hrms
+        // 🧪 Smart Database Selector: Supports ?mode=test or ?mode=live in session
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            if (isset($_GET['mode'])) {
+                if ($_GET['mode'] === 'test' || $_GET['mode'] === 'staging') $_SESSION['app_db_mode'] = 'hrms_test';
+                elseif ($_GET['mode'] === 'live' || $_GET['mode'] === 'prod') $_SESSION['app_db_mode'] = 'hrms';
+            }
+        }
+        $sessionDb = (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['app_db_mode'])) ? $_SESSION['app_db_mode'] : null;
         $defaultDb = (isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'staging') !== false || strpos($_SERVER['HTTP_HOST'], 'test') !== false || strpos($_SERVER['HTTP_HOST'], 'beta') !== false)) ? 'hrms_test' : 'hrms';
-        $dbName = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? $defaultDb));
+        $dbName = $sessionDb ?: (getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? $defaultDb)));
 
         $caFile = __DIR__ . '/cacert.pem';
 

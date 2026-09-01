@@ -211,7 +211,18 @@ $page = $_GET['page'] ?? 'dashboard';
     </nav>
 
     <!-- Logout / Footer of Sidebar -->
-    <div class="p-3 border-t border-slate-800/80">
+    <div class="p-3 border-t border-slate-800/80 space-y-2">
+        <?php $isTestDb = (isset($_SESSION['app_db_mode']) && $_SESSION['app_db_mode'] === 'hrms_test') || (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'staging') !== false); ?>
+        <div class="px-2.5 py-1.5 flex items-center justify-between text-[10px] font-mono rounded-xl <?= $isTestDb ? 'bg-amber-950/70 border border-amber-500/50 text-amber-300 shadow-inner' : 'bg-slate-900/60 text-slate-400 border border-slate-800' ?>">
+            <span class="flex items-center gap-1.5 font-bold">
+                <span class="w-1.5 h-1.5 rounded-full <?= $isTestDb ? 'bg-amber-400 animate-ping' : 'bg-emerald-400' ?>"></span>
+                <span><?= $isTestDb ? '🧪 Test Sandbox DB' : '🏢 Live Production DB' ?></span>
+            </span>
+            <a href="?mode=<?= $isTestDb ? 'live' : 'test' ?>" class="text-[10px] font-bold text-indigo-400 hover:text-indigo-200 underline cursor-pointer" title="Toggle Test Sandbox DB vs Live Production DB">
+                <?= $isTestDb ? 'Switch Live' : 'Test Mode' ?>
+            </a>
+        </div>
+
         <a href="?action=logout" class="flex items-center gap-3 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition text-sm">
             <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
         </a>
