@@ -194,21 +194,21 @@ $unassignedCount = (int)$db->query("SELECT COUNT(*) FROM calling_leads WHERE ass
                             ?>
                             <tr class="hover:bg-slate-50/80 transition" x-show="
                                 (statusFilter === 'all' || statusFilter === '<?= $st ?>') &&
-                                (execFilter === 'all' || execFilter === '<?= (int)$l['assigned_to'] ?>') &&
-                                (!searchQuery || '<?= strtolower(addslashes($l['name'] . ' ' . $l['phone'] . ' ' . $l['city'] . ' ' . ($l['executive_name'] ?? ''))) ?>'.includes(searchQuery.toLowerCase()))
+                                (execFilter === 'all' || execFilter === '<?= (int)($l['assigned_to'] ?? 0) ?>') &&
+                                (!searchQuery || '<?= strtolower(addslashes(($l['lead_name'] ?? '') . ' ' . ($l['phone'] ?? '') . ' ' . ($l['city'] ?? '') . ' ' . ($l['executive_name'] ?? ''))) ?>'.includes(searchQuery.toLowerCase()))
                             ">
                                 <td class="py-3.5 px-3 align-middle font-bold text-slate-900">
-                                    <?= htmlspecialchars($l['name']) ?>
+                                    <?= htmlspecialchars((string)($l['lead_name'] ?? 'Lead #' . $l['id'])) ?>
                                     <?php if (!empty($l['course_service'])): ?>
-                                        <div class="text-[10px] text-slate-400 font-normal"><?= htmlspecialchars($l['course_service']) ?></div>
+                                        <div class="text-[10px] text-slate-400 font-normal"><?= htmlspecialchars((string)$l['course_service']) ?></div>
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-3.5 px-3 align-middle font-mono font-bold text-slate-800">
-                                    <?= htmlspecialchars($l['phone']) ?>
+                                    <?= htmlspecialchars((string)($l['phone'] ?? '')) ?>
                                 </td>
                                 <td class="py-3.5 px-3 align-middle">
                                     <span class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                                        <?= htmlspecialchars($l['executive_name'] ?: 'Unassigned') ?>
+                                        <?= htmlspecialchars((string)($l['executive_name'] ?? 'Unassigned')) ?>
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-3 align-middle">
@@ -217,7 +217,7 @@ $unassignedCount = (int)$db->query("SELECT COUNT(*) FROM calling_leads WHERE ass
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-3 align-middle max-w-xs text-slate-600">
-                                    <div class="text-[11px] line-clamp-2"><?= htmlspecialchars($l['notes'] ?: 'Pending call...') ?></div>
+                                    <div class="text-[11px] line-clamp-2"><?= htmlspecialchars((string)($l['notes'] ?: 'Pending call...')) ?></div>
                                     <?php if (!empty($l['callback_datetime'])): ?>
                                         <div class="text-[10px] text-blue-600 font-semibold mt-0.5">
                                             ⏰ Callback: <?= date('d M, h:i A', strtotime($l['callback_datetime'])) ?>
@@ -225,7 +225,7 @@ $unassignedCount = (int)$db->query("SELECT COUNT(*) FROM calling_leads WHERE ass
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-3.5 px-3 align-middle text-right text-slate-400 font-mono text-[11px] whitespace-nowrap">
-                                    <?= date('d M, h:i A', strtotime($l['updated_at'] ?: $l['created_at'])) ?>
+                                    <?= date('d M, h:i A', strtotime($l['last_called_at'] ?? $l['created_at'])) ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
