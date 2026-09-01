@@ -197,6 +197,17 @@ $page = $_GET['page'] ?? 'dashboard';
         <a href="?page=profile" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition <?= $page === 'profile' ? 'bg-indigo-600 text-white shadow-sm font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
             <i data-lucide="user" class="w-4 h-4"></i> My Profile & Security
         </a>
+
+        <!-- 🔄 1-Click Check for App Updates -->
+        <div class="pt-2 pb-1">
+            <button type="button" onclick="window.checkForAppUpdate && window.checkForAppUpdate()" class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 hover:text-white transition text-xs font-semibold group cursor-pointer" title="Check for latest app updates and live features">
+                <span class="flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-indigo-400 group-hover:rotate-180 transition-transform duration-500"></i>
+                    <span>Check for Updates</span>
+                </span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">v1.2.0</span>
+            </button>
+        </div>
     </nav>
 
     <!-- Logout / Footer of Sidebar -->
