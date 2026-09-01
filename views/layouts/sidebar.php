@@ -222,10 +222,15 @@ $page = $_GET['page'] ?? 'dashboard';
 <div class="min-h-screen flex flex-col min-w-0 w-full transition-all duration-300 ease-in-out" :class="sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'">
     <!-- Top Navbar -->
     <header id="top-header-navbar" class="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 sm:gap-3">
             <!-- Mobile Menu Toggle -->
-            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer">
+            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer" title="Open Menu">
                 <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+
+            <!-- 🔄 1-Tap APK Reload / Sync Cloud Updates Button -->
+            <button type="button" onclick="window.applyAppUpdate ? window.applyAppUpdate() : window.location.reload(true)" class="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer" title="Sync Latest Cloud Updates">
+                <i data-lucide="rotate-cw" class="w-5 h-5 text-indigo-600"></i>
             </button>
 
             <div class="hidden sm:block pl-2">

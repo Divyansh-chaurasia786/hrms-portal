@@ -724,6 +724,37 @@ if ($isFieldUser) {
                 window.location.reload(true);
             }
         };
+
+        // 📱 Native Touch Pull-to-Refresh Gesture for Android APK
+        (function initPullToRefresh() {
+            let touchStartY = 0;
+            let touchMoveY = 0;
+            window.addEventListener('touchstart', (e) => {
+                if (window.scrollY === 0) {
+                    touchStartY = e.touches[0].clientY;
+                } else {
+                    touchStartY = 0;
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchmove', (e) => {
+                if (touchStartY > 0) {
+                    touchMoveY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchend', () => {
+                if (touchStartY > 0 && touchMoveY - touchStartY > 120 && window.scrollY === 0) {
+                    if (window.applyAppUpdate) {
+                        window.applyAppUpdate();
+                    } else {
+                        window.location.reload(true);
+                    }
+                }
+                touchStartY = 0;
+                touchMoveY = 0;
+            });
+        })();
     })();
 </script>
 
