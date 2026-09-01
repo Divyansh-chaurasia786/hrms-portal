@@ -128,7 +128,10 @@ function getDBConnection(bool $forceNew = false): PDO {
         $dbPort = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? ($_SERVER['DB_PORT'] ?? 4000));
         $dbUser = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? ($_SERVER['DB_USER'] ?? '2P59qqNczcBgyLg.root'));
         $dbPass = getenv('DB_PASS') ?: ($_ENV['DB_PASS'] ?? ($_SERVER['DB_PASS'] ?? 'mgGPzRZeGnCvE8Lb'));
-        $dbName = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? 'hrms'));
+        
+        // 🧪 Smart Database Selector: Staging / Testing uses hrms_test, Production uses hrms
+        $defaultDb = (isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'staging') !== false || strpos($_SERVER['HTTP_HOST'], 'test') !== false || strpos($_SERVER['HTTP_HOST'], 'beta') !== false)) ? 'hrms_test' : 'hrms';
+        $dbName = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? $defaultDb));
 
         $caFile = __DIR__ . '/cacert.pem';
 
