@@ -394,7 +394,7 @@ class AttendanceController {
             $prev = $db->query("SELECT latitude, longitude FROM employee_travel_logs WHERE attendance_id = {$activeAtt['id']} ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
             $distMeters = 0;
             if ($prev) {
-                $distMeters = (int)calculateDistance($lat, $lng, (float)$prev['latitude'], (float)$prev['longitude']);
+                $distMeters = (int)self::calculateDistance($lat, $lng, (float)$prev['latitude'], (float)$prev['longitude']);
             }
 
             $now = date('Y-m-d H:i:s');
@@ -410,8 +410,13 @@ class AttendanceController {
         exit;
     }
 
-        public static function getTravelLogs(): void {
-        requireAuth();
+    public static function getTravelLogs(): void {
+        if (!isLoggedIn()) {
+            header('Content-Type: application/json');
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthenticated']);
+            exit;
+        }
         $userId = (int)($_GET['user_id'] ?? 0);
         $date = !empty($_GET['date']) ? trim($_GET['date']) : date('Y-m-d');
         $db = getDBConnection();
@@ -503,7 +508,7 @@ class AttendanceController {
             } else {
                 // Identify stoppage if stationary for >= 3 minutes
                 if ($lastPt) {
-                    $distDelta = (int)calculateDistance($lat, $lng, (float)$lastPt['latitude'], (float)$lastPt['longitude']);
+                    $distDelta = (int)self::calculateDistance($lat, $lng, (float)$lastPt['latitude'], (float)$lastPt['longitude']);
                     $timeDeltaSeconds = strtotime($l['recorded_at']) - strtotime($lastPt['recorded_at']);
                     if ($distDelta < 25 && $timeDeltaSeconds >= 180) {
                         $rawStops[] = [
@@ -519,7 +524,7 @@ class AttendanceController {
                 }
 
                 // GPS Deadband / Noise Filter: Only add point to route trail if moved >= 20 meters from last added point
-                $distFromLastWp = $lastAddedWp ? (int)calculateDistance($lat, $lng, $lastAddedWp['lat'], $lastAddedWp['lng']) : 999;
+                $distFromLastWp = $lastAddedWp ? (int)self::calculateDistance($lat, $lng, $lastAddedWp['lat'], $lastAddedWp['lng']) : 999;
                 if ($distFromLastWp >= 20) {
                     $wp = [
                         'lat' => $lat,
@@ -539,7 +544,7 @@ class AttendanceController {
 
         // Always ensure the very latest live point is included in waypoints
         if ($lastPt && $lastAddedWp) {
-            $distFromLast = (int)calculateDistance((float)$lastPt['latitude'], (float)$lastPt['longitude'], $lastAddedWp['lat'], $lastAddedWp['lng']);
+            $distFromLast = (int)self::calculateDistance((float)$lastPt['latitude'], (float)$lastPt['longitude'], $lastAddedWp['lat'], $lastAddedWp['lng']);
             if ($distFromLast > 0) {
                 $cleanWaypoints[] = [
                     'lat' => (float)$lastPt['latitude'],
@@ -557,7 +562,7 @@ class AttendanceController {
         foreach ($rawStops as $rs) {
             $merged = false;
             foreach ($stops as &$existingStop) {
-                $dist = (int)calculateDistance($rs['lat'], $rs['lng'], $existingStop['lat'], $existingStop['lng']);
+                $dist = (int)self::calculateDistance($rs['lat'], $rs['lng'], $existingStop['lat'], $existingStop['lng']);
                 if ($dist < 50) { // Same location / building
                     $existingStop['duration_mins'] += $rs['duration_mins'];
                     $existingStop['departure_time'] = $rs['departure_time'];
@@ -602,7 +607,23 @@ class AttendanceController {
         $totalDistanceKm = round(((float)$emp['total_distance_meters']) / 1000, 2);
 
         $startLocation = !empty($cleanWaypoints) ? $cleanWaypoints[0] : null;
-        $endLocation = !empty($cleanWaypoints) ? $cleanWaypoints[count($cleanWaypoints) - 1] : null;
+        if (!$startLocation && !empty($emp['punch_in_lat']) && !empty($emp['punch_in_lng']) && (float)$emp['punch_in_lat'] != 0) {
+            $startLocation = [
+                'lat' => (float)$emp['punch_in_lat'],
+                'lng' => (float)$emp['punch_in_lng'],
+                'speed' => 0,
+                'time' => $emp['clock_in'] ? date('h:i A', strtotime($emp['clock_in'])) : '09:00 AM'
+            ];
+        } else if (!$startLocation && !empty($logs)) {
+            $startLocation = [
+                'lat' => (float)$logs[0]['latitude'],
+                'lng' => (float)$logs[0]['longitude'],
+                'speed' => (float)$logs[0]['speed'],
+                'time' => date('h:i A', strtotime($logs[0]['recorded_at']))
+            ];
+        }
+
+        $endLocation = !empty($cleanWaypoints) ? $cleanWaypoints[count($cleanWaypoints) - 1] : $startLocation;
 
                 $lastLog = !empty($logs) ? $logs[count($logs) - 1] : null;
         $latestBattery = $lastLog && isset($lastLog['battery_level']) && $lastLog['battery_level'] !== '' ? (int)$lastLog['battery_level'] : null;

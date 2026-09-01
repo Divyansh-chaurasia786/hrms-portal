@@ -160,14 +160,14 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     },
 
     openGoogleMapsApp() {
-        if (!this.startLocation) {
+        const sLat = (this.startLocation && this.startLocation.lat) ? this.startLocation.lat : (this.selectedEmp && this.selectedEmp.punch_in_lat ? this.selectedEmp.punch_in_lat : (this.waypoints && this.waypoints.length > 0 ? this.waypoints[0].lat : null));
+        const sLng = (this.startLocation && this.startLocation.lng) ? this.startLocation.lng : (this.selectedEmp && this.selectedEmp.punch_in_lng ? this.selectedEmp.punch_in_lng : (this.waypoints && this.waypoints.length > 0 ? this.waypoints[0].lng : null));
+        if (!sLat || !sLng) {
             alert('No coordinates recorded for this date.');
             return;
         }
-        const sLat = this.startLocation.lat;
-        const sLng = this.startLocation.lng;
-        const eLat = this.endLocation ? this.endLocation.lat : sLat;
-        const eLng = this.endLocation ? this.endLocation.lng : sLng;
+        const eLat = (this.endLocation && this.endLocation.lat) ? this.endLocation.lat : sLat;
+        const eLng = (this.endLocation && this.endLocation.lng) ? this.endLocation.lng : sLng;
         const url = `https://www.google.com/maps/dir/?api=1&origin=${sLat},${sLng}&destination=${eLat},${eLng}&travelmode=driving`;
         window.open(url, '_blank');
     }
