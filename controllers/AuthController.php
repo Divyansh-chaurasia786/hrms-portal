@@ -214,10 +214,10 @@ class AuthController {
             // Clear login OTP after successful authentication
             $db->prepare("
                 UPDATE users 
-                SET login_otp = NULL, login_otp_expires_at = NULL, session_token = ?, 
-                    last_login_device = ?, last_login_ip = ?, last_login_at = ? 
+                SET login_otp = NULL, login_otp_expires_at = NULL, current_session_token = ?, 
+                    last_seen_at = ? 
                 WHERE id = ?
-            ")->execute([$sessionToken, self::getDeviceName(), $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', $nowDateTime, $user['id']]);
+            ")->execute([$sessionToken, $nowDateTime, $user['id']]);
 
             // Set Auth Session
             $_SESSION['user'] = [
