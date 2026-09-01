@@ -381,6 +381,16 @@ if ($action) {
     case 'upload-smart-sheet': requireActiveShift(); SmartSheetController::upload(); break;
     case 'log-travel-coordinate': AttendanceController::logTravelCoordinate(); break;
     case 'get-travel-logs': AttendanceController::getTravelLogs(); break;
+    case 'app-version':
+        header('Content-Type: application/json');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        echo json_encode([
+            'version' => '1.2.0',
+            'build' => 105,
+            'timestamp' => time(),
+            'features' => 'Native 24/7 Background Geolocation & Ongoing Status Bar Radar'
+        ]);
+        exit;
     case 'download-apk':
         $apkFile = __DIR__ . '/EcoFone-App.apk';
         if (file_exists($apkFile)) {
