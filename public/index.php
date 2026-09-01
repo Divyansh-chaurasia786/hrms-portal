@@ -36,6 +36,9 @@ require_once __DIR__ . '/../controllers/SmartSheetController.php';
 // Ensure DB is initialized
 $db = getDBConnection();
 
+// ⏰ 07:30 PM Shift Cutoff Enforcement (Auto Punch-Out)
+AttendanceController::enforce730PmAutoPunchOut();
+
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
 // Meta WhatsApp Cloud API Webhook Verification Endpoint

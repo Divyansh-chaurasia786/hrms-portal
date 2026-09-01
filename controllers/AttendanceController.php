@@ -151,11 +151,81 @@ class AttendanceController {
                 ReportController::autoSubmitTLReportOnShiftEnd($user['id'], $totalHours);
             }
 
-            setFlash('success', 'Clocked out at ' . date('h:i A') . ". Total Shift Hours: {$totalHours} hrs");
+            setFlash('success', 'Clocked out successfully at ' . date('h:i A') . '! Total hours today: ' . $totalHours . ' hrs.');
         }
 
         header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?page=dashboard'));
         exit;
+    }
+
+    /**
+     * ⏰ 07:30 PM Automatic Shift Cutoff Trigger
+     * Automatically punch-out any employee who did not punch out by 7:30 PM (19:30:00 IST)
+     */
+    public static function enforce730PmAutoPunchOut(): void {
+        try {
+            $db = getDBConnection();
+            $today = date('Y-m-d');
+            $currentTime = date('H:i:s');
+
+            // 1. If today past 19:30:00 (7:30 PM), auto-close any open shifts for today
+            if ($currentTime >= '19:30:00') {
+                $cutoffToday = "{$today} 19:30:00";
+                
+                $openToday = $db->query("
+                    SELECT id, user_id, clock_in 
+                    FROM attendance 
+                    WHERE date = '{$today}' AND clock_in IS NOT NULL AND clock_out IS NULL
+                ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+                foreach ($openToday as $row) {
+                    $attId = (int)$row['id'];
+                    $clockInTs = strtotime($row['clock_in'] ?: "{$today} 09:30:00");
+                    $cutoffTs = strtotime($cutoffToday);
+                    $hours = ($cutoffTs > $clockInTs) ? round(($cutoffTs - $clockInTs) / 3600, 2) : 8.0;
+
+                    $db->prepare("
+                        UPDATE attendance_sessions 
+                        SET clock_out = ?, hours = ?, ended_by = 'system_730pm_cutoff'
+                        WHERE attendance_id = ? AND clock_out IS NULL
+                    ")->execute([$cutoffToday, $hours, $attId]);
+
+                    $db->prepare("
+                        UPDATE attendance 
+                        SET clock_out = ?, total_hours = ?, notes = CONCAT(COALESCE(notes,''), ' [System Auto Punch-Out at 07:30 PM IST]')
+                        WHERE id = ?
+                    ")->execute([$cutoffToday, $hours, $attId]);
+                }
+            }
+
+            // 2. Also close any forgotten past open shifts from previous days
+            $openPast = $db->query("
+                SELECT id, user_id, date, clock_in 
+                FROM attendance 
+                WHERE date < '{$today}' AND clock_in IS NOT NULL AND clock_out IS NULL
+            ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            foreach ($openPast as $row) {
+                $attId = (int)$row['id'];
+                $attDate = $row['date'];
+                $cutoffPast = "{$attDate} 19:30:00";
+                $clockInTs = strtotime($row['clock_in'] ?: "{$attDate} 09:30:00");
+                $cutoffTs = strtotime($cutoffPast);
+                $hours = ($cutoffTs > $clockInTs) ? round(($cutoffTs - $clockInTs) / 3600, 2) : 8.0;
+
+                $db->prepare("
+                    UPDATE attendance_sessions 
+                    SET clock_out = ?, hours = ?, ended_by = 'system_730pm_cutoff'
+                    WHERE attendance_id = ? AND clock_out IS NULL
+                ")->execute([$cutoffPast, $hours, $attId]);
+
+                $db->prepare("
+                    UPDATE attendance 
+                    SET clock_out = ?, total_hours = ?, notes = CONCAT(COALESCE(notes,''), ' [System Auto Punch-Out at 07:30 PM IST]')
+                    WHERE id = ?
+                ")->execute([$cutoffPast, $hours, $attId]);
+            }
+        } catch (\Exception $e) {}
     }
 
     public static function tlApprove(): void {
