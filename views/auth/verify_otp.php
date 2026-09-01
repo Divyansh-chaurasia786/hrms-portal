@@ -57,7 +57,7 @@ $user = $user ?? ['email' => $targetEmail];
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 🔢 OTP STAGE & WHEEL CONTAINER */
+        /* 🔢 OTP STAGE & FIXED 220PX CONTAINER */
         #otpStage {
             position: relative;
             width: 100%;
@@ -70,6 +70,8 @@ $user = $user ?? ['email' => $targetEmail];
 
         #otpWheel {
             position: relative;
+            width: 100%;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -114,7 +116,7 @@ $user = $user ?? ['email' => $targetEmail];
             box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
         }
 
-        /* 🌀 PERFECT 100% CENTERED CIRCULAR ORBIT */
+        /* 🌀 100% MATHEMATICAL CIRCULAR ORBIT */
         @keyframes orbitSpinSmooth {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -124,13 +126,13 @@ $user = $user ?? ['email' => $targetEmail];
             100% { transform: rotate(-360deg); }
         }
         @keyframes centerPulseGlow {
-            0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.7; box-shadow: 0 0 25px rgba(99, 102, 241, 0.4); }
-            50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; box-shadow: 0 0 45px rgba(99, 102, 241, 0.8); }
+            0%, 100% { transform: scale(0.92); opacity: 0.7; box-shadow: 0 0 25px rgba(99, 102, 241, 0.4); }
+            50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 45px rgba(99, 102, 241, 0.8); }
         }
         @keyframes shakeError {
-            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
-            20%, 60% { transform: translate(-50%, -50%) translateX(-12px); }
-            40%, 80% { transform: translate(-50%, -50%) translateX(12px); }
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px); }
+            40%, 80% { transform: translateX(12px); }
         }
         @keyframes successPop {
             0% { transform: scale(0.3); opacity: 0; }
@@ -140,22 +142,19 @@ $user = $user ?? ['email' => $targetEmail];
 
         /* When circular mode is active */
         .is-circular-mode #otpStage {
-            height: 240px;
+            height: 230px;
         }
         .is-circular-mode #otpWheel {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 220px;
-            height: 220px;
-            margin-top: -110px;
-            margin-left: -110px;
+            position: relative !important;
+            width: 220px !important;
+            height: 220px !important;
+            margin: 0 auto !important;
             border-radius: 50%;
             transform-origin: center center;
             animation: orbitSpinSmooth 2.4s linear infinite;
         }
         .is-circular-mode .otp-box-node {
-            position: absolute;
+            position: absolute !important;
             width: 44px;
             height: 44px;
             border-radius: 50% !important;
@@ -175,7 +174,7 @@ $user = $user ?? ['email' => $targetEmail];
             animation: counterRotateDigit 2.4s linear infinite;
         }
 
-        /* Center Shield Orb: Fixed exactly at center of stage */
+        /* Center Shield Orb: Fixed exactly at center of 220px stage */
         #centerVerificationOrb {
             display: none;
             position: absolute;
@@ -183,6 +182,8 @@ $user = $user ?? ['email' => $targetEmail];
             left: 50%;
             width: 68px;
             height: 68px;
+            margin-top: -34px;
+            margin-left: -34px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(15, 23, 42, 0.95) 75%);
             border: 1.5px solid rgba(99, 102, 241, 0.5);
@@ -285,9 +286,9 @@ $user = $user ?? ['email' => $targetEmail];
                 <input type="hidden" id="userEmail" value="<?= htmlspecialchars($user['email'] ?? '') ?>">
                 <input type="hidden" id="userId" value="<?= (int)($userId ?? ($_SESSION['pending_otp_user_id'] ?? ($_COOKIE['pending_otp_uid'] ?? 0))) ?>">
 
-                <!-- Dynamic Morphing Stage (Horizontal Row ➔ Rotating Orbital Circle) -->
+                <!-- Dynamic Morphing Stage -->
                 <div id="otpStage">
-                    <!-- Center Shield Orb: Fixed at exact center -->
+                    <!-- Center Shield: Positioned at exact 50%, 50% with margin -34px -->
                     <div id="centerVerificationOrb">
                         <i data-lucide="shield-check" class="w-8 h-8 text-indigo-300"></i>
                     </div>
@@ -448,16 +449,16 @@ $user = $user ?? ['email' => $targetEmail];
             }
         }
 
-        // 🌀 PERFECT SYMMETRIC RADIAL ALIGNMENT (Center: 110px, 110px, Radius: 75px)
+        // 🌀 PERFECT SYMMETRIC RADIAL ALIGNMENT INSIDE 220PX WHEEL
         function morphToCircle() {
             authCard.classList.add("is-circular-mode");
             submitBtn.disabled = true;
             submitBtnText.innerText = "Verifying in Orbit...";
 
             const wheelSize = 220; // 220px wheel
-            const center = wheelSize / 2; // 110px
-            const radius = 75; // 75px radius
-            const nodeHalf = 22; // 44px / 2
+            const center = 110; // exact center 110px
+            const radius = 75; // exact radius 75px
+            const nodeHalf = 22; // 44px node / 2
 
             inputs.forEach((box, i) => {
                 // Symmetrical 60 degree distribution starting top: -90°
