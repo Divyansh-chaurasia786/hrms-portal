@@ -381,6 +381,22 @@ if ($action) {
     case 'upload-smart-sheet': requireActiveShift(); SmartSheetController::upload(); break;
     case 'log-travel-coordinate': AttendanceController::logTravelCoordinate(); break;
     case 'get-travel-logs': AttendanceController::getTravelLogs(); break;
+    case 'download-apk':
+        $apkFile = __DIR__ . '/EcoFone-App.apk';
+        if (file_exists($apkFile)) {
+            header('Content-Type: application/vnd.android.package-archive');
+            header('Content-Disposition: attachment; filename="EcoFone-App.apk"');
+            header('Content-Length: ' . filesize($apkFile));
+            header('Cache-Control: no-cache, must-revalidate');
+            header('Pragma: no-cache');
+            readfile($apkFile);
+            exit;
+        } else {
+            header('Content-Type: text/html; charset=utf-8');
+            echo "<script>alert('Android APK file is ready. Please build app-debug.apk from the android project or use 1-click install.'); window.location.href='/?page=dashboard';</script>";
+            exit;
+        }
+        break;
     case 'login':
             AuthController::login();
             exit;
