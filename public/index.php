@@ -385,10 +385,10 @@ if ($action) {
         header('Content-Type: application/json');
         header('Cache-Control: no-cache, no-store, must-revalidate');
         echo json_encode([
-            'version' => '1.2.0',
-            'build' => 105,
+            'version' => '1.2.1',
+            'build' => 106,
             'timestamp' => time(),
-            'features' => 'Native 24/7 Background Geolocation & Ongoing Status Bar Radar'
+            'features' => 'Live GPS Radar Telemetry & Background Battery Sync'
         ]);
         exit;
     case 'download-apk':
