@@ -806,12 +806,45 @@ if ($isFieldUser) {
                         window.location.reload(true);
                     }
                 }
-                touchStartY = 0;
-                touchMoveY = 0;
-            });
+        // 🍏 iPhone Safari Guided Add to Home Screen Prompt
+        (function initIosInstallPrompt() {
+            const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+            if (isIos && !isStandalone && !sessionStorage.getItem('ios_install_dismissed')) {
+                setTimeout(() => {
+                    const banner = document.getElementById('iosInstallPromptBanner');
+                    if (banner) banner.classList.remove('hidden');
+                }, 2000);
+            }
         })();
     })();
 </script>
+
+<!-- 🍏 iPhone Guided Installation Banner -->
+<div id="iosInstallPromptBanner" class="hidden fixed bottom-4 left-4 right-4 z-[99999] bg-slate-900/95 backdrop-blur-xl border border-indigo-500/40 text-white p-4 rounded-3xl shadow-2xl space-y-3 animate-in slide-in-from-bottom-5">
+    <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <img src="/logo_icon.png" class="w-10 h-10 rounded-2xl border border-slate-700 shadow-md shrink-0" alt="EcoFone">
+            <div>
+                <h4 class="text-sm font-extrabold text-white">Install EcoFone on iPhone</h4>
+                <p class="text-xs text-slate-300">Run as full-screen app with 1-tap login.</p>
+            </div>
+        </div>
+        <button onclick="document.getElementById('iosInstallPromptBanner').remove(); sessionStorage.setItem('ios_install_dismissed', '1')" class="text-slate-400 hover:text-white p-1">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
+    <div class="p-3 bg-slate-800/80 rounded-2xl text-xs space-y-2 text-slate-200 border border-slate-700/60">
+        <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px]">1</span>
+            <span>Tap the <strong>Share button</strong> <span class="px-1.5 py-0.5 bg-slate-700 rounded text-xs">⬆️</span> at the bottom of Safari</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px]">2</span>
+            <span>Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+        </div>
+    </div>
+</div>
 
 <!-- 🔄 1-Click App Update Modal -->
 <div id="appUpdateModal" class="hidden fixed inset-0 z-[999999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">

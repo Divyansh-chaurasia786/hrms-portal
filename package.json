@@ -9,11 +9,12 @@
     "cap:build": "cap build android"
   },
   "dependencies": {
-    "@capacitor/core": "^6.1.2",
+    "@capacitor-community/background-geolocation": "^1.2.22",
     "@capacitor/android": "^6.1.2",
     "@capacitor/app": "^6.0.2",
+    "@capacitor/core": "^6.1.2",
     "@capacitor/geolocation": "^6.0.2",
-    "@capacitor-community/background-geolocation": "^1.2.22",
+    "@capacitor/ios": "^6.1.2",
     "@capacitor/network": "^6.0.2"
   },
   "devDependencies": {
