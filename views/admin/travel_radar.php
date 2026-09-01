@@ -373,17 +373,49 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     const ROADMAP_URL = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
     const SATELLITE_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
 
+    function ensureLeaflet(cb) {
+        if (typeof L !== 'undefined') {
+            cb();
+            return;
+        }
+        if (!document.getElementById('dynamic-leaflet-css')) {
+            const link = document.createElement('link');
+            link.id = 'dynamic-leaflet-css';
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+        }
+        if (!document.getElementById('dynamic-leaflet-js')) {
+            const script = document.createElement('script');
+            script.id = 'dynamic-leaflet-js';
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = () => cb();
+            document.head.appendChild(script);
+        } else {
+            const checkInt = setInterval(() => {
+                if (typeof L !== 'undefined') {
+                    clearInterval(checkInt);
+                    cb();
+                }
+            }, 100);
+        }
+    }
+
     function initMap() {
         const container = document.getElementById('radarMap');
         if (!container || typeof L === 'undefined') return null;
 
-        if (container._leaflet_id && map) {
-            map.invalidateSize();
-            return map;
+        if (map) {
+            try {
+                map.invalidateSize();
+                return map;
+            } catch(e) {}
         }
 
         try {
-            if (map) map.remove();
+            if (container._leaflet_id) {
+                container._leaflet_id = null;
+            }
             // Real Google Maps Streets Tiles
             map = L.map('radarMap', { zoomControl: true }).setView([26.8467, 80.9462], 13);
             
@@ -393,7 +425,7 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             }).addTo(map);
 
             currentLayerGroup = L.layerGroup().addTo(map);
-            setTimeout(() => map.invalidateSize(), 150);
+            setTimeout(() => { if (map) map.invalidateSize(); }, 200);
             return map;
         } catch(e) {
             console.error('Map init error:', e);
@@ -408,11 +440,12 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
     };
 
     window.renderCleanGoogleMap = function(emp, waypoints, stops, isSilent) {
-        const m = initMap();
-        if (!m || !currentLayerGroup) return;
+        ensureLeaflet(() => {
+            const m = initMap();
+            if (!m || !currentLayerGroup) return;
 
-        currentLayerGroup.clearLayers();
-        m.invalidateSize();
+            currentLayerGroup.clearLayers();
+            m.invalidateSize();
 
         if (!waypoints || waypoints.length === 0) {
             if (emp && emp.punch_in_lat && emp.punch_in_lng && Number(emp.punch_in_lat) !== 0) {
@@ -535,6 +568,7 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             L.marker(latestPoint, { icon: endPin }).addTo(currentLayerGroup)
              .bindPopup(`<strong>🏁 Shift Concluded (Punch Out)</strong><br>Time: ${emp.clock_out}`);
         }
+        });
     };
 
     window.focusMapStop = function(lat, lng, popupHtml) {
