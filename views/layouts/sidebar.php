@@ -236,11 +236,19 @@ $page = $_GET['page'] ?? 'dashboard';
 
         <!-- Quick Punch Status & User Info -->
         <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-            <!-- 📲 Direct 1-Click Install Application Button -->
-            <button type="button" id="installAppNavbarBtn" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-xs font-extrabold transition shadow-md shadow-indigo-500/20 cursor-pointer group hover:scale-[1.02]" title="Install EcoFone Native App">
+            <!-- 📲 Direct 1-Click Install Application Button (Hidden inside Native App / Standalone mode) -->
+            <button type="button" id="installAppNavbarBtn" onclick="triggerPwaInstall()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-xs font-extrabold transition shadow-md shadow-indigo-500/20 cursor-pointer group hover:scale-[1.02]" title="Install EcoFone Native App">
                 <i data-lucide="download" class="w-4 h-4 text-white group-hover:translate-y-0.5 transition-transform"></i>
                 <span>Install EcoFone App</span>
             </button>
+            <script>
+                (function() {
+                    if (window.Capacitor || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                        const b = document.getElementById('installAppNavbarBtn');
+                        if (b) b.remove();
+                    }
+                })();
+            </script>
             <?php
             $todayAtt = AttendanceController::getTodayAttendanceForUser($user['id']);
             $isCurrentlyIn = ($todayAtt && $todayAtt['clock_out'] === null);
@@ -399,29 +407,52 @@ $page = $_GET['page'] ?? 'dashboard';
         <?php endif; ?>
 
         <?php if (!isInActiveShift()): ?>
-            <div class="mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold shrink-0">
-                        <i data-lucide="lock" class="w-4 h-4"></i>
+            <?php 
+            $userTodayShift = AttendanceController::getTodayAttendanceForUser((int)$user['id']);
+            $hasShiftEndedToday = ($userTodayShift && !empty($userTodayShift['clock_out']));
+            ?>
+            <?php if ($hasShiftEndedToday): ?>
+                <div class="mb-5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/90 text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold uppercase tracking-wide text-emerald-900 text-[11px]">Shift Completed For Today</span>
+                            <p class="text-[11px] text-emerald-700 mt-0.5">Clocked out at <strong><?= formatTime($userTodayShift['clock_out']) ?></strong>. Total logged time today: <strong><?= number_format((float)($userTodayShift['total_hours'] ?? 0), 2) ?> hrs</strong>. Great work!</p>
+                        </div>
                     </div>
-                    <div>
-                        <span class="font-bold uppercase tracking-wide text-amber-800 text-[11px]">Workspace in Read-Only Mode</span>
-                        <p class="text-[11px] text-amber-700 mt-0.5">You have not punched in yet today. Please <strong>Punch In (Top Right Button)</strong> to enable onboarding, employee profile editing, and all operations.</p>
+                    <div class="shrink-0 flex items-center gap-2">
+                        <a href="?page=employee-attendance" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5"></i> View Logs
+                        </a>
                     </div>
                 </div>
-                <div class="shrink-0 flex items-center gap-2">
-                    <?php if (($user['role'] ?? '') === 'admin'): ?>
-                        <a href="?page=admin-leaves" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
-                            <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i> Review Leave Queue
-                        </a>
-                    <?php else: ?>
-                        <a href="?page=employee-wfh" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
-                            <i data-lucide="home" class="w-3.5 h-3.5"></i> Apply for WFH
-                        </a>
-                        <a href="?page=employee-leaves" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
-                            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Apply for Leave
-                        </a>
-                    <?php endif; ?>
+            <?php else: ?>
+                <div class="mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold shrink-0">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold uppercase tracking-wide text-amber-800 text-[11px]">Workspace in Read-Only Mode</span>
+                            <p class="text-[11px] text-amber-700 mt-0.5">You have not punched in yet today. Please <strong>Punch In (Top Right Button)</strong> to enable onboarding, employee profile editing, and all operations.</p>
+                        </div>
+                    </div>
+                    <div class="shrink-0 flex items-center gap-2">
+                        <?php if (($user['role'] ?? '') === 'admin'): ?>
+                            <a href="?page=admin-leaves" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                                <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i> Review Leave Queue
+                            </a>
+                        <?php else: ?>
+                            <a href="?page=employee-wfh" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                                <i data-lucide="home" class="w-3.5 h-3.5"></i> Apply for WFH
+                            </a>
+                            <a href="?page=employee-leaves" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-xs transition">
+                                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Apply for Leave
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
         <?php endif; ?>

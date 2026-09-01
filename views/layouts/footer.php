@@ -184,21 +184,6 @@ if ($isFieldUser) {
         navigator.serviceWorker.controller.postMessage({ type: 'START_BACKGROUND_TRACKING' });
     }
 
-    // 🔒 2. Prevent User from Closing / Removing Application Until Punch Out
-    window.addEventListener('beforeunload', function(e) {
-        e.preventDefault();
-        e.returnValue = '⚠️ EcoFone App Alert: Active Shift in progress! Please punch out before closing or removing the application.';
-        return e.returnValue;
-    });
-
-    // 🔒 3. Prevent Back Button Escape During Active Shift
-    try {
-        history.pushState(null, document.title, location.href);
-        window.addEventListener('popstate', function() {
-            history.pushState(null, document.title, location.href);
-        });
-    } catch(e) {}
-
     // 4. Battery Telemetry Monitor
     if (navigator.getBattery) {
         navigator.getBattery().then(battery => {

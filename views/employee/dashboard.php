@@ -234,22 +234,22 @@ $usedLeaves = $usedLeavesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
             <!-- Right Side: Shift & Web Punch Command Center (5 cols) -->
             <div class="lg:col-span-5 bg-slate-50/90 rounded-2xl p-4 sm:p-5 border border-slate-200/80 flex flex-col justify-between space-y-3.5">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5 text-xs text-slate-600 font-semibold truncate max-w-[220px]">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-600 font-semibold min-w-0">
                         <?php if ($isFieldStaff): ?>
                             <i data-lucide="navigation" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
-                            <span class="text-emerald-800 font-bold">🚗 Field Staff (GPS Everywhere)</span>
+                            <span class="text-emerald-800 font-bold text-xs truncate">🚗 Field Staff (GPS Active)</span>
                         <?php elseif (($user['work_mode'] ?? '') === 'wfh'): ?>
                             <i data-lucide="home" class="w-3.5 h-3.5 text-purple-600 shrink-0"></i>
-                            <span class="text-purple-800 font-bold">🏠 Remote / WFH (GPS Everywhere)</span>
+                            <span class="text-purple-800 font-bold text-xs truncate">🏠 Remote / WFH</span>
                         <?php else: ?>
                             <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
-                            <span class="truncate"><?= $empOfficeLocation ? htmlspecialchars($empOfficeLocation['name']) : 'Office' ?></span>
+                            <span class="truncate text-xs"><?= $empOfficeLocation ? htmlspecialchars($empOfficeLocation['name']) : 'Office' ?></span>
                         <?php endif; ?>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right shrink-0">
                         <span class="text-xs font-mono font-bold text-slate-800" id="liveClock"><?= date('h:i:s A') ?></span>
-                        <span class="text-[10px] text-slate-400 block -mt-0.5">IST (UTC+5:30)</span>
+                        <span class="text-[9px] text-slate-400 block -mt-0.5">IST (UTC+5:30)</span>
                     </div>
                 </div>
 
