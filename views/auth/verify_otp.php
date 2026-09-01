@@ -23,6 +23,30 @@ $user = $user ?? ['email' => $targetEmail];
         .otp-box:focus {
             transform: translateY(-2px);
         }
+        .brand-logo-wrap {
+            width: 60px !important;
+            height: 60px !important;
+            max-width: 60px !important;
+            max-height: 60px !important;
+            min-width: 60px !important;
+            min-height: 60px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 16px !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            padding: 6px !important;
+            box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.3) !important;
+        }
+        .brand-logo-img {
+            width: 48px !important;
+            height: 48px !important;
+            max-width: 48px !important;
+            max-height: 48px !important;
+            object-fit: contain !important;
+            display: block !important;
+        }
     </style>
 </head>
 <body class="min-h-full flex flex-col items-center justify-center py-6 px-4 sm:px-6 relative overflow-x-hidden overflow-y-auto bg-slate-950 antialiased selection:bg-indigo-500 selection:text-white">
@@ -37,8 +61,8 @@ $user = $user ?? ['email' => $targetEmail];
         <!-- Brand Header -->
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center mb-3">
-                <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 shadow-xl shadow-orange-500/20 ring-4 ring-white/20 overflow-hidden shrink-0" style="width: 64px; height: 64px; max-width: 64px; max-height: 64px;">
-                    <img src="/logo_icon.png?v=3" alt="EcoFone App Logo" class="w-full h-full object-contain" style="max-width: 100%; max-height: 100%;">
+                <div class="brand-logo-wrap ring-4 ring-white/20">
+                    <img src="/logo_icon.png?v=<?= time() ?>" alt="EcoFone App Logo" width="48" height="48" class="brand-logo-img">
                 </div>
             </div>
             <h1 class="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-1.5">
