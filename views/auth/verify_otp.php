@@ -17,15 +17,15 @@ $user = $user ?? ['email' => $targetEmail];
     <style>
         body { 
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: radial-gradient(circle at 50% 15%, #111827 0%, #030712 100%);
+            background: radial-gradient(circle at 50% 15%, #0f172a 0%, #030712 100%);
             min-height: 100vh;
         }
         .font-mono-code { font-family: 'JetBrains Mono', monospace; }
 
-        /* 🌌 Ambient Floating Background Mesh */
+        /* 🌌 Ambient Floating Mesh */
         @keyframes floatMesh {
-            0%, 100% { transform: scale(1) translateY(0); opacity: 0.3; }
-            50% { transform: scale(1.15) translateY(-25px); opacity: 0.6; }
+            0%, 100% { transform: scale(1) translateY(0); opacity: 0.35; }
+            50% { transform: scale(1.15) translateY(-20px); opacity: 0.65; }
         }
         .ambient-mesh {
             position: fixed;
@@ -35,51 +35,53 @@ $user = $user ?? ['email' => $targetEmail];
         }
         .ambient-mesh-1 {
             position: absolute;
-            top: -100px;
+            top: -120px;
             left: 50%;
             transform: translateX(-50%);
-            width: 500px;
-            height: 500px;
+            width: 520px;
+            height: 520px;
             background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(236, 72, 153, 0.15) 50%, transparent 70%);
             border-radius: 50%;
-            filter: blur(90px);
+            filter: blur(100px);
             animation: floatMesh 8s ease-in-out infinite;
         }
 
         /* 🎴 Glassmorphic Main Card */
         .auth-glass-card {
             background: rgba(17, 24, 39, 0.75);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 32px;
-            box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.9), 0 0 40px -10px rgba(99, 102, 241, 0.2);
+            box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.95), 0 0 40px -10px rgba(99, 102, 241, 0.25);
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 🔢 OTP INPUT BOXES (HORIZONTAL INITIAL STATE) */
+        /* 🔢 OTP STAGE & WHEEL CONTAINER */
         #otpStage {
             position: relative;
             min-height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: min-height 0.4s ease;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        #otpBoxContainer {
+        #otpWheel {
             position: relative;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
+        /* 🔘 INDIVIDUAL DIGIT NODES */
         .otp-box-node {
             position: relative;
-            width: 48px;
-            height: 60px;
+            width: 46px;
+            height: 58px;
             background: rgba(3, 7, 18, 0.85);
             border: 1.5px solid rgba(255, 255, 255, 0.12);
             border-radius: 16px;
@@ -89,13 +91,13 @@ $user = $user ?? ['email' => $targetEmail];
             text-align: center;
             outline: none;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
             z-index: 10;
         }
         @media (min-width: 480px) {
             .otp-box-node {
-                width: 52px;
-                height: 64px;
+                width: 50px;
+                height: 62px;
                 font-size: 26px;
             }
         }
@@ -103,7 +105,7 @@ $user = $user ?? ['email' => $targetEmail];
             border-color: #6366f1;
             background: rgba(30, 41, 59, 0.95);
             box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.5);
-            transform: translateY(-4px) scale(1.06);
+            transform: translateY(-3px) scale(1.06);
         }
         .otp-box-node.filled {
             border-color: #a855f7;
@@ -112,35 +114,39 @@ $user = $user ?? ['email' => $targetEmail];
             box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
         }
 
-        /* 🌀 2. CIRCULAR ORBITING STATE (TRIGGERED ON 6TH DIGIT) */
-        @keyframes orbitSpinContinuous {
+        /* 🌀 PERFECT CIRCULAR ORBITING TRANSFORMS */
+        @keyframes orbitSpinSmooth {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        @keyframes centerPulse {
-            0%, 100% { transform: scale(0.9); opacity: 0.5; }
-            50% { transform: scale(1.15); opacity: 1; }
+        @keyframes counterRotateDigit {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(-360deg); }
+        }
+        @keyframes centerRadarPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.5; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.9; }
         }
         @keyframes shakeError {
             0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-12px); }
-            40%, 80% { transform: translateX(12px); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
         }
         @keyframes successPop {
             0% { transform: scale(0.3); opacity: 0; }
-            70% { transform: scale(1.2); }
+            70% { transform: scale(1.15); }
             100% { transform: scale(1); opacity: 1; }
         }
 
         /* When circular mode is active */
         .is-circular-mode #otpStage {
-            min-height: 220px;
+            min-height: 230px;
         }
-        .is-circular-mode #otpBoxContainer {
-            width: 200px;
-            height: 200px;
+        .is-circular-mode #otpWheel {
+            width: 210px;
+            height: 210px;
             border-radius: 50%;
-            animation: orbitSpinContinuous 1.6s linear infinite;
+            animation: orbitSpinSmooth 2.2s linear infinite;
         }
         .is-circular-mode .otp-box-node {
             position: absolute;
@@ -148,35 +154,38 @@ $user = $user ?? ['email' => $targetEmail];
             height: 44px;
             border-radius: 50% !important;
             font-size: 20px;
-            line-height: 44px;
             pointer-events: none;
             background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
             border: 2px solid #ffffff;
-            box-shadow: 0 0 25px rgba(236, 72, 153, 0.7);
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.7);
             color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+            /* Keep digits upright while circle spins */
+            animation: counterRotateDigit 2.2s linear infinite;
         }
 
-        /* Center Orb that appears during circular verification */
+        /* Center Orb that stays stationary in the middle */
         #centerVerificationOrb {
             display: none;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
+            width: 82px;
+            height: 82px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, rgba(15, 23, 42, 0.95) 70%);
-            border: 2px solid rgba(99, 102, 241, 0.6);
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, rgba(15, 23, 42, 0.95) 75%);
+            border: 1.5px solid rgba(99, 102, 241, 0.5);
             align-items: center;
             justify-content: center;
             z-index: 5;
-            box-shadow: 0 0 35px rgba(99, 102, 241, 0.5);
-            animation: centerPulse 1.5s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.45);
+            animation: centerRadarPulse 1.8s ease-in-out infinite;
         }
         .is-circular-mode #centerVerificationOrb {
             display: flex;
@@ -195,10 +204,11 @@ $user = $user ?? ['email' => $targetEmail];
         }
 
         /* State: VERIFIED (SUCCESS) */
-        .is-verified #otpBoxContainer {
+        .is-verified #otpWheel {
             animation: none !important;
             opacity: 0;
             transform: scale(0.2) !important;
+            transition: all 0.4s ease;
         }
         .is-verified #centerVerificationOrb {
             display: none;
@@ -209,8 +219,8 @@ $user = $user ?? ['email' => $targetEmail];
         }
 
         /* State: WRONG OTP (FAILED) */
-        .is-failed #otpBoxContainer {
-            animation: shakeError 0.5s ease-in-out !important;
+        .is-failed #otpWheel {
+            animation: shakeError 0.45s ease-in-out !important;
         }
         .is-failed .otp-box-node {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
@@ -219,7 +229,7 @@ $user = $user ?? ['email' => $targetEmail];
         }
         .is-failed #centerVerificationOrb {
             border-color: #ef4444 !important;
-            background: rgba(239, 68, 68, 0.2) !important;
+            background: rgba(239, 68, 68, 0.25) !important;
         }
 
         /* 🚀 Action Button */
@@ -264,9 +274,6 @@ $user = $user ?? ['email' => $targetEmail];
 
         <!-- 🎴 Main Interactive Card -->
         <div class="auth-glass-card p-6 sm:p-8 space-y-6" id="authCard">
-            <!-- Dynamic Status Banner -->
-            <div id="statusBanner" class="hidden p-3.5 rounded-2xl text-xs font-bold text-center transition-all"></div>
-
             <!-- OTP Form & Stage -->
             <form id="otpForm" class="space-y-6" onsubmit="return false;">
                 <input type="hidden" id="userEmail" value="<?= htmlspecialchars($user['email'] ?? '') ?>">
@@ -276,7 +283,7 @@ $user = $user ?? ['email' => $targetEmail];
                 <div id="otpStage">
                     <!-- Center Radar Scanner (Active during circular rotation) -->
                     <div id="centerVerificationOrb">
-                        <i data-lucide="shield-check" class="w-8 h-8 text-indigo-400 animate-pulse"></i>
+                        <i data-lucide="shield-check" class="w-8 h-8 text-indigo-300 animate-pulse"></i>
                     </div>
 
                     <!-- Outcome Result Badge -->
@@ -293,13 +300,13 @@ $user = $user ?? ['email' => $targetEmail];
                             <div class="w-16 h-16 mx-auto rounded-full bg-rose-500/20 border-2 border-rose-400 text-rose-400 flex items-center justify-center shadow-2xl shadow-rose-500/50">
                                 <i data-lucide="x-circle" class="w-10 h-10"></i>
                             </div>
-                            <h2 class="text-xl font-black text-rose-400">WRONG OTP / UNVERIFIED</h2>
+                            <h2 class="text-xl font-black text-rose-400">WRONG OTP</h2>
                             <p class="text-xs text-rose-300" id="failedReasonText">Please check your email code and try again.</p>
                         </div>
                     </div>
 
-                    <!-- The 6 Boxes that move in circle -->
-                    <div id="otpBoxContainer">
+                    <!-- The 6 Boxes that move in perfect circular symmetry -->
+                    <div id="otpWheel">
                         <?php for ($i = 0; $i < 6; $i++): ?>
                             <input 
                                 type="text" 
@@ -366,12 +373,10 @@ $user = $user ?? ['email' => $targetEmail];
 
         const authCard = document.getElementById("authCard");
         const inputs = document.querySelectorAll(".otp-box-node");
-        const otpBoxContainer = document.getElementById("otpBoxContainer");
         const userEmail = document.getElementById("userEmail").value;
         const userId = document.getElementById("userId").value;
         const submitBtn = document.getElementById("submitBtn");
         const submitBtnText = document.getElementById("submitBtnText");
-        const statusBanner = document.getElementById("statusBanner");
         const successContent = document.getElementById("successContent");
         const failedContent = document.getElementById("failedContent");
         const welcomeUserText = document.getElementById("welcomeUserText");
@@ -437,22 +442,26 @@ $user = $user ?? ['email' => $targetEmail];
             }
         }
 
-        // 🌀 THE SIGNATURE MOTION: MORPH HORIZONTAL BOXES INTO SPINNING CIRCLE
+        // 🌀 PERFECT SYMMETRIC CIRCULAR MORPH
         function morphToCircle() {
             authCard.classList.add("is-circular-mode");
             submitBtn.disabled = true;
-            submitBtnText.innerText = "Verifying in Circular Orbit...";
+            submitBtnText.innerText = "Verifying in Orbit...";
 
-            const radius = 68; // 68px radius
-            const total = inputs.length; // 6
-            const center = 100; // center of 200x200 box
+            const radius = 72; // Exactly 72px radius
+            const total = 6;
+            const centerX = 50; // 50%
+            const centerY = 50; // 50%
 
             inputs.forEach((box, i) => {
-                const angle = (i * (360 / total)) * (Math.PI / 180);
-                const x = center + radius * Math.cos(angle) - 22; // 22 is half of 44px
-                const y = center + radius * Math.sin(angle) - 22;
-                box.style.left = `${x}px`;
-                box.style.top = `${y}px`;
+                // Starting from top: -90 degrees
+                const angleDeg = -90 + (i * (360 / total));
+                const angleRad = angleDeg * (Math.PI / 180);
+                const x = radius * Math.cos(angleRad);
+                const y = radius * Math.sin(angleRad);
+                
+                box.style.left = `calc(50% + ${x}px)`;
+                box.style.top = `calc(50% + ${y}px)`;
             });
         }
 
