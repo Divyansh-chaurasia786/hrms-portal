@@ -50,6 +50,12 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+@keyframes livePulseRipple {
+    0% { transform: scale(0.5); opacity: 0.9; }
+    100% { transform: scale(1.8); opacity: 0; }
+}
+</style>
 <script>
     window.fieldEmployeesRadarData = <?= json_encode($fieldEmployees, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 </script>
@@ -545,18 +551,28 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             });
         }
 
-        // 4. Live / Latest Head Marker 🚗 (Clean Google Navigation Arrow)
+        // 4. Live / Latest Head Marker 🚗 (Clean Google Navigation Arrow with Pulsing Radar Halo)
         const latestPoint = latLngs[latLngs.length - 1];
         const rawSpd = Number(emp ? emp.current_speed || 0 : 0);
         const speedVal = rawSpd >= 3.0 ? rawSpd.toFixed(0) : '0';
         const livePin = L.divIcon({
-            html: `<div style="position:relative;width:28px;height:28px;background:#2563eb;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 10px rgba(37,99,235,0.6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🚗</div>`,
+            html: `
+            <div style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+                <div style="position:absolute;width:40px;height:40px;background:rgba(37,99,235,0.3);border:2px solid #2563eb;border-radius:50%;animation:livePulseRipple 1.6s infinite ease-out;"></div>
+                <div style="position:relative;width:28px;height:28px;background:#2563eb;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 10px rgba(37,99,235,0.6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;z-index:2;">🚗</div>
+            </div>`,
             className: 'clean-live-pin',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
         });
         L.marker(latestPoint, { icon: livePin }).addTo(currentLayerGroup)
          .bindPopup(`<strong>🚗 ${emp ? emp.name : 'Staff'}</strong><br>Speed: <strong>${speedVal} km/h</strong><br>Status: ${emp && emp.clock_in && !emp.clock_out ? '🟢 Active On Duty' : 'Shift Concluded'}`);
+
+        // Smooth follow mode: pan map to new coordinates when moving
+        if (isSilent && window._lastSeenPt && (window._lastSeenPt[0] !== latestPoint[0] || window._lastSeenPt[1] !== latestPoint[1])) {
+            m.panTo(latestPoint, { animate: true, duration: 0.8 });
+        }
+        window._lastSeenPt = latestPoint;
 
         // 5. Punch Out Marker 🏁 if shift concluded
         if (emp && emp.clock_out && latLngs.length > 1) {

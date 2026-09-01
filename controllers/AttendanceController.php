@@ -543,9 +543,9 @@ class AttendanceController {
                     }
                 }
 
-                // GPS Deadband / Noise Filter: Only add point to route trail if moved >= 20 meters from last added point
+                // GPS Deadband / Noise Filter: Add point to route trail if moved >= 5 meters from last added point
                 $distFromLastWp = $lastAddedWp ? (int)self::calculateDistance($lat, $lng, $lastAddedWp['lat'], $lastAddedWp['lng']) : 999;
-                if ($distFromLastWp >= 20) {
+                if ($distFromLastWp >= 5) {
                     $wp = [
                         'lat' => $lat,
                         'lng' => $lng,
