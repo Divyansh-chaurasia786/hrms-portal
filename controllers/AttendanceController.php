@@ -375,10 +375,18 @@ class AttendanceController {
 
     public static function logTravelCoordinate(): void {
         $user = authUser();
+        if (!$user || empty($user['id'])) {
+            header('Content-Type: application/json');
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $userId = (int)$user['id'];
         $db = getDBConnection();
         $today = date('Y-m-d');
 
-        $activeAtt = $db->query("SELECT id FROM attendance WHERE user_id = {$user['id']} AND date = '{$today}' AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $activeAtt = $db->query("SELECT id FROM attendance WHERE user_id = {$userId} AND date = '{$today}' AND clock_out IS NULL ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
         if (!$activeAtt) {
             echo json_encode(['success' => false, 'message' => 'No active shift.']);
             exit;
