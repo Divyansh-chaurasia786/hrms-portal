@@ -253,7 +253,13 @@ if ($isFieldUser) {
         const secs = String(now.getSeconds()).padStart(2, '0');
         const localTimeStr = `${year}-${month}-${day} ${hours}:${mins}:${secs}`;
 
-        const speedKmh = (speed !== null && speed >= 0) ? (speed * 3.6).toFixed(1) : 0;
+        let speedKmh = (speed !== null && speed >= 0) ? (speed * 3.6) : 0;
+        // Zero out GPS noise if speed is below 3 km/h
+        if (speedKmh < 3.0) {
+            speedKmh = 0;
+        }
+        speedKmh = Number(speedKmh.toFixed(1));
+
         const pingData = {
             attendance_id: attId,
             latitude: lat,
@@ -276,10 +282,21 @@ if ($isFieldUser) {
         })
         .then(() => {
             const timeEl = document.getElementById('liveGpsSyncTime');
+            const now = new Date();
+            const formattedTime = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
             if (timeEl) {
-                const now = new Date();
-                timeEl.innerText = 'Live • ' + now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                timeEl.innerText = 'Live • ' + formattedTime;
             }
+
+            // Update persistent status bar notification (Swiggy/Zomato style)
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'UPDATE_LIVE_STATUS',
+                    battery: currentBatteryLevel,
+                    time: now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' })
+                });
+            }
+
             flushOfflineQueue();
         })
         .catch(() => {

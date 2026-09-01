@@ -405,10 +405,19 @@ class AttendanceController {
                 $distMeters = (int)self::calculateDistance($lat, $lng, (float)$prev['latitude'], (float)$prev['longitude']);
             }
 
+            // GPS Deadband & Stationary Noise Filter:
+            // If moved less than 8 meters or speed is below 3 km/h, phone is stationary in pocket/desk
+            if ($distMeters < 8) {
+                $distMeters = 0;
+            }
+            if ($speed < 3.0) {
+                $speed = 0.0;
+            }
+
             $now = date('Y-m-d H:i:s');
             // Always insert new ping to ensure real-time chronology and instant radar heartbeats
             $stmt = $db->prepare("INSERT INTO employee_travel_logs (attendance_id, user_id, latitude, longitude, speed, distance_meters, battery_level, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$activeAtt['id'], $user['id'], $lat, $lng, $speed, $distMeters, $batteryLevel, $now]);
+            $stmt->execute([$activeAtt['id'], $userId, $lat, $lng, $speed, $distMeters, $batteryLevel, $now]);
 
             echo json_encode(['success' => true, 'dist' => $distMeters, 'speed' => $speed, 'time' => $now]);
             exit;
@@ -453,6 +462,10 @@ class AttendanceController {
             echo json_encode(['success' => false, 'message' => 'Employee not found']);
             exit;
         }
+
+        $rawSpeed = (float)($emp['current_speed'] ?? 0);
+        $emp['current_speed'] = ($rawSpeed >= 3.0) ? round($rawSpeed, 1) : 0;
+        $emp['total_distance_km'] = round(((float)$emp['total_distance_meters']) / 1000, 2);
 
                 // 2. Fetch Raw Waypoints strictly for $date (Ordered chronologically)
         $logs = $db->query("

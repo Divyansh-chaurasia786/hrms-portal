@@ -36,18 +36,21 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Manage Ongoing Persistent Notification for Background Shift Keep-Alive
+// Manage Ongoing Persistent Notification for Background Shift Keep-Alive (Swiggy/Zomato Style)
 self.addEventListener('message', (event) => {
     if (!event.data) return;
-    if (event.data.type === 'START_BACKGROUND_TRACKING') {
-        self.registration.showNotification('🟢 EcoFone App • Field Shift Active', {
-            body: 'Live GPS route tracking is running in the background until you punch out.',
+    if (event.data.type === 'START_BACKGROUND_TRACKING' || event.data.type === 'UPDATE_LIVE_STATUS') {
+        const time = event.data.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const batt = event.data.battery ? ` • 🔋 ${event.data.battery}%` : '';
+        self.registration.showNotification('🟢 EcoFone Live Radar Active', {
+            body: `📍 On-Duty Live GPS Active • ${time}${batt} • Background Tracking`,
             icon: '/icon-192.png',
             badge: '/icon-192.png',
             tag: 'ecofone_shift_active',
             ongoing: true,
             requireInteraction: true,
             silent: true,
+            renotify: false,
             data: { url: '/?page=dashboard' }
         }).catch(() => {});
     } else if (event.data.type === 'STOP_BACKGROUND_TRACKING') {

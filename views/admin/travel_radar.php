@@ -547,7 +547,8 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
         // 4. Live / Latest Head Marker 🚗 (Clean Google Navigation Arrow)
         const latestPoint = latLngs[latLngs.length - 1];
-        const speedVal = Number(emp ? emp.current_speed || 0 : 0).toFixed(0);
+        const rawSpd = Number(emp ? emp.current_speed || 0 : 0);
+        const speedVal = rawSpd >= 3.0 ? rawSpd.toFixed(0) : '0';
         const livePin = L.divIcon({
             html: `<div style="position:relative;width:28px;height:28px;background:#2563eb;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 10px rgba(37,99,235,0.6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🚗</div>`,
             className: 'clean-live-pin',
