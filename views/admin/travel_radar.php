@@ -98,10 +98,10 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
         // 1s ultra-fast live polling — real-time 1-second GPS tracking
         this.liveTimer = setInterval(() => {
-            if (this.selectedUserId && this.analytics.is_active_now) {
+            if (this.selectedUserId && (this.analytics.is_active_now || this.selectedDate === '<?= date('Y-m-d') ?>')) {
                 this.loadStaffRoute(this.selectedUserId, this.selectedDate, true);
             }
-        }, 1000);
+        }, 2000);
     },
 
     selectEmployee(emp) {
@@ -237,29 +237,29 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
             <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5 relative">
                 
                 <!-- Map Top Bar: Selected Staff Summary & Map Style Switcher -->
-                <div class="flex items-center justify-between flex-wrap gap-2 px-1">
+                <div class="flex items-center justify-between flex-wrap gap-2.5 px-1 pb-1 border-b border-slate-100">
                     <template x-if="selectedEmp">
-                        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                            <span class="font-extrabold text-xs sm:text-sm text-slate-900" x-text="selectedEmp.name"></span>
-                            <span class="text-[10px] text-slate-500 font-mono" x-text="'(' + (selectedEmp.emp_id || '') + ')'"></span>
-                            <span class="text-xs text-slate-300 hidden xs:inline">•</span>
-                            <span class="text-xs font-bold text-blue-700 font-mono" x-text="analytics.total_distance_km + ' km'"></span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-extrabold text-sm sm:text-base text-slate-900" x-text="selectedEmp.name"></span>
+                            <span class="text-xs text-slate-500 font-mono" x-text="'(' + (selectedEmp.emp_id || '') + ')'"></span>
                             
-                            <!-- 🔋 Live Battery & Last Seen Status Telemetry -->
-                            <template x-if="analytics.latest_battery_level !== null && analytics.latest_battery_level !== undefined">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 shadow-2xs"
-                                      :class="analytics.latest_battery_level > 20 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-300 animate-pulse'">
-                                    <span x-text="analytics.latest_battery_level > 20 ? '🔋' : '🪫'"></span>
-                                    <span x-text="analytics.latest_battery_level + '%'"></span>
-                                </span>
-                            </template>
+                            <!-- 📏 Total Distance -->
+                            <span class="px-2.5 py-1 rounded-xl text-xs font-black text-blue-700 bg-blue-50 border border-blue-200 font-mono shadow-2xs">
+                                <span x-text="(analytics.total_distance_km !== undefined ? analytics.total_distance_km : (Number(selectedEmp.total_distance_meters || 0) / 1000).toFixed(2)) + ' km'"></span>
+                            </span>
 
-                            <template x-if="analytics.last_seen_at">
-                                <span class="text-[10px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200 inline-flex items-center gap-1 shadow-2xs">
-                                    <span class="w-1.5 h-1.5 rounded-full inline-block" :class="(analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 30) ? 'bg-emerald-500 animate-ping' : ((analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 120) ? 'bg-emerald-500' : 'bg-amber-500')"></span>
-                                    <span x-text="analytics.last_seen_at"></span>
-                                </span>
-                            </template>
+                            <!-- 🔋 Live Phone Battery -->
+                            <span class="px-2.5 py-1 rounded-xl text-xs font-black border flex items-center gap-1.5 shadow-2xs"
+                                  :class="(analytics.latest_battery_level !== null && analytics.latest_battery_level !== undefined ? analytics.latest_battery_level : (selectedEmp.battery_level || 100)) > 20 ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-rose-50 text-rose-800 border-rose-300 animate-pulse'">
+                                <span x-text="(analytics.latest_battery_level !== null && analytics.latest_battery_level !== undefined ? analytics.latest_battery_level : (selectedEmp.battery_level || 100)) > 20 ? '🔋' : '🪫'"></span>
+                                <span x-text="(analytics.latest_battery_level !== null && analytics.latest_battery_level !== undefined ? analytics.latest_battery_level : (selectedEmp.battery_level || '--')) + '%'"></span>
+                            </span>
+
+                            <!-- ⏱️ Live Last Ping Timing -->
+                            <span class="px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-slate-100 text-slate-800 border border-slate-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                <span class="w-2 h-2 rounded-full inline-block" :class="(analytics.last_seen_seconds_ago !== null && analytics.last_seen_seconds_ago < 60) ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'"></span>
+                                <span x-text="analytics.last_seen_at ? ('Live • ' + analytics.last_seen_at) : (selectedEmp.clock_in ? ('In: ' + selectedEmp.clock_in) : 'Awaiting GPS ping...')"></span>
+                            </span>
                         </div>
                     </template>
 
