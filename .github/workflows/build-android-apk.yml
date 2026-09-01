@@ -18,14 +18,13 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+          cache: 'gradle'
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install Dependencies
         run: |
@@ -36,10 +35,10 @@ jobs:
           npx cap sync android
 
       - name: Build Android Debug APK
+        working-directory: ./android
         run: |
-          cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
