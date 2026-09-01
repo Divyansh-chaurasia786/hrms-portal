@@ -446,13 +446,12 @@ class AttendanceController {
             exit;
         }
 
-                // 2. Fetch Raw Waypoints for $date (including Battery & Offline flags)
-        $attIdFilter = !empty($emp['attendance_id']) ? "OR attendance_id = " . (int)$emp['attendance_id'] : "";
+                // 2. Fetch Raw Waypoints strictly for $date (Ordered chronologically)
         $logs = $db->query("
             SELECT id, user_id, latitude, longitude, speed, battery_level, is_offline_sync, distance_meters, recorded_at 
             FROM employee_travel_logs 
-            WHERE (user_id = {$userId} AND DATE(recorded_at) = '{$date}') {$attIdFilter}
-            ORDER BY id ASC
+            WHERE user_id = {$userId} AND DATE(recorded_at) = '{$date}'
+            ORDER BY recorded_at ASC, id ASC
         ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         // 3. Compute Clean Journey Trail & Grouped Stoppages (Filtered for GPS drift/noise)
@@ -463,7 +462,7 @@ class AttendanceController {
         $cleanWaypoints = [];
         $lastAddedWp = null;
 
-        // If punch in coordinates exist, ensure first anchor point
+        // If punch in coordinates exist on THIS selected date, ensure first anchor point
         if (!empty($emp['punch_in_lat']) && !empty($emp['punch_in_lng']) && (float)$emp['punch_in_lat'] != 0) {
             $punchInWp = [
                 'lat' => (float)$emp['punch_in_lat'],
@@ -506,11 +505,11 @@ class AttendanceController {
                 $cleanWaypoints[] = $firstWp;
                 $lastAddedWp = $firstWp;
             } else {
-                // Identify stoppage if stationary for >= 3 minutes
+                // Identify stoppage if stationary for between 3 minutes and 8 hours
                 if ($lastPt) {
                     $distDelta = (int)self::calculateDistance($lat, $lng, (float)$lastPt['latitude'], (float)$lastPt['longitude']);
                     $timeDeltaSeconds = strtotime($l['recorded_at']) - strtotime($lastPt['recorded_at']);
-                    if ($distDelta < 25 && $timeDeltaSeconds >= 180) {
+                    if ($distDelta < 25 && $timeDeltaSeconds >= 180 && $timeDeltaSeconds <= 28800) {
                         $rawStops[] = [
                             'lat' => $lat,
                             'lng' => $lng,
