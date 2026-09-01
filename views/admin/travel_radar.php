@@ -415,7 +415,20 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
         m.invalidateSize();
 
         if (!waypoints || waypoints.length === 0) {
-            if (!isSilent) m.setView([26.8467, 80.9462], 13);
+            if (emp && emp.punch_in_lat && emp.punch_in_lng && Number(emp.punch_in_lat) !== 0) {
+                const pt = [Number(emp.punch_in_lat), Number(emp.punch_in_lng)];
+                if (!isSilent) m.setView(pt, 17);
+                const fallbackPin = L.divIcon({
+                    html: `<div style="position:relative;width:28px;height:28px;background:#2563eb;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 10px rgba(37,99,235,0.6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">🚗</div>`,
+                    className: 'clean-live-pin',
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                L.marker(pt, { icon: fallbackPin }).addTo(currentLayerGroup)
+                 .bindPopup(`<strong>🚗 ${emp.name}</strong><br>Status: 🟢 Active On Duty`);
+            } else {
+                if (!isSilent) m.setView([26.8467, 80.9462], 13);
+            }
             return;
         }
 
@@ -467,11 +480,8 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
                 }
             }
         } else {
-            if (latLngs.length > 0) {
-                if (!isSilent || !m._hasInitiallyCentered) {
-                    m.setView(latLngs[latLngs.length - 1], 17);
-                    m._hasInitiallyCentered = true;
-                }
+            if (latLngs.length > 0 && !isSilent) {
+                m.setView(latLngs[latLngs.length - 1], 17);
             }
         }
 

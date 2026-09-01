@@ -10,13 +10,14 @@ $activePunchInLng = 0;
 
 // Strictly track ONLY Field Employees (role = 'employee' AND work_mode = 'field')
 $isFieldUser = false;
-$userRole = strtolower($currentUser['role'] ?? '');
-if ($currentUser && $userRole === 'employee') {
+if ($currentUser) {
+    $userRole = strtolower($currentUser['role'] ?? '');
     $desig = strtolower($currentUser['designation'] ?? '');
     $dept = strtolower($currentUser['department_name'] ?? '');
     $workMode = strtolower($currentUser['work_mode'] ?? '');
     
-    if (strpos($desig, 'hr') === false && strpos($dept, 'human') === false && strpos($desig, 'admin') === false) {
+    // Explicitly block all HR, Admin, Team Lead, Office roles
+    if (!in_array($userRole, ['admin', 'hr', 'team_lead']) && strpos($desig, 'hr') === false && strpos($dept, 'human') === false && strpos($desig, 'head') === false && strpos($desig, 'admin') === false && strpos($desig, 'junior hr') === false) {
         if ($workMode === 'field' || strpos($desig, 'field') !== false || strpos($dept, 'field') !== false) {
             $isFieldUser = true;
         }
