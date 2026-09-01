@@ -1,0 +1,6 @@
+Emp ID,Employee Name,Designation,Department,Work Mode,Phone Number,Basic Salary,Date of Birth,Today Status,Clock In,Clock Out,Notes
+EMP-TL-BDA,Aman Sharma (BDA Team Lead),BDA Team Lead,Business Development,office,9876543210,45000,1996-05-14,Present,09:28:00,18:35:00,On time team sync completed
+EMP-BDA-01,Rahul Verma (BDA Executive),Business Development Associate (BDA),Business Development,office,9876543211,28000,1999-08-22,Present,09:31:00,18:30:00,Achieved 42 calls target
+EMP013,Rozi Khan,Business Development Associate (BDA),Business Development,office,9876543212,28000,2000-03-11,Present,09:25:00,18:30:00,Lead conversion achieved
+EMP014,Priyanka Bharti,Business Development Associate (BDA),Business Development,office,9876543213,28000,1998-11-05,Present,09:30:00,18:30:00,Follow-up pipeline updated
+EMP016,Pratigya,Business Development Associate (BDA),Business Development,office,9876543214,28000,2001-07-19,Present,09:32:00,18:30:00,Demo batch assigned

@@ -1,0 +1,8 @@
+# Robots.txt for Ecofone HRMS
+User-agent: *
+Allow: /
+Allow: /?page=login
+Disallow: /api/
+Disallow: /config/
+
+Sitemap: https://hrms-ecofone.vercel.app/sitemap.xml
