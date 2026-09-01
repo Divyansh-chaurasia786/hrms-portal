@@ -2,7 +2,6 @@
   "appId": "com.ecofone.hrms",
   "appName": "EcoFone App",
   "webDir": "public",
-  "bundledWebRuntime": false,
   "server": {
     "url": "https://hrms-ecovista.vercel.app",
     "cleartext": true,
