@@ -233,7 +233,33 @@ if ($isFieldUser) {
         .catch(() => {});
     }
 
-    window.addEventListener('online', flushOfflineQueue);
+    // 🔄 Auto-Reconnect on Network Restoration (Browser + Native Capacitor Network Plugin)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Network) {
+        try {
+            window.Capacitor.Plugins.Network.addListener('networkStatusChange', status => {
+                if (status.connected) {
+                    flushOfflineQueue();
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(handleGpsSuccess, handleGpsError, { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 });
+                    }
+                }
+            });
+        } catch(e) {}
+    }
+
+    window.addEventListener('online', () => {
+        flushOfflineQueue();
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(handleGpsSuccess, handleGpsError, { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 });
+        }
+    });
+
+    // Periodic Offline Queue Auto-Flush (Every 5 seconds in background)
+    setInterval(() => {
+        if (navigator.onLine) {
+            flushOfflineQueue();
+        }
+    }, 5000);
 
     function sendGpsPing(lat, lng, speed) {
         if (!lat || !lng) return;
