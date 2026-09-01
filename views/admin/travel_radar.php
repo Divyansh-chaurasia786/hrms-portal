@@ -14,7 +14,10 @@ $fieldEmployees = $db->query("
            tl.name as tl_name,
            COALESCE(stats.waypoints_count, 0) as waypoints_count,
            COALESCE(stats.total_distance_meters, 0) as total_distance_meters,
-           COALESCE(latest.last_speed, 0) as current_speed
+           ROUND(COALESCE(stats.total_distance_meters, 0) / 1000, 2) as total_distance_km,
+           COALESCE(latest.last_speed, 0) as current_speed,
+           latest.last_battery as battery_level,
+           latest.last_recorded_at as last_seen_at
     FROM users u
     LEFT JOIN attendance a ON a.user_id = u.id AND a.date = '{$selectedDate}'
     LEFT JOIN users tl ON u.reporting_tl_id = tl.id
@@ -25,7 +28,7 @@ $fieldEmployees = $db->query("
         GROUP BY user_id
     ) stats ON stats.user_id = u.id
     LEFT JOIN (
-        SELECT l1.user_id, l1.speed as last_speed
+        SELECT l1.user_id, l1.speed as last_speed, l1.battery_level as last_battery, l1.recorded_at as last_recorded_at
         FROM employee_travel_logs l1
         INNER JOIN (
             SELECT user_id, MAX(id) as max_id
@@ -92,6 +95,12 @@ if ($selectedUserId === 0 && !empty($fieldEmployees[0]['id'])) {
 
     init() {
         this.selectedEmp = this.fieldEmployees.find(e => Number(e.id) === Number(this.selectedUserId)) || (this.fieldEmployees[0] || null);
+        if (this.selectedEmp) {
+            this.analytics.total_distance_km = this.selectedEmp.total_distance_km || ((Number(this.selectedEmp.total_distance_meters || 0) / 1000).toFixed(2));
+            this.analytics.latest_battery_level = this.selectedEmp.battery_level || null;
+            this.analytics.last_seen_at = this.selectedEmp.last_seen_at || null;
+            this.analytics.total_waypoints = this.selectedEmp.waypoints_count || 0;
+        }
         this.$nextTick(() => {
             this.loadStaffRoute(this.selectedUserId, this.selectedDate);
         });
