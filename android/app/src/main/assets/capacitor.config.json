@@ -6,6 +6,7 @@
 		"url": "https://hrms-ecovista.vercel.app",
 		"cleartext": true,
 		"androidScheme": "https",
+		"errorPath": "offline.html",
 		"allowNavigation": [
 			"hrms-ecovista.vercel.app",
 			"*.vercel.app",

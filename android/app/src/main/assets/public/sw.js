@@ -1,6 +1,7 @@
-// public/sw.js - EcoFone App Background Service Worker (v9 Clean Refresh)
-const CACHE_NAME = 'ecofone-app-v9';
+// public/sw.js - EcoFone App Background Service Worker (v10 Offline Support)
+const CACHE_NAME = 'ecofone-app-v10';
 const ASSETS_TO_CACHE = [
+    '/offline.html',
     '/manifest.json',
     '/logo_icon.png',
     '/logo.png',
@@ -36,7 +37,7 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Manage Ongoing Persistent Notification for Background Shift Keep-Alive (Swiggy/Zomato Style)
+// Manage Ongoing Persistent Notification for Background Shift Keep-Alive & Update Alerts
 self.addEventListener('message', (event) => {
     if (!event.data) return;
     if (event.data.type === 'START_BACKGROUND_TRACKING' || event.data.type === 'UPDATE_LIVE_STATUS') {
@@ -52,6 +53,15 @@ self.addEventListener('message', (event) => {
             requireInteraction: true,
             silent: true,
             renotify: false,
+            data: { url: '/?page=dashboard' }
+        }).catch(() => {});
+    } else if (event.data.type === 'UPDATE_NOTIFICATION') {
+        self.registration.showNotification(event.data.title || '🚀 EcoFone App Update Available', {
+            body: event.data.body || 'A new update with live GPS radar enhancements and performance patches is ready. Tap to apply now!',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: 'ecofone_new_update',
+            vibrate: [200, 100, 200],
             data: { url: '/?page=dashboard' }
         }).catch(() => {});
     } else if (event.data.type === 'STOP_BACKGROUND_TRACKING') {
@@ -106,9 +116,13 @@ self.addEventListener('sync', (event) => {
 
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
-    // Always fetch fresh HTML from network — never serve stale cached HTML pages!
+    // Intercept navigation requests: if network fails, show custom branded offline screen!
     if (event.request.mode === 'navigate') {
-        event.respondWith(fetch(event.request));
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                return caches.match('/offline.html');
+            })
+        );
         return;
     }
     event.respondWith(

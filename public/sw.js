@@ -1,6 +1,7 @@
-// public/sw.js - EcoFone App Background Service Worker (v9 Clean Refresh)
-const CACHE_NAME = 'ecofone-app-v9';
+// public/sw.js - EcoFone App Background Service Worker (v10 Offline Support)
+const CACHE_NAME = 'ecofone-app-v10';
 const ASSETS_TO_CACHE = [
+    '/offline.html',
     '/manifest.json',
     '/logo_icon.png',
     '/logo.png',
@@ -115,9 +116,13 @@ self.addEventListener('sync', (event) => {
 
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
-    // Always fetch fresh HTML from network — never serve stale cached HTML pages!
+    // Intercept navigation requests: if network fails, show custom branded offline screen!
     if (event.request.mode === 'navigate') {
-        event.respondWith(fetch(event.request));
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                return caches.match('/offline.html');
+            })
+        );
         return;
     }
     event.respondWith(

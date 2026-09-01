@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EcoFone App • Offline Mode</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0b0f19;
+            color: #f8fafc;
+        }
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .pulse-ring {
+            animation: pulseRing 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-6 select-none">
+    <div class="w-full flex justify-center pt-8">
+        <div class="flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-inner">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span class="text-xs font-bold text-slate-300">EcoFone GPS Engine Active</span>
+        </div>
+    </div>
+
+    <div class="max-w-sm w-full text-center space-y-6 my-auto">
+        <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full bg-emerald-500/10 border border-emerald-500/20 pulse-ring"></div>
+            <div class="w-20 h-20 rounded-3xl bg-slate-800 border border-slate-700 shadow-2xl flex items-center justify-center text-4xl shadow-emerald-950/50">
+                📶
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <h1 class="text-2xl font-black text-white tracking-tight">No Internet Connection</h1>
+            <p class="text-xs text-slate-400 leading-relaxed px-2">
+                Your device is offline, but <strong class="text-emerald-400 font-semibold">Background Location Tracking is still running</strong>. All your field travel points are safely saved on your device.
+            </p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-left space-y-2">
+            <div class="flex items-center gap-2 text-xs font-bold text-emerald-400">
+                <span>🛡️</span>
+                <span>Automatic Cloud Sync</span>
+            </div>
+            <p class="text-[11px] text-slate-400">As soon as mobile data or Wi-Fi reconnects, your attendance and route will sync automatically with HR.</p>
+        </div>
+
+        <div class="pt-2">
+            <button id="retryBtn" onclick="handleRetry()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-extrabold text-sm shadow-xl shadow-emerald-950/40 transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                <span>🔄</span>
+                <span>Retry Connection</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="text-[11px] text-slate-500 pb-4 text-center font-mono">
+        EcoFone Enterprise Mobile App • v1.2.1
+    </div>
+
+    <script>
+        function handleRetry() {
+            const btn = document.getElementById('retryBtn');
+            if (btn) btn.innerHTML = '<span>⏳</span><span>Reconnecting...</span>';
+            if (navigator.onLine) {
+                window.location.href = '/?page=dashboard';
+            } else {
+                setTimeout(() => {
+                    if (btn) btn.innerHTML = '<span>🔄</span><span>Retry Connection</span>';
+                }, 800);
+            }
+        }
+
+        // Auto-reconnect as soon as internet is restored!
+        window.addEventListener('online', () => {
+            handleRetry();
+        });
+
+        // Periodic online check every 3 seconds
+        setInterval(() => {
+            if (navigator.onLine) {
+                window.location.href = '/?page=dashboard';
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
