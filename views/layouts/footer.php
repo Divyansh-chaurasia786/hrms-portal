@@ -658,83 +658,98 @@ if ($isFieldUser) {
     })();
 
     // ========================================================
-    // 🔄 1-Click App Update Engine & Cloud Sync
+    // 🔄 Conditional Smart App Update Engine (Visible ONLY when update is available)
     // ========================================================
-    window.checkForAppUpdate = async function() {
-        const modal = document.getElementById('appUpdateModal');
-        const icon = document.getElementById('updateModalIcon');
-        const title = document.getElementById('updateModalTitle');
-        const msg = document.getElementById('updateModalMsg');
-        const actions = document.getElementById('updateModalActions');
-        if (!modal) return;
+    (function initSmartUpdateChecker() {
+        const CURRENT_VERSION = '1.2.0';
+        let latestServerVersion = CURRENT_VERSION;
 
-        modal.classList.remove('hidden');
-        icon.innerHTML = '<i data-lucide="refresh-cw" class="w-7 h-7 text-indigo-600 animate-spin"></i>';
-        title.innerText = 'Checking for Updates...';
-        msg.innerText = 'Synchronizing with EcoFone Cloud servers for latest features and live radar engine updates.';
-        actions.innerHTML = '';
-        if (window.lucide) lucide.createIcons();
+        async function checkForNewVersion() {
+            try {
+                const res = await fetch('?action=app-version', { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    latestServerVersion = data.version || CURRENT_VERSION;
+                    const savedVersion = localStorage.getItem('hrms_installed_version') || CURRENT_VERSION;
 
-        try {
-            // 1. Force update Service Worker
-            if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (let reg of regs) {
-                    await reg.update();
+                    const updateContainer = document.getElementById('appUpdateContainer');
+                    const badge = document.getElementById('updateAvailableVersionBadge');
+
+                    if (latestServerVersion !== savedVersion && latestServerVersion > savedVersion) {
+                        // 🚀 New update found! Show the button only now!
+                        if (updateContainer) updateContainer.classList.remove('hidden');
+                        if (badge) badge.innerText = 'v' + latestServerVersion;
+                    } else {
+                        // Up to date — Keep button completely hidden
+                        if (updateContainer) updateContainer.classList.add('hidden');
+                    }
                 }
-            }
-            // 2. Flush obsolete browser client caches
-            if ('caches' in window) {
-                const keys = await caches.keys();
-                for (let k of keys) {
-                    await caches.delete(k);
-                }
-            }
-            // 3. Clear sessionStorage
-            sessionStorage.clear();
-
-            setTimeout(() => {
-                icon.innerHTML = '<span class="text-2xl">🎉</span>';
-                title.innerText = 'App Updated to Latest Version!';
-                msg.innerText = 'Version 1.2.0 is active. All latest changes, live background tracking, and fixes are successfully applied.';
-                actions.innerHTML = `
-                    <button type="button" onclick="window.location.reload(true)" class="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-500/20 transition cursor-pointer">
-                        🔄 Reload & Apply Changes
-                    </button>
-                    <a href="https://github.com/Divyansh-chaurasia786/hrms-portal/actions" target="_blank" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition">
-                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Latest APK Build
-                    </a>
-                    <button type="button" onclick="document.getElementById('appUpdateModal').classList.add('hidden')" class="w-full py-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium transition cursor-pointer">
-                        Close
-                    </button>
-                `;
-                if (window.lucide) lucide.createIcons();
-            }, 1200);
-        } catch (e) {
-            icon.innerHTML = '<span class="text-2xl">✅</span>';
-            title.innerText = 'App is Up to Date!';
-            msg.innerText = 'You are already running the latest live version.';
-            actions.innerHTML = `
-                <button type="button" onclick="window.location.reload(true)" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs shadow-md transition cursor-pointer">
-                    🔄 Refresh Screen
-                </button>
-                <button type="button" onclick="document.getElementById('appUpdateModal').classList.add('hidden')" class="w-full py-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium transition cursor-pointer">
-                    Close
-                </button>
-            `;
-            if (window.lucide) lucide.createIcons();
+            } catch (e) {}
         }
-    };
+
+        // Check on load & every 2 minutes in background
+        checkForNewVersion();
+        setInterval(checkForNewVersion, 120000);
+
+        window.applyAppUpdate = async function() {
+            const modal = document.getElementById('appUpdateModal');
+            const icon = document.getElementById('updateModalIcon');
+            const title = document.getElementById('updateModalTitle');
+            const msg = document.getElementById('updateModalMsg');
+            const actions = document.getElementById('updateModalActions');
+            if (!modal) return;
+
+            modal.classList.remove('hidden');
+            icon.innerHTML = '<i data-lucide="refresh-cw" class="w-7 h-7 text-emerald-600 animate-spin"></i>';
+            title.innerText = 'Updating EcoFone App...';
+            msg.innerText = 'Applying latest cloud patches, live background GPS enhancements, and interface updates.';
+            actions.innerHTML = '';
+            if (window.lucide) lucide.createIcons();
+
+            try {
+                // 1. Force update Service Worker
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (let reg of regs) {
+                        await reg.update();
+                    }
+                }
+                // 2. Flush obsolete client caches
+                if ('caches' in window) {
+                    const keys = await caches.keys();
+                    for (let k of keys) {
+                        await caches.delete(k);
+                    }
+                }
+                // 3. Mark version as updated
+                localStorage.setItem('hrms_installed_version', latestServerVersion);
+
+                setTimeout(() => {
+                    icon.innerHTML = '<span class="text-2xl">🎉</span>';
+                    title.innerText = 'App Updated Successfully!';
+                    msg.innerText = 'You are now running version ' + latestServerVersion + '.';
+                    actions.innerHTML = `
+                        <button type="button" onclick="window.location.reload(true)" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-500/20 transition cursor-pointer">
+                            🔄 Reload & Experience
+                        </button>
+                    `;
+                    if (window.lucide) lucide.createIcons();
+                }, 1000);
+            } catch (err) {
+                window.location.reload(true);
+            }
+        };
+    })();
 </script>
 
 <!-- 🔄 1-Click App Update Modal -->
 <div id="appUpdateModal" class="hidden fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
-        <div id="updateModalIcon" class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner text-2xl">
+        <div id="updateModalIcon" class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner text-2xl">
             <i data-lucide="refresh-cw" class="w-7 h-7 animate-spin"></i>
         </div>
         <div class="space-y-1">
-            <h3 id="updateModalTitle" class="text-base font-extrabold text-slate-900">Checking for Updates...</h3>
+            <h3 id="updateModalTitle" class="text-base font-extrabold text-slate-900">Updating EcoFone App...</h3>
             <p id="updateModalMsg" class="text-xs text-slate-600 leading-relaxed">Connecting to EcoFone Cloud to fetch the latest features and patches.</p>
         </div>
         <div id="updateModalActions" class="space-y-2 pt-2"></div>
