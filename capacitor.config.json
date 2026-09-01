@@ -1,0 +1,30 @@
+{
+  "appId": "com.ecofone.hrms",
+  "appName": "EcoFone App",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://hrms-ecovista.vercel.app",
+    "cleartext": true,
+    "androidScheme": "https",
+    "allowNavigation": [
+      "hrms-ecovista.vercel.app",
+      "*.vercel.app",
+      "unpkg.com",
+      "cdn.tailwindcss.com",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "*.google.com"
+    ]
+  },
+  "plugins": {
+    "Geolocation": {
+      "enableHighAccuracy": true
+    }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}

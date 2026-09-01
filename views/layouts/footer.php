@@ -338,6 +338,22 @@ if ($isFieldUser) {
         }
     };
 
+    // 📱 Native Capacitor Android APK Bridge (Unbreakable 24/7 OS Service)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+        try {
+            window.Capacitor.Plugins.Geolocation.watchPosition(
+                { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 },
+                function(pos, err) {
+                    if (pos && pos.coords) {
+                        handleGpsSuccess(pos);
+                    } else if (err) {
+                        handleGpsError(err);
+                    }
+                }
+            );
+        } catch(e) {}
+    }
+
     if (navigator.geolocation) {
         // 1. Force High Accuracy hardware position stream with 0 maximumAge (Fresh GPS Satellites)
         navigator.geolocation.watchPosition(

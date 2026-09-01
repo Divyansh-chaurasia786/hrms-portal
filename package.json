@@ -1,0 +1,21 @@
+{
+  "name": "ecofone-hrms-app",
+  "version": "1.0.0",
+  "description": "EcoFone HRMS & Field Workforce GPS Tracking Mobile App",
+  "main": "index.js",
+  "scripts": {
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "cap:build": "cap build android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/app": "^6.0.1",
+    "@capacitor/geolocation": "^6.0.1",
+    "@capacitor/network": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
