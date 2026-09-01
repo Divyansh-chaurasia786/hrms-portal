@@ -135,37 +135,49 @@ if ($isFieldUser) {
 
     // 🔔 Persistent Foreground Status Bar Notification & Periodic Background Sync
     function triggerForegroundNotification() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification('🟢 EcoFone App • Field Shift Active', {
-                    body: 'Live GPS route tracking is running in the background until you punch out.',
-                    icon: '/icon-192.png',
-                    badge: '/icon-192.png',
-                    tag: 'ecofone_shift_active',
-                    ongoing: true,
-                    requireInteraction: true,
-                    silent: true,
-                    data: { url: '/?page=dashboard' }
-                }).catch(() => {});
-
-                // Register Android Background Periodic Sync
-                if ('periodicSync' in reg) {
-                    reg.periodicSync.register('sync-location-pings', {
-                        minInterval: 60 * 1000 // 1 minute background sync
+        if ('Notification' in window && Notification.permission === 'granted') {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.showNotification('🟢 EcoFone Live Radar Active', {
+                        body: '📍 Tracking On Duty • Background GPS Active until Punch Out',
+                        icon: '/icon-192.png',
+                        badge: '/icon-192.png',
+                        tag: 'ecofone_shift_active',
+                        ongoing: true,
+                        requireInteraction: true,
+                        silent: true,
+                        renotify: false,
+                        data: { url: '/?page=dashboard' }
                     }).catch(() => {});
-                }
-            });
+
+                    // Register Android Background Periodic Sync
+                    if ('periodicSync' in reg) {
+                        reg.periodicSync.register('sync-location-pings', {
+                            minInterval: 60 * 1000 // 1 minute background sync
+                        }).catch(() => {});
+                    }
+                });
+            }
         }
     }
 
-    if ('Notification' in window) {
-        if (Notification.permission === 'granted') {
-            triggerForegroundNotification();
-        } else if (Notification.permission !== 'denied') {
+    // Auto-request notification permission on user touch/click gesture
+    function requestNotificationOnGesture() {
+        if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission().then(p => {
-                if (p === 'granted') triggerForegroundNotification();
+                if (p === 'granted') {
+                    triggerForegroundNotification();
+                }
             }).catch(() => {});
         }
+    }
+
+    ['click', 'touchstart'].forEach(evt => {
+        document.addEventListener(evt, requestNotificationOnGesture, { once: true, passive: true });
+    });
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+        triggerForegroundNotification();
     }
 
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
