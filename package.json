@@ -13,6 +13,7 @@
     "@capacitor/android": "^6.1.2",
     "@capacitor/app": "^6.0.2",
     "@capacitor/geolocation": "^6.0.2",
+    "@capacitor-community/background-geolocation": "^1.2.22",
     "@capacitor/network": "^6.0.2"
   },
   "devDependencies": {

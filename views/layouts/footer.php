@@ -351,19 +351,45 @@ if ($isFieldUser) {
         }
     };
 
-    // 📱 Native Capacitor Android APK Bridge (Unbreakable 24/7 OS Service)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+    // 📱 Native Capacitor Android APK Bridge (Unbreakable 24/7 OS Service with Ongoing Status Bar Badge)
+    if (window.Capacitor && window.Capacitor.Plugins) {
         try {
-            window.Capacitor.Plugins.Geolocation.watchPosition(
-                { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 },
-                function(pos, err) {
-                    if (pos && pos.coords) {
-                        handleGpsSuccess(pos);
-                    } else if (err) {
-                        handleGpsError(err);
+            const bgPlugin = window.Capacitor.Plugins.BackgroundGeolocation || (window.CapacitorCommunity && window.CapacitorCommunity.BackgroundGeolocation);
+            if (bgPlugin && bgPlugin.addWatcher) {
+                bgPlugin.addWatcher(
+                    {
+                        backgroundMessage: "Tracking On Duty • Sharing with HR",
+                        backgroundTitle: "🟢 EcoFone Live Radar Active",
+                        requestPermissions: true,
+                        stale: false,
+                        distanceFilter: 3
+                    },
+                    function(pos, err) {
+                        if (pos) {
+                            handleGpsSuccess({
+                                coords: {
+                                    latitude: pos.latitude,
+                                    longitude: pos.longitude,
+                                    speed: pos.speed || 0
+                                }
+                            });
+                        } else if (err) {
+                            handleGpsError(err);
+                        }
                     }
-                }
-            );
+                );
+            } else if (window.Capacitor.Plugins.Geolocation) {
+                window.Capacitor.Plugins.Geolocation.watchPosition(
+                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 },
+                    function(pos, err) {
+                        if (pos && pos.coords) {
+                            handleGpsSuccess(pos);
+                        } else if (err) {
+                            handleGpsError(err);
+                        }
+                    }
+                );
+            }
         } catch(e) {}
     }
 
