@@ -658,15 +658,18 @@ if ($isFieldUser) {
                     const savedVersion = localStorage.getItem('hrms_installed_version') || CURRENT_VERSION;
 
                     const updateContainer = document.getElementById('appUpdateContainer');
+                    const profileUpdateContainer = document.getElementById('profileAppUpdateContainer');
                     const badge = document.getElementById('updateAvailableVersionBadge');
 
                     if (latestServerVersion !== savedVersion && latestServerVersion > savedVersion) {
                         // 🚀 New update found! Show the button only now!
                         if (updateContainer) updateContainer.classList.remove('hidden');
+                        if (profileUpdateContainer) profileUpdateContainer.classList.remove('hidden');
                         if (badge) badge.innerText = 'v' + latestServerVersion;
                     } else {
-                        // Up to date — Keep button completely hidden
+                        // Up to date — Keep buttons completely hidden
                         if (updateContainer) updateContainer.classList.add('hidden');
+                        if (profileUpdateContainer) profileUpdateContainer.classList.add('hidden');
                     }
                 }
             } catch (e) {}

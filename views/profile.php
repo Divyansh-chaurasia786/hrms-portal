@@ -38,25 +38,25 @@ $emailChangeReq = $_SESSION['email_change_request'] ?? null;
         </div>
     </div>
 
-    <!-- 📱 App Version & Instant Update Card -->
-    <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-5 sm:p-6 text-white border border-indigo-500/30 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+    <!-- 📱 App Version & Instant Update Card (ONLY VISIBLE WHEN NEW UPDATE IS AVAILABLE) -->
+    <div id="profileAppUpdateContainer" class="hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-5 sm:p-6 text-white border border-emerald-500/40 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden animate-pulse">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
         <div class="flex items-center gap-4 relative z-10">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 text-emerald-400 flex items-center justify-center text-xl shrink-0 shadow-inner">
-                <i data-lucide="smartphone" class="w-6 h-6 text-emerald-400"></i>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-600/30 border border-emerald-400/40 text-emerald-400 flex items-center justify-center text-xl shrink-0 shadow-inner">
+                <i data-lucide="sparkles" class="w-6 h-6 text-emerald-400"></i>
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <h3 class="text-sm sm:text-base font-extrabold text-white">EcoFone App & Live Updates</h3>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">v1.2.0 Active</span>
+                    <h3 class="text-sm sm:text-base font-extrabold text-white">New EcoFone App Update Available</h3>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">New Version</span>
                 </div>
-                <p class="text-xs text-slate-300 mt-0.5">24/7 Background Geolocation, Live Travel Radar & Cloud Sync Engine.</p>
+                <p class="text-xs text-slate-300 mt-0.5">A fresh update with live improvements and patches is ready to apply.</p>
             </div>
         </div>
         <div class="shrink-0 flex items-center gap-2 relative z-10">
             <button type="button" onclick="window.applyAppUpdate && window.applyAppUpdate()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95">
                 <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
-                <span>Check & Apply Updates Now</span>
+                <span>Apply Update Now</span>
             </button>
         </div>
     </div>
