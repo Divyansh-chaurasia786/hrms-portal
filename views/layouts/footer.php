@@ -125,10 +125,15 @@ if ($isFieldUser) {
         document.addEventListener(evt, () => {
             startAudioKeepAlive();
             acquireWakeLock();
+            if (document.visibilityState === 'hidden') {
+                if (lastLat && lastLng) {
+                    sendGpsPing(lastLat, lastLng, 0);
+                }
+            }
         }, { passive: true });
     });
 
-    // 🔔 Persistent Foreground Status Bar Notification (Keep-Alive)
+    // 🔔 Persistent Foreground Status Bar Notification & Periodic Background Sync
     function triggerForegroundNotification() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(reg => {
@@ -142,6 +147,13 @@ if ($isFieldUser) {
                     silent: true,
                     data: { url: '/?page=dashboard' }
                 }).catch(() => {});
+
+                // Register Android Background Periodic Sync
+                if ('periodicSync' in reg) {
+                    reg.periodicSync.register('sync-location-pings', {
+                        minInterval: 60 * 1000 // 1 minute background sync
+                    }).catch(() => {});
+                }
             });
         }
     }
