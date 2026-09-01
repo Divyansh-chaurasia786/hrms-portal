@@ -149,6 +149,7 @@ function getDBConnection(bool $forceNew = false): PDO {
             }
 
             $pdo = new PDO($dsn, $dbUser, $dbPass, $options);
+            try { $pdo->exec("SET time_zone = '+05:30';"); } catch (\Throwable $tzE) {}
         } catch (\Throwable $e) {
             error_log("Cloud MySQL connection fallback to SQLite: " . $e->getMessage());
             

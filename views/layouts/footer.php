@@ -203,6 +203,15 @@ if ($isFieldUser) {
         lastLat = lat;
         lastLng = lng;
 
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const secs = String(now.getSeconds()).padStart(2, '0');
+        const localTimeStr = `${year}-${month}-${day} ${hours}:${mins}:${secs}`;
+
         const speedKmh = (speed !== null && speed >= 0) ? (speed * 3.6).toFixed(1) : 0;
         const pingData = {
             attendance_id: attId,
@@ -210,7 +219,7 @@ if ($isFieldUser) {
             longitude: lng,
             speed: speedKmh,
             battery_level: currentBatteryLevel,
-            recorded_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+            recorded_at: localTimeStr
         };
 
         if (!navigator.onLine) {
