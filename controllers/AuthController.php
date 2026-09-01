@@ -81,7 +81,7 @@ class AuthController {
                 // 4. Generate 6-Digit OTP & Send via Registered Email (Brevo)
                 $otpCode = (string)random_int(100000, 999999);
                 $now = date('Y-m-d H:i:s');
-                $expiresAt = date('Y-m-d H:i:s', time() + 600); // 10 minutes
+                $expiresAt = date('Y-m-d H:i:s', time() + 1800); // 30 minutes valid
 
                 $updateStmt = $db->prepare("
                     UPDATE users 
@@ -361,16 +361,20 @@ class AuthController {
     }
 
     public static function resendOtp(): void {
-        if (empty($_SESSION['pending_otp_user_id'])) {
-            header('Location: ?page=login');
-            exit;
-        }
+        $userId = (int)($_SESSION['pending_otp_user_id'] ?? ($_COOKIE['pending_otp_uid'] ?? 0));
+        $email = strtolower(trim($_GET['email'] ?? ($_SESSION['pending_otp_email'] ?? ($_COOKIE['pending_otp_email'] ?? ''))));
 
-        $userId = (int)$_SESSION['pending_otp_user_id'];
         $db = getDBConnection();
-        $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch();
+        $user = null;
+        if ($userId > 0) {
+            $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch();
+        } elseif (!empty($email)) {
+            $stmt = $db->prepare("SELECT * FROM users WHERE LOWER(email) = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+        }
 
         if (!$user) {
             unset($_SESSION['pending_otp_user_id']);
@@ -389,8 +393,8 @@ class AuthController {
         // 2. Check 60s cooldown timer
         $lastSent = !empty($user['login_otp_last_sent_at']) ? strtotime($user['login_otp_last_sent_at']) : 0;
         $elapsed = time() - $lastSent;
-        if ($elapsed < 60) {
-            $wait = 60 - $elapsed;
+        if ($elapsed < 30) {
+            $wait = 30 - $elapsed;
             setFlash('error', "Please wait {$wait} seconds before requesting a new verification code.");
             header('Location: ?page=verify-otp&email=' . urlencode($user['email']));
             exit;
@@ -401,7 +405,7 @@ class AuthController {
         $newResendCount = $resendCount + 1;
         $_SESSION['otp_resend_count'] = $newResendCount;
         $now = date('Y-m-d H:i:s');
-        $expiresAt = date('Y-m-d H:i:s', time() + 600); // 10 minutes
+        $expiresAt = date('Y-m-d H:i:s', time() + 1800); // 30 minutes
 
         $updateStmt = $db->prepare("
             UPDATE users 
@@ -415,7 +419,7 @@ class AuthController {
         // Send email via Brevo
         $mailRes = sendEmailOTP($user['email'], $user['name'], $otpCode);
 
-        setFlash('success', "A fresh verification code has been sent to <strong>{$user['email']}</strong>.");
+        setFlash('success', "A fresh 6-digit verification code has been dispatched to <strong>{$user['email']}</strong>.");
 
         header('Location: ?page=verify-otp&email=' . urlencode($user['email']));
         exit;
