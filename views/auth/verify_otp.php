@@ -37,8 +37,8 @@ $user = $user ?? ['email' => $targetEmail];
         <!-- Brand Header -->
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center mb-3">
-                <div class="w-18 h-18 rounded-3xl bg-white flex items-center justify-center p-2 shadow-2xl shadow-orange-500/20 ring-4 ring-white/20">
-                    <img src="/logo_icon.png?v=3" alt="EcoFone App Logo" class="w-full h-full object-contain">
+                <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 shadow-xl shadow-orange-500/20 ring-4 ring-white/20 overflow-hidden shrink-0" style="width: 64px; height: 64px; max-width: 64px; max-height: 64px;">
+                    <img src="/logo_icon.png?v=3" alt="EcoFone App Logo" class="w-full h-full object-contain" style="max-width: 100%; max-height: 100%;">
                 </div>
             </div>
             <h1 class="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-1.5">
