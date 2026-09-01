@@ -60,16 +60,16 @@ $user = $user ?? ['email' => $targetEmail];
         /* 🔢 OTP STAGE & WHEEL CONTAINER */
         #otpStage {
             position: relative;
-            min-height: 80px;
+            width: 100%;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         #otpWheel {
             position: relative;
-            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -114,23 +114,23 @@ $user = $user ?? ['email' => $targetEmail];
             box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
         }
 
-        /* 🌀 PERFECT CIRCULAR ORBITING TRANSFORMS */
+        /* 🌀 PERFECT 100% CENTERED CIRCULAR ORBIT */
         @keyframes orbitSpinSmooth {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
         @keyframes counterRotateDigit {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(-360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
         }
-        @keyframes centerRadarPulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.5; }
-            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.9; }
+        @keyframes centerPulseGlow {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.7; box-shadow: 0 0 25px rgba(99, 102, 241, 0.4); }
+            50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; box-shadow: 0 0 45px rgba(99, 102, 241, 0.8); }
         }
         @keyframes shakeError {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-10px); }
-            40%, 80% { transform: translateX(10px); }
+            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+            20%, 60% { transform: translate(-50%, -50%) translateX(-12px); }
+            40%, 80% { transform: translate(-50%, -50%) translateX(12px); }
         }
         @keyframes successPop {
             0% { transform: scale(0.3); opacity: 0; }
@@ -140,13 +140,19 @@ $user = $user ?? ['email' => $targetEmail];
 
         /* When circular mode is active */
         .is-circular-mode #otpStage {
-            min-height: 230px;
+            height: 240px;
         }
         .is-circular-mode #otpWheel {
-            width: 210px;
-            height: 210px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 220px;
+            height: 220px;
+            margin-top: -110px;
+            margin-left: -110px;
             border-radius: 50%;
-            animation: orbitSpinSmooth 2.2s linear infinite;
+            transform-origin: center center;
+            animation: orbitSpinSmooth 2.4s linear infinite;
         }
         .is-circular-mode .otp-box-node {
             position: absolute;
@@ -165,27 +171,26 @@ $user = $user ?? ['email' => $targetEmail];
             padding: 0;
             margin: 0;
             line-height: 1;
-            /* Keep digits upright while circle spins */
-            animation: counterRotateDigit 2.2s linear infinite;
+            transform-origin: center center;
+            animation: counterRotateDigit 2.4s linear infinite;
         }
 
-        /* Center Orb that stays stationary in the middle */
+        /* Center Shield Orb: Fixed exactly at center of stage */
         #centerVerificationOrb {
             display: none;
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            width: 82px;
-            height: 82px;
+            width: 68px;
+            height: 68px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, rgba(15, 23, 42, 0.95) 75%);
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(15, 23, 42, 0.95) 75%);
             border: 1.5px solid rgba(99, 102, 241, 0.5);
             align-items: center;
             justify-content: center;
             z-index: 5;
-            box-shadow: 0 0 30px rgba(99, 102, 241, 0.45);
-            animation: centerRadarPulse 1.8s ease-in-out infinite;
+            pointer-events: none;
+            animation: centerPulseGlow 2s ease-in-out infinite;
         }
         .is-circular-mode #centerVerificationOrb {
             display: flex;
@@ -220,7 +225,7 @@ $user = $user ?? ['email' => $targetEmail];
 
         /* State: WRONG OTP (FAILED) */
         .is-failed #otpWheel {
-            animation: shakeError 0.45s ease-in-out !important;
+            animation: shakeError 0.5s ease-in-out !important;
         }
         .is-failed .otp-box-node {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
@@ -230,6 +235,7 @@ $user = $user ?? ['email' => $targetEmail];
         .is-failed #centerVerificationOrb {
             border-color: #ef4444 !important;
             background: rgba(239, 68, 68, 0.25) !important;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.6) !important;
         }
 
         /* 🚀 Action Button */
@@ -281,9 +287,9 @@ $user = $user ?? ['email' => $targetEmail];
 
                 <!-- Dynamic Morphing Stage (Horizontal Row ➔ Rotating Orbital Circle) -->
                 <div id="otpStage">
-                    <!-- Center Radar Scanner (Active during circular rotation) -->
+                    <!-- Center Shield Orb: Fixed at exact center -->
                     <div id="centerVerificationOrb">
-                        <i data-lucide="shield-check" class="w-8 h-8 text-indigo-300 animate-pulse"></i>
+                        <i data-lucide="shield-check" class="w-8 h-8 text-indigo-300"></i>
                     </div>
 
                     <!-- Outcome Result Badge -->
@@ -442,26 +448,26 @@ $user = $user ?? ['email' => $targetEmail];
             }
         }
 
-        // 🌀 PERFECT SYMMETRIC CIRCULAR MORPH
+        // 🌀 PERFECT SYMMETRIC RADIAL ALIGNMENT (Center: 110px, 110px, Radius: 75px)
         function morphToCircle() {
             authCard.classList.add("is-circular-mode");
             submitBtn.disabled = true;
             submitBtnText.innerText = "Verifying in Orbit...";
 
-            const radius = 72; // Exactly 72px radius
-            const total = 6;
-            const centerX = 50; // 50%
-            const centerY = 50; // 50%
+            const wheelSize = 220; // 220px wheel
+            const center = wheelSize / 2; // 110px
+            const radius = 75; // 75px radius
+            const nodeHalf = 22; // 44px / 2
 
             inputs.forEach((box, i) => {
-                // Starting from top: -90 degrees
-                const angleDeg = -90 + (i * (360 / total));
+                // Symmetrical 60 degree distribution starting top: -90°
+                const angleDeg = -90 + (i * 60);
                 const angleRad = angleDeg * (Math.PI / 180);
-                const x = radius * Math.cos(angleRad);
-                const y = radius * Math.sin(angleRad);
+                const leftPos = center + (radius * Math.cos(angleRad)) - nodeHalf;
+                const topPos = center + (radius * Math.sin(angleRad)) - nodeHalf;
                 
-                box.style.left = `calc(50% + ${x}px)`;
-                box.style.top = `calc(50% + ${y}px)`;
+                box.style.left = `${leftPos}px`;
+                box.style.top = `${topPos}px`;
             });
         }
 
