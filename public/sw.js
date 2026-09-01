@@ -36,7 +36,7 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Manage Ongoing Persistent Notification for Background Shift Keep-Alive (Swiggy/Zomato Style)
+// Manage Ongoing Persistent Notification for Background Shift Keep-Alive & Update Alerts
 self.addEventListener('message', (event) => {
     if (!event.data) return;
     if (event.data.type === 'START_BACKGROUND_TRACKING' || event.data.type === 'UPDATE_LIVE_STATUS') {
@@ -52,6 +52,15 @@ self.addEventListener('message', (event) => {
             requireInteraction: true,
             silent: true,
             renotify: false,
+            data: { url: '/?page=dashboard' }
+        }).catch(() => {});
+    } else if (event.data.type === 'UPDATE_NOTIFICATION') {
+        self.registration.showNotification(event.data.title || '🚀 EcoFone App Update Available', {
+            body: event.data.body || 'A new update with live GPS radar enhancements and performance patches is ready. Tap to apply now!',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: 'ecofone_new_update',
+            vibrate: [200, 100, 200],
             data: { url: '/?page=dashboard' }
         }).catch(() => {});
     } else if (event.data.type === 'STOP_BACKGROUND_TRACKING') {

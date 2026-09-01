@@ -660,17 +660,42 @@ if ($isFieldUser) {
 
                     const updateContainer = document.getElementById('appUpdateContainer');
                     const profileUpdateContainer = document.getElementById('profileAppUpdateContainer');
+                    const floatingBanner = document.getElementById('floatingUpdateBanner');
                     const badge = document.getElementById('updateAvailableVersionBadge');
 
                     if (latestServerVersion !== savedVersion && latestServerVersion > savedVersion) {
-                        // 🚀 New update found! Show the button only now!
+                        // 🚀 New update found! Show buttons & in-app banner!
                         if (updateContainer) updateContainer.classList.remove('hidden');
                         if (profileUpdateContainer) profileUpdateContainer.classList.remove('hidden');
+                        if (floatingBanner) floatingBanner.classList.remove('hidden');
                         if (badge) badge.innerText = 'v' + latestServerVersion;
+
+                        // 🔔 Echo Push / Status Bar Notification to the device
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            const notifTag = 'ecofone_update_' + latestServerVersion;
+                            if (sessionStorage.getItem('notif_echoed_' + notifTag) !== '1') {
+                                sessionStorage.setItem('notif_echoed_' + notifTag, '1');
+                                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                                    navigator.serviceWorker.controller.postMessage({
+                                        type: 'UPDATE_NOTIFICATION',
+                                        title: '🚀 EcoFone App Update Available (v' + latestServerVersion + ')',
+                                        body: 'A new update with live GPS radar enhancements and performance patches is ready. Tap to apply now!'
+                                    });
+                                } else {
+                                    new Notification('🚀 EcoFone App Update Available (v' + latestServerVersion + ')', {
+                                        body: 'A new update with live GPS radar enhancements and performance patches is ready. Tap to apply now!',
+                                        icon: '/icon-192.png',
+                                        badge: '/icon-192.png',
+                                        tag: notifTag
+                                    });
+                                }
+                            }
+                        }
                     } else {
                         // Up to date — Keep buttons completely hidden
                         if (updateContainer) updateContainer.classList.add('hidden');
                         if (profileUpdateContainer) profileUpdateContainer.classList.add('hidden');
+                        if (floatingBanner) floatingBanner.classList.add('hidden');
                     }
                 }
             } catch (e) {}
@@ -763,7 +788,7 @@ if ($isFieldUser) {
 </script>
 
 <!-- 🔄 1-Click App Update Modal -->
-<div id="appUpdateModal" class="hidden fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+<div id="appUpdateModal" class="hidden fixed inset-0 z-[999999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
         <div id="updateModalIcon" class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner text-2xl">
             <i data-lucide="refresh-cw" class="w-7 h-7 animate-spin"></i>
@@ -773,6 +798,27 @@ if ($isFieldUser) {
             <p id="updateModalMsg" class="text-xs text-slate-600 leading-relaxed">Connecting to EcoFone Cloud to fetch the latest features and patches.</p>
         </div>
         <div id="updateModalActions" class="space-y-2 pt-2"></div>
+    </div>
+</div>
+
+<!-- 🔄 Floating In-App Update Toast Banner -->
+<div id="floatingUpdateBanner" class="hidden fixed bottom-5 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[99999] bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-2xl shadow-2xl border border-emerald-400/50 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5">
+    <div class="flex items-center gap-3 min-w-0">
+        <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div class="min-w-0">
+            <h4 class="text-xs font-bold text-white truncate">New Update Ready!</h4>
+            <p class="text-[10px] text-slate-300 truncate">Tap to apply latest fixes & features.</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" onclick="window.applyAppUpdate && window.applyAppUpdate()" class="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-extrabold shadow-md transition cursor-pointer">
+            Update
+        </button>
+        <button type="button" onclick="document.getElementById('floatingUpdateBanner').remove()" class="p-1 text-slate-400 hover:text-white transition cursor-pointer">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
     </div>
 </div>
 </body>
