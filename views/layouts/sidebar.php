@@ -198,14 +198,14 @@ $page = $_GET['page'] ?? 'dashboard';
             <i data-lucide="user" class="w-4 h-4"></i> My Profile & Security
         </a>
 
-        <!-- 🔄 1-Click Update Notification (ONLY VISIBLE WHEN NEW UPDATE IS AVAILABLE) -->
-        <div id="appUpdateContainer" class="hidden pt-2 pb-1">
-            <button type="button" onclick="window.applyAppUpdate && window.applyAppUpdate()" class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600/90 to-teal-600/90 hover:from-emerald-600 hover:to-teal-600 border border-emerald-400/30 text-white transition text-xs font-bold shadow-md shadow-emerald-950/30 group cursor-pointer animate-pulse" title="New update is available!">
-                <span class="flex items-center gap-2">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
-                    <span>Update Available</span>
+        <!-- 🔄 1-Click Check & Apply App Updates Button -->
+        <div class="pt-2 pb-1">
+            <button type="button" onclick="window.applyAppUpdate && window.applyAppUpdate()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/70 text-slate-200 hover:text-white transition text-xs font-bold group cursor-pointer shadow-xs" title="Check and apply latest app updates">
+                <span class="flex items-center gap-2.5">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-400 group-hover:rotate-180 transition-transform duration-500"></i>
+                    <span>Check for Updates</span>
                 </span>
-                <span id="updateAvailableVersionBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 text-emerald-200 font-mono font-bold">New</span>
+                <span id="updateAvailableVersionBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold">v1.2.0</span>
             </button>
         </div>
     </nav>
