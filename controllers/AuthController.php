@@ -165,7 +165,16 @@ class AuthController {
         $userId = (int)($_POST['user_id'] ?? ($_SESSION['pending_otp_user_id'] ?? ($_COOKIE['pending_otp_uid'] ?? 0)));
         $otp = preg_replace('/[^0-9]/', '', trim($_POST['otp'] ?? ''));
 
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+                  || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
+                  || !empty($_POST['is_ajax']);
+
         if (empty($otp) || strlen($otp) !== 6) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Please enter a valid 6-digit verification code.']);
+                exit;
+            }
             setFlash('error', 'Please enter a valid 6-digit verification code.');
             header('Location: ?page=verify-otp' . ($email ? '&email=' . urlencode($email) : ''));
             exit;
@@ -183,6 +192,11 @@ class AuthController {
         }
 
         if (!$user) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Account not found. Please sign in again.']);
+                exit;
+            }
             setFlash('error', 'Account not found. Please enter your email to sign in.');
             header('Location: ?page=login');
             exit;
@@ -191,7 +205,7 @@ class AuthController {
         $userId = (int)$user['id'];
         $now = date('Y-m-d H:i:s');
 
-        // Check if OTP matches real generated email OTP within 10 minutes
+        // Check if OTP matches real generated email OTP within 30 minutes
         $isRealOtp = (!empty($user['login_otp']) && (string)$user['login_otp'] === (string)$otp && $user['login_otp_expires_at'] >= $now);
 
         if ($isRealOtp) {
@@ -238,18 +252,33 @@ class AuthController {
             setcookie('pending_otp_uid', '', time() - 3600, '/');
             setcookie('pending_otp_email', '', time() - 3600, '/');
 
-            setFlash('success', "Welcome back, <strong>{$user['name']}</strong>! You have signed in successfully.");
-
             // Smart Role Routing
-            if ($user['role'] === 'admin') {
-                header('Location: ?page=admin-overview');
-            } elseif ($user['role'] === 'team_lead') {
-                header('Location: ?page=tl-dashboard');
-            } else {
-                header('Location: ?page=employee-dashboard');
+            $redirectUrl = ($user['role'] === 'admin') ? '?page=admin-overview' : (($user['role'] === 'team_lead') ? '?page=tl-dashboard' : '?page=employee-dashboard');
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Verified successfully!',
+                    'role' => $user['role'],
+                    'redirect_url' => $redirectUrl,
+                    'user_name' => $user['name']
+                ]);
+                exit;
             }
+
+            setFlash('success', "Welcome back, <strong>{$user['name']}</strong>! You have signed in successfully.");
+            header('Location: ' . $redirectUrl);
             exit;
         } else {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Wrong OTP / Invalid code. Please check your email inbox.'
+                ]);
+                exit;
+            }
             setFlash('error', '❌ Invalid or expired OTP. Please check your email inbox for the latest 6-digit verification code.');
             header('Location: ?page=verify-otp&email=' . urlencode($user['email']));
             exit;

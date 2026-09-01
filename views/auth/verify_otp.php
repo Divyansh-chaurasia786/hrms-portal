@@ -6,242 +6,341 @@ $targetEmail = !empty($_GET['email']) ? strtolower(trim($_GET['email'])) : (!emp
 $user = $user ?? ['email' => $targetEmail];
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-[#000000] text-slate-100">
+<html lang="en" class="h-full bg-[#05070f] text-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Two-Factor Authentication • EcoFone</title>
+    <title>Two-Step Verification • EcoFone</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #000000;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at 50% 15%, #111827 0%, #030712 100%);
             min-height: 100vh;
         }
         .font-mono-code { font-family: 'JetBrains Mono', monospace; }
 
-        /* 🟣 Instagram / Viral Reel Glowing Ambient Backing */
-        @keyframes igOrbFloat {
-            0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.35; }
-            50% { transform: scale(1.18) translate(20px, -20px); opacity: 0.65; }
+        /* 🌌 Ambient Floating Background Mesh */
+        @keyframes floatMesh {
+            0%, 100% { transform: scale(1) translateY(0); opacity: 0.3; }
+            50% { transform: scale(1.15) translateY(-25px); opacity: 0.6; }
         }
-        @keyframes igSpinGrad {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @keyframes pulseDot {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
-            50% { transform: scale(1.12); box-shadow: 0 0 25px rgba(236, 72, 153, 0.8); }
-        }
-        @keyframes popIn {
-            0% { transform: scale(0.6); opacity: 0; }
-            70% { transform: scale(1.15); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .ig-bg-glow {
+        .ambient-mesh {
             position: fixed;
             inset: 0;
             pointer-events: none;
             overflow: hidden;
         }
-        .ig-orb-1 {
+        .ambient-mesh-1 {
             position: absolute;
-            top: -10%;
+            top: -100px;
             left: 50%;
             transform: translateX(-50%);
-            width: 450px;
-            height: 450px;
-            background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, rgba(236, 72, 153, 0.18) 45%, transparent 70%);
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(236, 72, 153, 0.15) 50%, transparent 70%);
             border-radius: 50%;
-            filter: blur(80px);
-            animation: igOrbFloat 8s ease-in-out infinite;
+            filter: blur(90px);
+            animation: floatMesh 8s ease-in-out infinite;
         }
 
-        /* ⭕ INSTAGRAM CIRCULAR AUTHENTICATION AVATAR / BADGE */
-        .ig-circle-auth-badge {
-            position: relative;
-            width: 96px;
-            height: 96px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .ig-gradient-ring {
-            position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            padding: 3px;
-            animation: igSpinGrad 6s linear infinite;
-        }
-        .ig-gradient-ring::after {
-            content: '';
-            display: block;
-            width: 100%;
-            height: 100%;
-            background: #000000;
-            border-radius: 50%;
-        }
-        .ig-circle-inner-icon {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: #121212;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-            z-index: 2;
-        }
-
-        /* 🔘 EXACT CIRCULAR ROUND OTP INPUTS (CIRCLES INSTEAD OF SQUARES) */
-        .ig-round-input {
-            width: 46px;
-            height: 46px;
-            border-radius: 50% !important;
-            background: rgba(255, 255, 255, 0.06);
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: 800;
-            text-align: center;
-            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-            outline: none;
-        }
-        @media (min-width: 400px) {
-            .ig-round-input {
-                width: 50px;
-                height: 50px;
-                font-size: 22px;
-            }
-        }
-        .ig-round-input:focus {
-            border-color: #e1306c;
-            background: rgba(225, 48, 108, 0.12);
-            box-shadow: 0 0 20px rgba(225, 48, 108, 0.5), inset 0 0 10px rgba(225, 48, 108, 0.2);
-            transform: scale(1.12);
-        }
-        .ig-round-input.filled {
-            border-color: #833ab4;
-            background: linear-gradient(135deg, rgba(131, 58, 180, 0.3), rgba(225, 48, 108, 0.3));
-            color: #ffffff;
-            box-shadow: 0 0 15px rgba(131, 58, 180, 0.4);
-            animation: popIn 0.2s ease-out;
-        }
-        .ig-round-input.auth-success {
-            border-color: #10b981 !important;
-            background: rgba(16, 185, 129, 0.2) !important;
-            box-shadow: 0 0 25px rgba(16, 185, 129, 0.6) !important;
-            color: #34d399 !important;
-        }
-
-        /* 🚀 Instagram Gradient Pill Button */
-        .ig-gradient-btn {
-            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            border-radius: 9999px;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            transition: all 0.25s ease;
-            box-shadow: 0 10px 25px -5px rgba(220, 39, 67, 0.5);
-        }
-        .ig-gradient-btn:hover {
-            opacity: 0.95;
-            transform: scale(1.02);
-            box-shadow: 0 14px 30px -4px rgba(220, 39, 67, 0.7);
-        }
-        .ig-gradient-btn:active {
-            transform: scale(0.98);
-        }
-
-        /* 🎴 Clean Glassmorphic Container */
-        .ig-card {
-            background: rgba(18, 18, 18, 0.75);
+        /* 🎴 Glassmorphic Main Card */
+        .auth-glass-card {
+            background: rgba(17, 24, 39, 0.75);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 32px;
+            box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.9), 0 0 40px -10px rgba(99, 102, 241, 0.2);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 🔢 OTP INPUT BOXES (HORIZONTAL INITIAL STATE) */
+        #otpStage {
+            position: relative;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: min-height 0.4s ease;
+        }
+
+        #otpBoxContainer {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .otp-box-node {
+            position: relative;
+            width: 48px;
+            height: 60px;
+            background: rgba(3, 7, 18, 0.85);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 800;
+            text-align: center;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10;
+        }
+        @media (min-width: 480px) {
+            .otp-box-node {
+                width: 52px;
+                height: 64px;
+                font-size: 26px;
+            }
+        }
+        .otp-box-node:focus {
+            border-color: #6366f1;
+            background: rgba(30, 41, 59, 0.95);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            transform: translateY(-4px) scale(1.06);
+        }
+        .otp-box-node.filled {
+            border-color: #a855f7;
+            color: #ffffff;
+            background: rgba(88, 28, 135, 0.3);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+
+        /* 🌀 2. CIRCULAR ORBITING STATE (TRIGGERED ON 6TH DIGIT) */
+        @keyframes orbitSpinContinuous {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes centerPulse {
+            0%, 100% { transform: scale(0.9); opacity: 0.5; }
+            50% { transform: scale(1.15); opacity: 1; }
+        }
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px); }
+            40%, 80% { transform: translateX(12px); }
+        }
+        @keyframes successPop {
+            0% { transform: scale(0.3); opacity: 0; }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* When circular mode is active */
+        .is-circular-mode #otpStage {
+            min-height: 220px;
+        }
+        .is-circular-mode #otpBoxContainer {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            animation: orbitSpinContinuous 1.6s linear infinite;
+        }
+        .is-circular-mode .otp-box-node {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 50% !important;
+            font-size: 20px;
+            line-height: 44px;
+            pointer-events: none;
+            background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.7);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Center Orb that appears during circular verification */
+        #centerVerificationOrb {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, rgba(15, 23, 42, 0.95) 70%);
+            border: 2px solid rgba(99, 102, 241, 0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            box-shadow: 0 0 35px rgba(99, 102, 241, 0.5);
+            animation: centerPulse 1.5s ease-in-out infinite;
+        }
+        .is-circular-mode #centerVerificationOrb {
+            display: flex;
+        }
+
+        /* Verification Outcome Badges */
+        #verificationResultBadge {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 30;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* State: VERIFIED (SUCCESS) */
+        .is-verified #otpBoxContainer {
+            animation: none !important;
+            opacity: 0;
+            transform: scale(0.2) !important;
+        }
+        .is-verified #centerVerificationOrb {
+            display: none;
+        }
+        .is-verified #verificationResultBadge {
+            display: block;
+            animation: successPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* State: WRONG OTP (FAILED) */
+        .is-failed #otpBoxContainer {
+            animation: shakeError 0.5s ease-in-out !important;
+        }
+        .is-failed .otp-box-node {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            border-color: #fee2e2 !important;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.8) !important;
+        }
+        .is-failed #centerVerificationOrb {
+            border-color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.2) !important;
+        }
+
+        /* 🚀 Action Button */
+        .submit-action-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+            border-radius: 18px;
+            font-weight: 800;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+            transition: all 0.25s ease;
+        }
+        .submit-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.7);
         }
     </style>
 </head>
 <body class="min-h-full flex flex-col items-center justify-center py-6 px-4 relative overflow-x-hidden antialiased">
-    <!-- Ambient Glow -->
-    <div class="ig-bg-glow">
-        <div class="ig-orb-1"></div>
+    <!-- Ambient Light Mesh -->
+    <div class="ambient-mesh">
+        <div class="ambient-mesh-1"></div>
     </div>
 
-    <div class="w-full max-w-[400px] relative z-10 my-auto">
-        <!-- ⭕ Instagram Style Round Profile / 2FA Biometric Ring -->
+    <div class="w-full max-w-[420px] relative z-10 my-auto">
+        <!-- Brand Header -->
         <div class="text-center mb-6">
-            <div class="ig-circle-auth-badge mb-4">
-                <div class="ig-gradient-ring"></div>
-                <div class="ig-circle-inner-icon">
-                    <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center p-1.5 shadow-md overflow-hidden">
-                        <img src="/logo_icon.png?v=<?= time() ?>" alt="EcoFone" width="36" height="36" class="w-full h-full object-contain">
-                    </div>
-                </div>
+            <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white flex items-center justify-center p-2 shadow-2xl ring-4 ring-white/10">
+                <img src="/logo_icon.png?v=<?= time() ?>" alt="EcoFone Logo" width="40" height="40" class="w-full h-full object-contain">
             </div>
 
-            <h1 class="text-2xl font-extrabold text-white tracking-tight">
-                Enter Confirmation Code
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-extrabold uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Two-Factor Authentication</span>
+            </div>
+
+            <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight" id="mainTitle">
+                Enter Verification Code
             </h1>
-            <p class="text-xs text-slate-400 mt-1.5 max-w-xs mx-auto leading-relaxed">
-                Enter the 6-digit security code sent to <br>
-                <span class="font-bold text-slate-200"><?= htmlspecialchars($user['email']) ?></span>
+            <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed" id="subTitle">
+                Sent to <span class="font-bold text-slate-200"><?= htmlspecialchars($user['email']) ?></span>
             </p>
         </div>
 
-        <!-- Flash Message -->
-        <?php $flash = getFlash(); if ($flash): ?>
-            <div id="flashAlert" class="mb-5 p-3.5 rounded-2xl text-xs font-semibold <?= $flash['type'] === 'error' ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30' : ($flash['type'] === 'success' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-blue-500/15 text-blue-300 border border-blue-500/30') ?> flex items-start gap-2.5 backdrop-blur-xl">
-                <i data-lucide="<?= $flash['type'] === 'error' ? 'alert-circle' : 'check-circle-2' ?>" class="w-4 h-4 shrink-0 mt-0.5"></i>
-                <div class="leading-relaxed flex-1"><?= $flash['message'] ?></div>
-            </div>
-        <?php endif; ?>
+        <!-- 🎴 Main Interactive Card -->
+        <div class="auth-glass-card p-6 sm:p-8 space-y-6" id="authCard">
+            <!-- Dynamic Status Banner -->
+            <div id="statusBanner" class="hidden p-3.5 rounded-2xl text-xs font-bold text-center transition-all"></div>
 
-        <!-- 🎴 Card Container -->
-        <div class="ig-card p-6 sm:p-7 space-y-6 shadow-2xl">
-            <!-- 🔘 6 Circular Input Rings (Round Authentication) -->
-            <form action="?action=verify-otp" method="POST" id="otpForm" class="space-y-6">
-                <input type="hidden" name="user_id" value="<?= (int)($userId ?? ($_SESSION['pending_otp_user_id'] ?? ($_COOKIE['pending_otp_uid'] ?? 0))) ?>">
-                <input type="hidden" name="user_email" value="<?= htmlspecialchars($user['email'] ?? ($_SESSION['pending_otp_email'] ?? ($_COOKIE['pending_otp_email'] ?? ''))) ?>">
-                <input type="hidden" name="otp" id="hiddenOtp">
+            <!-- OTP Form & Stage -->
+            <form id="otpForm" class="space-y-6" onsubmit="return false;">
+                <input type="hidden" id="userEmail" value="<?= htmlspecialchars($user['email'] ?? '') ?>">
+                <input type="hidden" id="userId" value="<?= (int)($userId ?? ($_SESSION['pending_otp_user_id'] ?? ($_COOKIE['pending_otp_uid'] ?? 0))) ?>">
 
-                <div class="flex items-center justify-center gap-2 sm:gap-2.5" id="otpBoxContainer">
-                    <?php for ($i = 0; $i < 6; $i++): ?>
-                        <input 
-                            type="text" 
-                            inputmode="numeric" 
-                            maxlength="1" 
-                            pattern="[0-9]" 
-                            required 
-                            class="ig-round-input font-mono-code"
-                            data-index="<?= $i ?>"
-                            autocomplete="one-time-code"
-                        >
-                    <?php endfor; ?>
+                <!-- Dynamic Morphing Stage (Horizontal Row ➔ Rotating Orbital Circle) -->
+                <div id="otpStage">
+                    <!-- Center Radar Scanner (Active during circular rotation) -->
+                    <div id="centerVerificationOrb">
+                        <i data-lucide="shield-check" class="w-8 h-8 text-indigo-400 animate-pulse"></i>
+                    </div>
+
+                    <!-- Outcome Result Badge -->
+                    <div id="verificationResultBadge">
+                        <div id="successContent" class="hidden space-y-2">
+                            <div class="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center shadow-2xl shadow-emerald-500/50">
+                                <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+                            </div>
+                            <h2 class="text-xl font-black text-emerald-400">VERIFIED!</h2>
+                            <p class="text-xs text-slate-300" id="welcomeUserText">Signing into your portal...</p>
+                        </div>
+
+                        <div id="failedContent" class="hidden space-y-2">
+                            <div class="w-16 h-16 mx-auto rounded-full bg-rose-500/20 border-2 border-rose-400 text-rose-400 flex items-center justify-center shadow-2xl shadow-rose-500/50">
+                                <i data-lucide="x-circle" class="w-10 h-10"></i>
+                            </div>
+                            <h2 class="text-xl font-black text-rose-400">WRONG OTP / UNVERIFIED</h2>
+                            <p class="text-xs text-rose-300" id="failedReasonText">Please check your email code and try again.</p>
+                        </div>
+                    </div>
+
+                    <!-- The 6 Boxes that move in circle -->
+                    <div id="otpBoxContainer">
+                        <?php for ($i = 0; $i < 6; $i++): ?>
+                            <input 
+                                type="text" 
+                                inputmode="numeric" 
+                                maxlength="1" 
+                                pattern="[0-9]" 
+                                required 
+                                class="otp-box-node font-mono-code"
+                                data-index="<?= $i ?>"
+                                autocomplete="one-time-code"
+                            >
+                        <?php endfor; ?>
+                    </div>
                 </div>
 
-                <!-- 🚀 Instagram Gradient Full Pill Button -->
+                <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 font-medium" id="codeMetaRow">
+                    <span class="flex items-center gap-1.5 text-slate-400">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Valid for 30m
+                    </span>
+                    <span class="text-indigo-400 font-bold flex items-center gap-1">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Verifies in Circle
+                    </span>
+                </div>
+
+                <!-- Submit Button -->
                 <button 
-                    type="submit" 
+                    type="button" 
                     id="submitBtn"
-                    class="ig-gradient-btn w-full py-3.5 px-6 text-sm text-white flex items-center justify-center gap-2 cursor-pointer"
+                    onclick="triggerVerification()"
+                    class="submit-action-btn w-full py-3.5 px-6 text-sm text-white flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
-                    <span id="submitBtnText">Confirm & Log In</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    <span id="submitBtnText">Verify Identity</span>
                 </button>
             </form>
 
-            <!-- 🔄 Resend / Change Account -->
-            <div class="pt-4 border-t border-white/10 flex flex-col items-center justify-center gap-3 text-xs">
+            <!-- Resend / Change Account -->
+            <div class="pt-4 border-t border-white/10 flex flex-col items-center justify-center gap-3 text-xs" id="footerSection">
                 <?php if ($resendCount >= 5): ?>
                     <div class="text-amber-400 text-center text-xs">
-                        Maximum resend attempts reached for today.
+                        Maximum 5 resend attempts used. Please check your email inbox.
                     </div>
                 <?php else: ?>
                     <button 
@@ -251,12 +350,12 @@ $user = $user ?? ['email' => $targetEmail];
                         class="text-xs font-bold text-slate-500 cursor-not-allowed transition flex items-center gap-1.5"
                     >
                         <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                        <span id="resendText">Request New Code (<?= $cooldownRemaining ?>s)</span>
+                        <span id="resendText">Resend Code (<?= $cooldownRemaining ?>s)</span>
                     </button>
                 <?php endif; ?>
 
-                <a href="?page=login" class="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition">
-                    Log into another account
+                <a href="?page=login" class="text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-1">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Email Login
                 </a>
             </div>
         </div>
@@ -265,80 +364,187 @@ $user = $user ?? ['email' => $targetEmail];
     <script>
         lucide.createIcons();
 
-        const inputs = document.querySelectorAll(".ig-round-input");
-        const hiddenOtp = document.getElementById("hiddenOtp");
-        const otpForm = document.getElementById("otpForm");
+        const authCard = document.getElementById("authCard");
+        const inputs = document.querySelectorAll(".otp-box-node");
+        const otpBoxContainer = document.getElementById("otpBoxContainer");
+        const userEmail = document.getElementById("userEmail").value;
+        const userId = document.getElementById("userId").value;
+        const submitBtn = document.getElementById("submitBtn");
         const submitBtnText = document.getElementById("submitBtnText");
+        const statusBanner = document.getElementById("statusBanner");
+        const successContent = document.getElementById("successContent");
+        const failedContent = document.getElementById("failedContent");
+        const welcomeUserText = document.getElementById("welcomeUserText");
+        const failedReasonText = document.getElementById("failedReasonText");
 
-        if (inputs.length > 0) {
-            setTimeout(() => inputs[0].focus(), 250);
+        let isVerifying = false;
 
-            inputs.forEach((input, index) => {
-                input.addEventListener("input", (e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, "");
-                    e.target.value = val;
+        // Auto-focus 1st input
+        setTimeout(() => inputs[0]?.focus(), 200);
 
-                    if (val) {
-                        input.classList.add('filled');
-                        if (index < inputs.length - 1) {
-                            inputs[index + 1].focus();
-                        }
-                    } else {
-                        input.classList.remove('filled');
+        inputs.forEach((input, index) => {
+            input.addEventListener("input", (e) => {
+                const val = e.target.value.replace(/[^0-9]/g, "");
+                e.target.value = val;
+
+                if (val) {
+                    input.classList.add('filled');
+                    if (index < inputs.length - 1) {
+                        inputs[index + 1].focus();
                     }
+                } else {
+                    input.classList.remove('filled');
+                }
 
-                    checkCompletion();
-                });
-
-                input.addEventListener("keydown", (e) => {
-                    if (e.key === "Backspace") {
-                        if (!e.target.value && index > 0) {
-                            inputs[index - 1].focus();
-                            inputs[index - 1].value = '';
-                            inputs[index - 1].classList.remove('filled');
-                        } else {
-                            e.target.value = '';
-                            e.target.classList.remove('filled');
-                        }
-                        checkCompletion();
-                    }
-                });
-
-                input.addEventListener("paste", (e) => {
-                    e.preventDefault();
-                    const pastedData = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "").slice(0, 6);
-                    if (pastedData) {
-                        pastedData.split("").forEach((char, i) => {
-                            if (inputs[i]) {
-                                inputs[i].value = char;
-                                inputs[i].classList.add('filled');
-                            }
-                        });
-                        const nextIdx = Math.min(pastedData.length, inputs.length - 1);
-                        inputs[nextIdx].focus();
-                        checkCompletion();
-                    }
-                });
+                checkAllFilled();
             });
-        }
 
-        function checkCompletion() {
-            let fullCode = "";
-            inputs.forEach((inp) => { fullCode += inp.value; });
-            hiddenOtp.value = fullCode;
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Backspace") {
+                    if (!e.target.value && index > 0) {
+                        inputs[index - 1].focus();
+                        inputs[index - 1].value = '';
+                        inputs[index - 1].classList.remove('filled');
+                    } else {
+                        e.target.value = '';
+                        e.target.classList.remove('filled');
+                    }
+                }
+            });
 
-            if (fullCode.length === 6) {
-                inputs.forEach(inp => inp.classList.add('auth-success'));
-                submitBtnText.innerText = "Authenticating...";
-                setTimeout(() => {
-                    otpForm.submit();
-                }, 200);
-            } else {
-                inputs.forEach(inp => inp.classList.remove('auth-success'));
+            input.addEventListener("paste", (e) => {
+                e.preventDefault();
+                const pastedData = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "").slice(0, 6);
+                if (pastedData) {
+                    pastedData.split("").forEach((char, i) => {
+                        if (inputs[i]) {
+                            inputs[i].value = char;
+                            inputs[i].classList.add('filled');
+                        }
+                    });
+                    const nextIdx = Math.min(pastedData.length, inputs.length - 1);
+                    inputs[nextIdx].focus();
+                    checkAllFilled();
+                }
+            });
+        });
+
+        function checkAllFilled() {
+            let fullOtp = "";
+            inputs.forEach(inp => { fullOtp += inp.value; });
+            if (fullOtp.length === 6 && !isVerifying) {
+                triggerVerification();
             }
         }
 
-        // Countdown Timer
+        // 🌀 THE SIGNATURE MOTION: MORPH HORIZONTAL BOXES INTO SPINNING CIRCLE
+        function morphToCircle() {
+            authCard.classList.add("is-circular-mode");
+            submitBtn.disabled = true;
+            submitBtnText.innerText = "Verifying in Circular Orbit...";
+
+            const radius = 68; // 68px radius
+            const total = inputs.length; // 6
+            const center = 100; // center of 200x200 box
+
+            inputs.forEach((box, i) => {
+                const angle = (i * (360 / total)) * (Math.PI / 180);
+                const x = center + radius * Math.cos(angle) - 22; // 22 is half of 44px
+                const y = center + radius * Math.sin(angle) - 22;
+                box.style.left = `${x}px`;
+                box.style.top = `${y}px`;
+            });
+        }
+
+        // ↩️ MORPH BACK TO HORIZONTAL ROW (ON FAILURE)
+        function morphBackToHorizontal() {
+            authCard.classList.remove("is-circular-mode", "is-failed");
+            inputs.forEach(box => {
+                box.style.left = '';
+                box.style.top = '';
+                box.value = '';
+                box.classList.remove('filled');
+            });
+            submitBtn.disabled = false;
+            submitBtnText.innerText = "Verify Identity";
+            isVerifying = false;
+            setTimeout(() => inputs[0]?.focus(), 200);
+        }
+
+        // 🚀 TRIGGER ASYNCHRONOUS VERIFICATION
+        function triggerVerification() {
+            let fullOtp = "";
+            inputs.forEach(inp => { fullOtp += inp.value; });
+
+            if (fullOtp.length !== 6) {
+                alert("Please enter all 6 digits first.");
+                return;
+            }
+
+            isVerifying = true;
+
+            // 1. Morph boxes into rotating circle!
+            morphToCircle();
+
+            // 2. Perform AJAX verification in background while circle is spinning
+            const formData = new FormData();
+            formData.append("user_email", userEmail);
+            formData.append("user_id", userId);
+            formData.append("otp", fullOtp);
+            formData.append("is_ajax", "1");
+
+            fetch("?action=verify-otp", {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json"
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Wait at least 1.4s for full circular spinning thrill
+                setTimeout(() => {
+                    if (data.success) {
+                        // ✅ CASE 1: VERIFIED (SUCCESS)
+                        authCard.classList.add("is-verified");
+                        successContent.classList.remove("hidden");
+                        if (data.user_name) {
+                            welcomeUserText.innerText = `Welcome back, ${data.user_name}!`;
+                        }
+
+                        // Redirect to role-based portal after 1.2s
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url || "?page=employee-dashboard";
+                        }, 1200);
+                    } else {
+                        // ❌ CASE 2: WRONG OTP / UNVERIFIED (FAILED)
+                        authCard.classList.add("is-failed");
+                        failedContent.classList.remove("hidden");
+                        failedReasonText.innerText = data.message || "Invalid or expired code.";
+
+                        // Morph back to row after 1.8s so user can re-try
+                        setTimeout(() => {
+                            failedContent.classList.add("hidden");
+                            morphBackToHorizontal();
+                        }, 1800);
+                    }
+                }, 1400);
+            })
+            .catch(err => {
+                setTimeout(() => {
+                    authCard.classList.add("is-failed");
+                    failedContent.classList.remove("hidden");
+                    failedReasonText.innerText = "Network error. Please try again.";
+                    setTimeout(() => {
+                        failedContent.classList.add("hidden");
+                        morphBackToHorizontal();
+                    }, 1800);
+                }, 1400);
+            });
+        }
+
+        // Live Resend Countdown
         let secondsLeft = <?= $cooldownRemaining ?>;
         const resendBtn = document.getElementById("resendBtn");
         const resendText = document.getElementById("resendText");
@@ -349,13 +555,13 @@ $user = $user ?? ['email' => $targetEmail];
             if (secondsLeft > 0) {
                 resendBtn.disabled = true;
                 resendBtn.className = "text-xs font-bold text-slate-500 cursor-not-allowed transition flex items-center gap-1.5";
-                resendText.innerText = `Request New Code (${secondsLeft}s)`;
+                resendText.innerText = `Resend Code (${secondsLeft}s)`;
                 secondsLeft--;
                 setTimeout(updateTimer, 1000);
             } else {
                 resendBtn.disabled = false;
-                resendBtn.className = "text-xs font-bold text-rose-400 hover:text-rose-300 cursor-pointer transition flex items-center gap-1.5";
-                resendText.innerText = "Resend Security Code";
+                resendBtn.className = "text-xs font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer transition flex items-center gap-1.5";
+                resendText.innerText = "Resend Verification Code";
             }
         }
 
