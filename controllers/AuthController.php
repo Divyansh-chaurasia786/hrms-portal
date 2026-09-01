@@ -191,46 +191,58 @@ class AuthController {
         $userId = (int)$user['id'];
         $now = date('Y-m-d H:i:s');
 
-        // Check if OTP matches (Universal Test OTP 123456 OR generated email OTP)
-        $isTestOtp = ($otp === '123456');
+        // Check if OTP matches real generated email OTP within 10 minutes
         $isRealOtp = (!empty($user['login_otp']) && (string)$user['login_otp'] === (string)$otp && $user['login_otp_expires_at'] >= $now);
 
-        if ($isTestOtp || $isRealOtp) {
+        if ($isRealOtp) {
             if (session_status() === PHP_SESSION_ACTIVE) {
                 @session_regenerate_id(true);
             }
 
+            // Single-Device Lock: Generate unique device token
             $sessionToken = bin2hex(random_bytes(32));
             $today = date('Y-m-d');
             $nowDateTime = date('Y-m-d H:i:s');
 
-            // Save new exclusive device session token
+            // Auto clock-out previous active shift upon switching devices
+            $db->prepare("
+                UPDATE attendance 
+                SET clock_out = ?, notes = CONCAT(COALESCE(notes, ''), ' [Auto Punch-Out: Logged in on another device]') 
+                WHERE user_id = ? AND date = ? AND clock_out IS NULL
+            ")->execute([$nowDateTime, $user['id'], $today]);
+
+            // Clear login OTP after successful authentication
             $db->prepare("
                 UPDATE users 
-                SET current_session_token = ?, login_otp = NULL, login_otp_expires_at = NULL, 
-                    otp_sent_count_today = 0, is_otp_blocked_today = 0, force_logout_at = NULL 
+                SET login_otp = NULL, login_otp_expires_at = NULL, session_token = ?, 
+                    last_login_device = ?, last_login_ip = ?, last_login_at = ? 
                 WHERE id = ?
-            ")->execute([$sessionToken, $userId]);
+            ")->execute([$sessionToken, self::getDeviceName(), $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', $nowDateTime, $user['id']]);
 
-            unset($_SESSION['pending_otp_user_id']);
-            unset($_SESSION['pending_otp_email']);
-            unset($_SESSION['otp_resend_count']);
+            // Set Auth Session
+            $_SESSION['user'] = [
+                'id' => (int)$user['id'],
+                'emp_id' => $user['emp_id'],
+                'name' => $user['name'],
+                'email' => $user['email'],
+                'role' => $user['role'],
+                'department_name' => $user['department_name'] ?? 'General',
+                'designation' => $user['designation'] ?? 'Staff',
+                'work_mode' => $user['work_mode'] ?? 'office',
+                'session_token' => $sessionToken,
+                'logged_in_at' => time()
+            ];
 
-            unset($user['password']);
-            unset($user['login_otp']);
-            $user['logged_in_at'] = time();
-            $_SESSION['user'] = $user;
-            $_SESSION['user_session_token'] = $sessionToken;
-            setAuthCookie($user, $sessionToken);
-
-            // Clear temporary pending cookies
+            // Clean pending auth states
+            unset($_SESSION['pending_otp_user_id'], $_SESSION['pending_otp_email'], $_SESSION['otp_resend_count']);
             setcookie('pending_otp_uid', '', time() - 3600, '/');
             setcookie('pending_otp_email', '', time() - 3600, '/');
 
-            setFlash('success', '🔐 Welcome back, ' . $user['name'] . '!');
+            setFlash('success', "Welcome back, <strong>{$user['name']}</strong>! You have signed in successfully.");
 
+            // Smart Role Routing
             if ($user['role'] === 'admin') {
-                header('Location: ?page=admin-dashboard');
+                header('Location: ?page=admin-overview');
             } elseif ($user['role'] === 'team_lead') {
                 header('Location: ?page=tl-dashboard');
             } else {
@@ -238,7 +250,7 @@ class AuthController {
             }
             exit;
         } else {
-            setFlash('error', '❌ Invalid or expired OTP. Please use test code 123456 or check your email.');
+            setFlash('error', '❌ Invalid or expired OTP. Please check your email inbox for the latest 6-digit verification code.');
             header('Location: ?page=verify-otp&email=' . urlencode($user['email']));
             exit;
         }
@@ -283,7 +295,7 @@ class AuthController {
         $now = date('Y-m-d H:i:s');
 
         // Check if OTP matches and has not expired
-        if ($otp === '123456' || (!empty($user['login_otp']) && $user['login_otp'] === $otp && $user['login_otp_expires_at'] >= $now)) {
+        if (!empty($user['login_otp']) && (string)$user['login_otp'] === (string)$otp && $user['login_otp_expires_at'] >= $now) {
             // Prevent Session Fixation Attack by regenerating session ID
             if (session_status() === PHP_SESSION_ACTIVE) {
                 @session_regenerate_id(true);
