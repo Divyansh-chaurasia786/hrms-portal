@@ -1,5 +1,10 @@
-﻿.git
+.git
 .gitignore
 scratch/
+android/
+ios/
+node_modules/
 otp_mail.log
 *.log
+*.zip
+*.apk
