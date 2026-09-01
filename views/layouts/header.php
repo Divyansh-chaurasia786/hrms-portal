@@ -168,25 +168,8 @@
         }
     });
 
-    // Direct 1-click installation trigger (APK download on Android, PWA install prompt on Desktop/iOS)
+    // Direct 1-click native app installation trigger (Direct Android Home Screen App Install)
     function triggerPwaInstall() {
-        if (/Android/i.test(navigator.userAgent)) {
-            showToast('📥 Starting EcoFone Android APK Download...');
-            var link = document.createElement('a');
-            link.href = '?action=download-apk';
-            link.download = 'EcoFone-App.apk';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-
-            if (window.pwaInstallPrompt) {
-                setTimeout(function() {
-                    try { window.pwaInstallPrompt.prompt(); } catch(e) {}
-                }, 1500);
-            }
-            return;
-        }
-
         if (window.pwaInstallPrompt) {
             window.pwaInstallPrompt.prompt();
             window.pwaInstallPrompt.userChoice.then(function(choice) {
@@ -194,13 +177,16 @@
                     window.pwaInstallPrompt = null;
                     var btn = document.getElementById('installAppNavbarBtn');
                     if (btn) btn.style.display = 'none';
-                    showToast('🎉 EcoFone App installed successfully!');
+                    showToast('🎉 EcoFone App installed successfully on your phone!');
                 }
             });
             return;
         }
 
-        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        // If beforeinstallprompt hasn't fired yet, give clear 1-tap visual instruction
+        if (/Android/i.test(navigator.userAgent)) {
+            showToast('📲 Tap Chrome Menu (⋮) top-right → "Install app"');
+        } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             showToast('📲 Tap Safari Share (□↑) → "Add to Home Screen"');
         } else {
             showToast('📲 Click the Install (🖥️↓) icon in the address bar or Menu (⋮) → "Install EcoFone App"');
