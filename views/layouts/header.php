@@ -50,10 +50,19 @@
     </script>
     <!-- Client-Side Instant Cache Vault -->
     <script src="/js/hrms_offline_cache.js"></script>
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icons with Reliable Fallback CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script>
+        if (typeof lucide === 'undefined') {
+            document.write('<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>');
+        }
+        document.addEventListener("DOMContentLoaded", function() {
+            if (window.lucide) { lucide.createIcons(); }
+        });
+        window.addEventListener("load", function() {
+            if (window.lucide) { lucide.createIcons(); }
+        });
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>

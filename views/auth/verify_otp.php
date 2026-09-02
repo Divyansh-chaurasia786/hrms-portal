@@ -12,7 +12,12 @@ $user = $user ?? ['email' => $targetEmail];
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Two-Step Verification • EcoFone</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script>
+        if (typeof lucide === 'undefined') {
+            document.write('<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>');
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -129,15 +134,14 @@ $user = $user ?? ['email' => $targetEmail];
             0%, 100% { transform: scale(0.92); opacity: 0.7; box-shadow: 0 0 25px rgba(99, 102, 241, 0.4); }
             50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 45px rgba(99, 102, 241, 0.8); }
         }
+        @keyframes verifiedPulseGreen {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 35px rgba(16, 185, 129, 0.7); }
+            50% { transform: scale(1.12); box-shadow: 0 0 60px rgba(16, 185, 129, 1); }
+        }
         @keyframes shakeError {
             0%, 100% { transform: translateX(0); }
             20%, 60% { transform: translateX(-12px); }
             40%, 80% { transform: translateX(12px); }
-        }
-        @keyframes successPop {
-            0% { transform: scale(0.3); opacity: 0; }
-            70% { transform: scale(1.15); }
-            100% { transform: scale(1); opacity: 1; }
         }
 
         /* When circular mode is active */
@@ -180,52 +184,40 @@ $user = $user ?? ['email' => $targetEmail];
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 68px;
-            height: 68px;
-            margin-top: -34px;
-            margin-left: -34px;
+            width: 72px;
+            height: 72px;
+            margin-top: -36px;
+            margin-left: -36px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(15, 23, 42, 0.95) 75%);
-            border: 1.5px solid rgba(99, 102, 241, 0.5);
+            border: 2px solid rgba(99, 102, 241, 0.6);
             align-items: center;
             justify-content: center;
             z-index: 5;
             pointer-events: none;
             animation: centerPulseGlow 2s ease-in-out infinite;
+            transition: all 0.4s ease;
         }
         .is-circular-mode #centerVerificationOrb {
             display: flex;
         }
 
-        /* Verification Outcome Badges */
-        #verificationResultBadge {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 30;
-            text-align: center;
-            width: 100%;
-        }
-
-        /* State: VERIFIED (SUCCESS) */
-        .is-verified #otpWheel {
-            display: none !important;
+        /* ✅ State: 100% IN-CIRCLE VERIFIED (SUCCESS) */
+        .is-verified .otp-box-node {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            border-color: #a7f3d0 !important;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.9) !important;
         }
         .is-verified #centerVerificationOrb {
-            display: none !important;
-        }
-        .is-verified #verificationResultBadge {
             display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            animation: successPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(6, 78, 59, 0.95) 75%) !important;
+            border-color: #34d399 !important;
+            animation: verifiedPulseGreen 1.4s ease-in-out infinite !important;
+            transform: scale(1.15) !important;
         }
         .is-verified .submit-action-btn {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.5) !important;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.6) !important;
         }
         .is-verified #codeMetaRow,
         .is-verified #footerSection {
@@ -234,7 +226,7 @@ $user = $user ?? ['email' => $targetEmail];
             transition: opacity 0.3s ease;
         }
 
-        /* State: WRONG OTP (FAILED) */
+        /* ❌ State: WRONG OTP (FAILED) */
         .is-failed #otpWheel {
             animation: shakeError 0.5s ease-in-out !important;
         }
@@ -278,7 +270,7 @@ $user = $user ?? ['email' => $targetEmail];
 
             <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-extrabold uppercase tracking-wider mb-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Two-Factor Authentication</span>
+                <span id="badgeLabel">Two-Factor Authentication</span>
             </div>
 
             <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight" id="mainTitle">
@@ -298,28 +290,11 @@ $user = $user ?? ['email' => $targetEmail];
 
                 <!-- Dynamic Morphing Stage -->
                 <div id="otpStage">
-                    <!-- Center Shield: Positioned at exact 50%, 50% with margin -34px -->
+                    <!-- Center Orb: Transitions into Checkmark on Success -->
                     <div id="centerVerificationOrb">
-                        <i data-lucide="shield-check" class="w-8 h-8 text-indigo-300"></i>
-                    </div>
-
-                    <!-- Outcome Result Badge -->
-                    <div id="verificationResultBadge">
-                        <div id="successContent" class="hidden space-y-2">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center shadow-2xl shadow-emerald-500/50">
-                                <i data-lucide="check-circle-2" class="w-10 h-10"></i>
-                            </div>
-                            <h2 class="text-xl font-black text-emerald-400">VERIFIED!</h2>
-                            <p class="text-xs text-slate-300" id="welcomeUserText">Signing into your portal...</p>
-                        </div>
-
-                        <div id="failedContent" class="hidden space-y-2">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-rose-500/20 border-2 border-rose-400 text-rose-400 flex items-center justify-center shadow-2xl shadow-rose-500/50">
-                                <i data-lucide="x-circle" class="w-10 h-10"></i>
-                            </div>
-                            <h2 class="text-xl font-black text-rose-400">WRONG OTP</h2>
-                            <p class="text-xs text-rose-300" id="failedReasonText">Please check your email code and try again.</p>
-                        </div>
+                        <span id="centerIconWrapper">
+                            <i data-lucide="shield-check" class="w-8 h-8 text-indigo-300"></i>
+                        </span>
                     </div>
 
                     <!-- The 6 Boxes that move in perfect circular symmetry -->
@@ -355,7 +330,9 @@ $user = $user ?? ['email' => $targetEmail];
                     onclick="triggerVerification()"
                     class="submit-action-btn w-full py-3.5 px-6 text-sm text-white flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
-                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    <span id="submitBtnIconWrapper">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </span>
                     <span id="submitBtnText">Verify Identity</span>
                 </button>
             </form>
@@ -386,7 +363,7 @@ $user = $user ?? ['email' => $targetEmail];
     </div>
 
     <script>
-        lucide.createIcons();
+        if (window.lucide) { lucide.createIcons(); }
 
         const authCard = document.getElementById("authCard");
         const inputs = document.querySelectorAll(".otp-box-node");
@@ -394,10 +371,11 @@ $user = $user ?? ['email' => $targetEmail];
         const userId = document.getElementById("userId").value;
         const submitBtn = document.getElementById("submitBtn");
         const submitBtnText = document.getElementById("submitBtnText");
-        const successContent = document.getElementById("successContent");
-        const failedContent = document.getElementById("failedContent");
-        const welcomeUserText = document.getElementById("welcomeUserText");
-        const failedReasonText = document.getElementById("failedReasonText");
+        const submitBtnIconWrapper = document.getElementById("submitBtnIconWrapper");
+        const centerIconWrapper = document.getElementById("centerIconWrapper");
+        const mainTitle = document.getElementById("mainTitle");
+        const subTitle = document.getElementById("subTitle");
+        const badgeLabel = document.getElementById("badgeLabel");
 
         let isVerifying = false;
 
@@ -485,6 +463,9 @@ $user = $user ?? ['email' => $targetEmail];
         // ↩️ MORPH BACK TO HORIZONTAL ROW (ON FAILURE)
         function morphBackToHorizontal() {
             authCard.classList.remove("is-circular-mode", "is-failed");
+            centerIconWrapper.innerHTML = '<i data-lucide="shield-check" class="w-8 h-8 text-indigo-300"></i>';
+            mainTitle.innerHTML = 'Enter Verification Code';
+            mainTitle.className = 'text-2xl sm:text-3xl font-black text-white tracking-tight';
             inputs.forEach(box => {
                 box.style.left = '';
                 box.style.top = '';
@@ -493,6 +474,7 @@ $user = $user ?? ['email' => $targetEmail];
             });
             submitBtn.disabled = false;
             submitBtnText.innerText = "Verify Identity";
+            if (window.lucide) { lucide.createIcons(); }
             isVerifying = false;
             setTimeout(() => inputs[0]?.focus(), 200);
         }
@@ -532,13 +514,17 @@ $user = $user ?? ['email' => $targetEmail];
                 // Wait at least 1.4s for full circular spinning thrill
                 setTimeout(() => {
                     if (data.success) {
-                        // ✅ CASE 1: VERIFIED (SUCCESS)
+                        // ✅ CASE 1: 100% IN-CIRCLE VERIFIED (SUCCESS)
                         authCard.classList.add("is-verified");
-                        successContent.classList.remove("hidden");
-                        submitBtnText.innerText = "Redirecting to Dashboard...";
+                        centerIconWrapper.innerHTML = '<i data-lucide="check" class="w-10 h-10 text-white"></i>';
+                        submitBtnIconWrapper.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i>';
+                        submitBtnText.innerText = "Entering Portal...";
+                        badgeLabel.innerText = "Identity Authenticated";
+                        mainTitle.innerHTML = '<span class="text-emerald-400 font-extrabold flex items-center justify-center gap-2">✓ VERIFIED!</span>';
                         if (data.user_name) {
-                            welcomeUserText.innerText = `Welcome back, ${data.user_name}!`;
+                            subTitle.innerHTML = `<span class="text-slate-200 font-bold">Welcome back, ${data.user_name}!</span>`;
                         }
+                        if (window.lucide) { lucide.createIcons(); }
 
                         // Redirect to role-based portal after 1.2s
                         setTimeout(() => {
@@ -547,12 +533,13 @@ $user = $user ?? ['email' => $targetEmail];
                     } else {
                         // ❌ CASE 2: WRONG OTP / UNVERIFIED (FAILED)
                         authCard.classList.add("is-failed");
-                        failedContent.classList.remove("hidden");
-                        failedReasonText.innerText = data.message || "Invalid or expired code.";
+                        centerIconWrapper.innerHTML = '<i data-lucide="x" class="w-10 h-10 text-rose-300"></i>';
+                        mainTitle.innerHTML = '<span class="text-rose-400 font-extrabold">✕ WRONG OTP</span>';
+                        subTitle.innerText = data.message || "Invalid or expired code.";
+                        if (window.lucide) { lucide.createIcons(); }
 
                         // Morph back to row after 1.8s so user can re-try
                         setTimeout(() => {
-                            failedContent.classList.add("hidden");
                             morphBackToHorizontal();
                         }, 1800);
                     }
@@ -561,10 +548,11 @@ $user = $user ?? ['email' => $targetEmail];
             .catch(err => {
                 setTimeout(() => {
                     authCard.classList.add("is-failed");
-                    failedContent.classList.remove("hidden");
-                    failedReasonText.innerText = "Network error. Please try again.";
+                    centerIconWrapper.innerHTML = '<i data-lucide="x" class="w-10 h-10 text-rose-300"></i>';
+                    mainTitle.innerHTML = '<span class="text-rose-400 font-extrabold">✕ Network Error</span>';
+                    subTitle.innerText = "Please try again.";
+                    if (window.lucide) { lucide.createIcons(); }
                     setTimeout(() => {
-                        failedContent.classList.add("hidden");
                         morphBackToHorizontal();
                     }, 1800);
                 }, 1400);
