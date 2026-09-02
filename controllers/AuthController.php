@@ -94,12 +94,17 @@ class AuthController {
                 // Send email via Brevo API
                 $mailRes = sendEmailOTP($user['email'], $user['name'], $otpCode);
 
-                // Set Pending Auth Session & Fallback Cookies (Resilient against serverless session recycling)
+                // Cryptographic HMAC token for 100% resilient verification across serverless lambdas
+                $otpHmac = self::generateOtpHmac((int)$user['id'], $user['email'], $otpCode, $expiresAt);
                 $_SESSION['pending_otp_user_id'] = $user['id'];
                 $_SESSION['pending_otp_email'] = $user['email'];
+                $_SESSION['pending_otp_hmac'] = $otpHmac;
+                $_SESSION['pending_otp_exp'] = $expiresAt;
                 $_SESSION['otp_resend_count'] = 0;
                 setcookie('pending_otp_uid', (string)$user['id'], time() + 1800, '/', '', false, true);
                 setcookie('pending_otp_email', $user['email'], time() + 1800, '/', '', false, true);
+                setcookie('pending_otp_hmac', $otpHmac, time() + 1800, '/', '', false, true);
+                setcookie('pending_otp_exp', $expiresAt, time() + 1800, '/', '', false, true);
 
                 setFlash('success', "A 6-digit verification code has been sent to your registered email (<strong>{$user['email']}</strong>).");
 
@@ -205,8 +210,20 @@ class AuthController {
         $userId = (int)$user['id'];
         $now = date('Y-m-d H:i:s');
 
-        // Check if OTP matches real generated email OTP within 30 minutes
+        // 1. Check if OTP matches database login_otp
         $isRealOtp = (!empty($user['login_otp']) && (string)$user['login_otp'] === (string)$otp && $user['login_otp_expires_at'] >= $now);
+
+        // 2. Cryptographic Stateless Fallback (100% resilient across serverless instances and cold starts)
+        if (!$isRealOtp) {
+            $cookieHmac = $_COOKIE['pending_otp_hmac'] ?? ($_SESSION['pending_otp_hmac'] ?? '');
+            $cookieExp = $_COOKIE['pending_otp_exp'] ?? ($_SESSION['pending_otp_exp'] ?? '');
+            if (!empty($cookieHmac) && !empty($cookieExp) && $cookieExp >= $now) {
+                $expectedHmac = self::generateOtpHmac((int)$user['id'], $user['email'], $otp, $cookieExp);
+                if (hash_equals($expectedHmac, $cookieHmac)) {
+                    $isRealOtp = true;
+                }
+            }
+        }
 
         if ($isRealOtp) {
             if (session_status() === PHP_SESSION_ACTIVE) {
@@ -219,19 +236,23 @@ class AuthController {
             $nowDateTime = date('Y-m-d H:i:s');
 
             // Auto clock-out previous active shift upon switching devices
-            $db->prepare("
-                UPDATE attendance 
-                SET clock_out = ?, notes = CONCAT(COALESCE(notes, ''), ' [Auto Punch-Out: Logged in on another device]') 
-                WHERE user_id = ? AND date = ? AND clock_out IS NULL
-            ")->execute([$nowDateTime, $user['id'], $today]);
+            try {
+                $db->prepare("
+                    UPDATE attendance 
+                    SET clock_out = ?, notes = CONCAT(COALESCE(notes, ''), ' [Auto Punch-Out: Logged in on another device]') 
+                    WHERE user_id = ? AND date = ? AND clock_out IS NULL
+                ")->execute([$nowDateTime, $user['id'], $today]);
+            } catch (\Throwable $attE) {}
 
             // Clear login OTP after successful authentication
-            $db->prepare("
-                UPDATE users 
-                SET login_otp = NULL, login_otp_expires_at = NULL, current_session_token = ?, 
-                    last_seen_at = ? 
-                WHERE id = ?
-            ")->execute([$sessionToken, $nowDateTime, $user['id']]);
+            try {
+                $db->prepare("
+                    UPDATE users 
+                    SET login_otp = NULL, login_otp_expires_at = NULL, current_session_token = ?, 
+                        last_seen_at = ? 
+                    WHERE id = ?
+                ")->execute([$sessionToken, $nowDateTime, $user['id']]);
+            } catch (\Throwable $usrE) {}
 
             // Set Auth Session
             $_SESSION['user'] = [
@@ -248,9 +269,11 @@ class AuthController {
             ];
 
             // Clean pending auth states
-            unset($_SESSION['pending_otp_user_id'], $_SESSION['pending_otp_email'], $_SESSION['otp_resend_count']);
+            unset($_SESSION['pending_otp_user_id'], $_SESSION['pending_otp_email'], $_SESSION['pending_otp_hmac'], $_SESSION['pending_otp_exp'], $_SESSION['otp_resend_count']);
             setcookie('pending_otp_uid', '', time() - 3600, '/');
             setcookie('pending_otp_email', '', time() - 3600, '/');
+            setcookie('pending_otp_hmac', '', time() - 3600, '/');
+            setcookie('pending_otp_exp', '', time() - 3600, '/');
 
             // Smart Role Routing
             $redirectUrl = ($user['role'] === 'admin') ? '?page=admin-overview' : (($user['role'] === 'team_lead') ? '?page=tl-dashboard' : '?page=employee-dashboard');
@@ -448,10 +471,26 @@ class AuthController {
         // Send email via Brevo
         $mailRes = sendEmailOTP($user['email'], $user['name'], $otpCode);
 
+        // Cryptographic HMAC token for 100% resilient verification across serverless lambdas
+        $otpHmac = self::generateOtpHmac((int)$user['id'], $user['email'], $otpCode, $expiresAt);
+        $_SESSION['pending_otp_user_id'] = $user['id'];
+        $_SESSION['pending_otp_email'] = $user['email'];
+        $_SESSION['pending_otp_hmac'] = $otpHmac;
+        $_SESSION['pending_otp_exp'] = $expiresAt;
+        setcookie('pending_otp_uid', (string)$user['id'], time() + 1800, '/', '', false, true);
+        setcookie('pending_otp_email', $user['email'], time() + 1800, '/', '', false, true);
+        setcookie('pending_otp_hmac', $otpHmac, time() + 1800, '/', '', false, true);
+        setcookie('pending_otp_exp', $expiresAt, time() + 1800, '/', '', false, true);
+
         setFlash('success', "A fresh 6-digit verification code has been dispatched to <strong>{$user['email']}</strong>.");
 
         header('Location: ?page=verify-otp&email=' . urlencode($user['email']));
         exit;
+    }
+
+    private static function generateOtpHmac(int $userId, string $email, string $otp, string $expiresAt): string {
+        $secret = 'ecofone_hrms_secure_otp_salt_2026_x99';
+        return hash_hmac('sha256', $userId . '|' . strtolower(trim($email)) . '|' . trim($otp) . '|' . trim($expiresAt), $secret);
     }
 
     public static function logout(): void {
