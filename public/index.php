@@ -16,6 +16,21 @@ if (!headers_sent()) {
     header("Expires: 0");
 }
 
+// 🚫 Firewall: Block any direct access to databases, config, logs, source code, and directory traversal
+$reqUri = strtolower($_SERVER['REQUEST_URI'] ?? '');
+$blockedPatterns = [
+    '/\.(?:sqlite|sqlite3|db|pem|key|crt|env|log|sql|bak|conf|ini|sh|bat|yml|yaml|md)/i',
+    '/(?:database|config|includes|controllers|views|scratch|android|ios|node_modules)\//i',
+    '/\.\./i', '/%2e%2e/i'
+];
+foreach ($blockedPatterns as $pattern) {
+    if (preg_match($pattern, $reqUri)) {
+        http_response_code(403);
+        header('Content-Type: text/plain');
+        exit('Access Denied: 403 Forbidden.');
+    }
+}
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';

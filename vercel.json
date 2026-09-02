@@ -9,6 +9,16 @@
   },
   "routes": [
     {
+      "src": "/(?:database|config|includes|controllers|views|scratch|android|ios|node_modules)/.*",
+      "status": 403,
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "/.*\\.(?:sqlite|sqlite3|db|pem|key|crt|env|log|sql|bak|conf|ini|sh|bat|yml|yaml|md|jsonld)",
+      "status": 403,
+      "dest": "/api/index.php"
+    },
+    {
       "src": "/(google[a-z0-9]+\\.html)",
       "dest": "/public/$1"
     },
@@ -23,6 +33,10 @@
     {
       "src": "/logo.png",
       "dest": "/public/logo.png"
+    },
+    {
+      "src": "/logo_icon.png",
+      "dest": "/public/logo_icon.png"
     },
     {
       "src": "/favicon.png",
@@ -45,7 +59,7 @@
       "dest": "/public/uploads/$1"
     },
     {
-      "src": "/(.*\\.(?:png|jpg|jpeg|svg|gif|ico|webp|json|js|css|txt))",
+      "src": "/(.*\\.(?:png|jpg|jpeg|svg|gif|ico|webp|js|css|txt))",
       "dest": "/public/$1"
     },
     {
