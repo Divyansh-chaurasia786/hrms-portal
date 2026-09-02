@@ -211,10 +211,7 @@ $user = $user ?? ['email' => $targetEmail];
 
         /* State: VERIFIED (SUCCESS) */
         .is-verified #otpWheel {
-            animation: none !important;
-            opacity: 0;
-            transform: scale(0.2) !important;
-            transition: all 0.4s ease;
+            display: none !important;
         }
         .is-verified #centerVerificationOrb {
             display: none !important;

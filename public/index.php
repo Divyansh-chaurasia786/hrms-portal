@@ -2,6 +2,10 @@
 // public/index.php - Live Production Build 2026.08.31-v8.2
 date_default_timezone_set('Asia/Kolkata');
 
+// 🛡️ Disable raw error printing to prevent DOM text bleed in production
+ini_set('display_errors', '0');
+error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_WARNING);
+
 // ⚡ Instant Output Compression
 if (!ob_start('ob_gzhandler')) ob_start();
 
