@@ -1,244 +1,190 @@
 <!-- views/auth/login.php -->
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-black text-white">
+<html lang="en" class="h-full bg-[#05070f] text-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <title>EcoFone • Login</title>
-    <meta name="description" content="Official EcoFone Portal - Sign in to access your attendance, CRM, and workforce dashboard.">
+    <title>Sign In • EcoFone</title>
+    <meta name="description" content="Official EcoFone Portal - Sign in to access attendance, CRM, and operations.">
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #000000;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at 50% 15%, #0f172a 0%, #030712 100%);
+            min-height: 100vh;
         }
+        .font-mono-code { font-family: 'JetBrains Mono', monospace; }
 
-        /* 🟣 Instagram Signature Rotating Story Ring */
-        @keyframes storySpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* 🌌 Ambient Floating Mesh */
+        @keyframes floatMesh {
+            0%, 100% { transform: scale(1) translateY(0); opacity: 0.35; }
+            50% { transform: scale(1.15) translateY(-20px); opacity: 0.65; }
         }
-        @keyframes floatSubtle {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
-        }
-
-        .ig-story-ring {
-            position: relative;
-            width: 88px;
-            height: 88px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: floatSubtle 4s ease-in-out infinite;
-        }
-        .ig-story-gradient {
-            position: absolute;
+        .ambient-mesh {
+            position: fixed;
             inset: 0;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            animation: storySpin 8s linear infinite;
+            pointer-events: none;
+            overflow: hidden;
         }
-        .ig-story-cutout {
+        .ambient-mesh-1 {
             position: absolute;
-            inset: 3px;
-            background: #000000;
+            top: -120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(236, 72, 153, 0.15) 50%, transparent 70%);
             border-radius: 50%;
-            z-index: 1;
-        }
-        .ig-story-avatar {
-            position: relative;
-            width: 74px;
-            height: 74px;
-            border-radius: 50%;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-            padding: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            filter: blur(100px);
+            animation: floatMesh 8s ease-in-out infinite;
         }
 
-        /* 📱 Instagram Native Card */
-        .ig-auth-box {
-            background-color: #000000;
-            border: 1px solid #262626;
-            border-radius: 1px;
-        }
-        @media (min-width: 480px) {
-            .ig-auth-box {
-                border-radius: 12px;
-                padding: 40px 40px 24px;
-            }
+        /* 🎴 Matching Glassmorphic Card */
+        .auth-glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.95), 0 0 40px -10px rgba(99, 102, 241, 0.25);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 🔘 Instagram Style Text Input */
-        .ig-input {
-            background-color: #121212;
-            border: 1px solid #262626;
-            border-radius: 8px;
-            color: #ffffff;
-            font-size: 13px;
-            padding: 12px 14px;
+        /* 🔘 Matching Dark Input */
+        .auth-input-field {
             width: 100%;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
+            background: rgba(3, 7, 18, 0.85);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 14px 16px 14px 44px;
             outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .ig-input:focus {
-            border-color: #555555;
-            background-color: #181818;
+        .auth-input-field:focus {
+            border-color: #6366f1;
+            background: rgba(30, 41, 59, 0.95);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            transform: translateY(-2px);
         }
-        .ig-input::placeholder {
-            color: #737373;
-            font-size: 13px;
-        }
-
-        /* 🚀 Instagram Primary Blue Button */
-        .ig-btn-primary {
-            background: #0095f6;
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 14px;
-            padding: 10px 16px;
-            border-radius: 8px;
-            width: 100%;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        .ig-btn-primary:hover {
-            background: #1877f2;
-        }
-        .ig-btn-primary:active {
-            opacity: 0.7;
+        .auth-input-field::placeholder {
+            color: #64748b;
+            font-weight: 500;
         }
 
-        /* 🌈 Instagram Gradient Alternative Button */
-        .ig-btn-gradient {
-            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 14px;
-            padding: 11px 16px;
-            border-radius: 8px;
-            width: 100%;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* 🚀 Matching Action Button */
+        .submit-action-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+            border-radius: 18px;
+            font-weight: 800;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+            transition: all 0.25s ease;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(220, 39, 67, 0.3);
         }
-        .ig-btn-gradient:hover {
-            opacity: 0.95;
-            transform: scale(1.01);
+        .submit-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.7);
         }
-        .ig-btn-gradient:active {
-            transform: scale(0.99);
+        .submit-action-btn:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
-<body class="min-h-full flex flex-col justify-between items-center py-8 px-4 bg-black text-white antialiased selection:bg-[#0095f6] selection:text-white">
-    <!-- Main Center Container -->
-    <div class="w-full max-w-[360px] my-auto space-y-3">
-        <!-- Main Login Box -->
-        <div class="ig-auth-box p-6 sm:p-9 space-y-6">
-            <!-- 🟣 Rotating Instagram Story Header Logo -->
-            <div class="text-center">
-                <div class="ig-story-ring mb-4">
-                    <div class="ig-story-gradient"></div>
-                    <div class="ig-story-cutout"></div>
-                    <div class="ig-story-avatar">
-                        <img src="/logo_icon.png?v=<?= time() ?>" alt="EcoFone Logo" width="48" height="48" class="w-full h-full object-contain">
-                    </div>
-                </div>
-                
-                <!-- Brand Title -->
-                <h1 class="text-3xl font-extrabold tracking-tight text-white mb-1">
-                    EcoFone
-                </h1>
-                <p class="text-xs text-[#a8a8a8] font-medium">Workforce, CRM & Live Attendance Portal</p>
+<body class="min-h-full flex flex-col items-center justify-center py-6 px-4 relative overflow-x-hidden antialiased">
+    <!-- Ambient Light Mesh -->
+    <div class="ambient-mesh">
+        <div class="ambient-mesh-1"></div>
+    </div>
+
+    <div class="w-full max-w-[420px] relative z-10 my-auto">
+        <!-- Brand Header -->
+        <div class="text-center mb-6">
+            <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white flex items-center justify-center p-2 shadow-2xl ring-4 ring-white/10">
+                <img src="/logo_icon.png?v=<?= time() ?>" alt="EcoFone Logo" width="40" height="40" class="w-full h-full object-contain">
             </div>
 
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-extrabold uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Enterprise Portal</span>
+            </div>
+
+            <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Sign In to EcoFone
+            </h1>
+            <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+                Workforce, CRM & Live Attendance Portal
+            </p>
+        </div>
+
+        <!-- 🎴 Matching Main Card -->
+        <div class="auth-glass-card p-6 sm:p-8 space-y-6">
             <!-- Flash Alerts -->
             <?php $flash = getFlash(); if ($flash): ?>
-                <div id="flashAlert" class="p-3.5 rounded-lg text-xs font-semibold <?= $flash['type'] === 'error' ? 'bg-[#2a0e14] text-[#ff4d6d] border border-[#ff4d6d]/40' : ($flash['type'] === 'success' ? 'bg-[#0f2e1e] text-[#2ec4b6] border border-[#2ec4b6]/40' : 'bg-[#0f1f38] text-[#3a86ff] border border-[#3a86ff]/40') ?> flex items-start gap-2.5 transition-all">
+                <div id="flashAlert" class="p-4 rounded-2xl text-xs font-semibold <?= $flash['type'] === 'error' ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30' : ($flash['type'] === 'success' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-blue-500/15 text-blue-300 border border-blue-500/30') ?> flex items-start gap-3 shadow-xl backdrop-blur-xl">
                     <i data-lucide="<?= $flash['type'] === 'error' ? 'alert-circle' : 'check-circle-2' ?>" class="w-4 h-4 shrink-0 mt-0.5"></i>
                     <div class="leading-relaxed flex-1"><?= $flash['message'] ?></div>
                 </div>
             <?php endif; ?>
 
             <!-- Login Form -->
-            <form action="?action=login" method="POST" class="space-y-3.5">
-                <div>
-                    <input 
-                        type="email" 
-                        name="email" 
-                        id="emailInput" 
-                        required 
-                        autofocus
-                        autocapitalize="none"
-                        autocorrect="off"
-                        spellcheck="false"
-                        placeholder="Work email address" 
-                        class="ig-input"
-                    >
+            <form action="?action=login" method="POST" class="space-y-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                        Work Email Address
+                    </label>
+                    <div class="relative">
+                        <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-4 top-4"></i>
+                        <input 
+                            type="email" 
+                            name="email" 
+                            id="emailInput" 
+                            required 
+                            autofocus
+                            autocapitalize="none"
+                            autocorrect="off"
+                            spellcheck="false"
+                            placeholder="name@company.com" 
+                            class="auth-input-field lowercase"
+                        >
+                    </div>
                 </div>
 
-                <!-- Submit Button with Instagram Gradient -->
-                <button type="submit" class="ig-btn-gradient gap-2">
+                <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 font-medium">
+                    <span class="flex items-center gap-1.5 text-slate-400">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Passwordless 2FA
+                    </span>
+                    <span class="text-indigo-400 font-bold flex items-center gap-1">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i> 6-Digit Email OTP
+                    </span>
+                </div>
+
+                <!-- Submit Button -->
+                <button 
+                    type="submit" 
+                    class="submit-action-btn w-full py-3.5 px-6 text-sm text-white flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
                     <span>Send Verification Code</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
 
-            <!-- OR Divider -->
-            <div class="flex items-center my-4">
-                <div class="flex-grow border-t border-[#262626]"></div>
-                <span class="px-4 text-[11px] font-bold text-[#737373] tracking-widest uppercase">OR</span>
-                <div class="flex-grow border-t border-[#262626]"></div>
+            <!-- Bottom Support Help -->
+            <div class="pt-4 border-t border-white/10 flex flex-col items-center justify-center gap-2 text-xs">
+                <span class="text-slate-400">Need help signing in?</span>
+                <a href="mailto:support@ecofone.com" class="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition hover:underline">
+                    Contact System Administrator
+                </a>
             </div>
-
-            <!-- 2FA Passwordless Information -->
-            <div class="text-center space-y-1">
-                <div class="inline-flex items-center gap-1.5 text-xs text-[#0095f6] font-bold hover:underline cursor-pointer">
-                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
-                    <span>Passwordless Security Active</span>
-                </div>
-                <p class="text-[11px] text-[#737373] leading-relaxed">A 6-digit one-time passcode will be delivered to your registered email.</p>
-            </div>
-        </div>
-
-        <!-- Secondary Bottom Box -->
-        <div class="ig-auth-box p-4 text-center text-xs text-[#a8a8a8]">
-            <span>Need help signing in? </span>
-            <a href="mailto:support@ecofone.com" class="text-[#0095f6] font-bold hover:underline">Contact Admin</a>
         </div>
     </div>
-
-    <!-- Instagram Style Minimalist Footer -->
-    <footer class="w-full max-w-2xl text-center py-4 text-[11px] text-[#737373] space-y-2">
-        <div class="flex flex-wrap justify-center gap-x-4 gap-y-1">
-            <span class="hover:underline cursor-pointer">About</span>
-            <span class="hover:underline cursor-pointer">Help</span>
-            <span class="hover:underline cursor-pointer">Privacy</span>
-            <span class="hover:underline cursor-pointer">Terms</span>
-            <span class="hover:underline cursor-pointer">Locations</span>
-            <span class="hover:underline cursor-pointer">Language</span>
-        </div>
-        <div class="text-[10px] text-[#555555]">
-            © <?= date('Y') ?> EcoFone Portal • Enterprise Operations
-        </div>
-    </footer>
 
     <script>
         lucide.createIcons();
