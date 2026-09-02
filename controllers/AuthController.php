@@ -81,7 +81,7 @@ class AuthController {
                 // 4. Generate 6-Digit OTP & Send via Registered Email (Brevo)
                 $otpCode = (string)random_int(100000, 999999);
                 $now = date('Y-m-d H:i:s');
-                $expiresAt = date('Y-m-d H:i:s', time() + 1800); // 30 minutes valid
+                $expiresAt = date('Y-m-d H:i:s', time() + 600); // 10 minutes valid
 
                 $updateStmt = $db->prepare("
                     UPDATE users 
@@ -434,7 +434,7 @@ class AuthController {
         $newResendCount = $resendCount + 1;
         $_SESSION['otp_resend_count'] = $newResendCount;
         $now = date('Y-m-d H:i:s');
-        $expiresAt = date('Y-m-d H:i:s', time() + 1800); // 30 minutes
+        $expiresAt = date('Y-m-d H:i:s', time() + 600); // 10 minutes
 
         $updateStmt = $db->prepare("
             UPDATE users 

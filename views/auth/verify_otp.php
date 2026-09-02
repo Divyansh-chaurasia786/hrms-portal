@@ -331,7 +331,7 @@ $user = $user ?? ['email' => $targetEmail];
 
                 <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 font-medium" id="codeMetaRow">
                     <span class="flex items-center gap-1.5 text-slate-400">
-                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Valid for 30m
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Valid for 10m
                     </span>
                     <span class="text-indigo-400 font-bold flex items-center gap-1">
                         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Verifies in Circle
