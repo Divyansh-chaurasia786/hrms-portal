@@ -47,9 +47,13 @@
                 }
             }
         }
+    <!-- Alpine.js (Reactive UI Engine) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script>
+        if (typeof Alpine === 'undefined') {
+            document.write('<script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"><\/script>');
+        }
     </script>
-    <!-- Client-Side Instant Cache Vault -->
-    <script src="/js/hrms_offline_cache.js"></script>
     <!-- Lucide Icons with Reliable Fallback CDN -->
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
     <script>
@@ -66,6 +70,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        [x-cloak] { display: none !important; }
         body { font-family: 'Inter', sans-serif; }
         /* Strict isolation: Never allow unstyled luckysheet menu spill on non-sheet pages */
         body:not([data-page="admin-smart-sheets"]) .luckysheet-context-menu,

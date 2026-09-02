@@ -414,7 +414,7 @@ $page = $_GET['page'] ?? 'dashboard';
             <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" x-transition:leave="transition ease-in duration-500" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" class="mb-6 p-4 rounded-2xl text-sm font-medium flex items-center justify-between gap-3 shadow-sm <?= $flash['type'] === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : ($flash['type'] === 'warning' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-rose-50 text-rose-800 border border-rose-200') ?>">
                 <div class="flex items-center gap-3">
                     <i data-lucide="<?= $flash['type'] === 'success' ? 'check-circle-2' : ($flash['type'] === 'warning' ? 'alert-triangle' : 'alert-circle') ?>" class="w-5 h-5 shrink-0"></i>
-                    <span><?= htmlspecialchars($flash['message']) ?></span>
+                    <span><?= strip_tags($flash['message'], '<strong><b><em>') ?></span>
                 </div>
                 <button @click="show = false" class="text-slate-400 hover:text-slate-600 transition p-1" title="Close">
                     <i data-lucide="x" class="w-4 h-4"></i>

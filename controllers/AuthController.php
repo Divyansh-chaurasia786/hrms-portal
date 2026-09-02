@@ -274,6 +274,7 @@ class AuthController {
             setcookie('pending_otp_email', '', time() - 3600, '/');
             setcookie('pending_otp_hmac', '', time() - 3600, '/');
             setcookie('pending_otp_exp', '', time() - 3600, '/');
+            unset($_SESSION['flash']); // Wipe stale login OTP notices
 
             // Smart Role Routing
             $redirectUrl = ($user['role'] === 'admin') ? '?page=admin-overview' : (($user['role'] === 'team_lead') ? '?page=tl-dashboard' : '?page=employee-dashboard');
