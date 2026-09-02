@@ -39,13 +39,13 @@ $page = $_GET['page'] ?? 'dashboard';
 
     <!-- Clickable User Profile Badge in Sidebar -->
     <a href="?page=profile" class="p-3 mx-3 my-2.5 bg-slate-800/60 hover:bg-slate-800 rounded-xl border border-slate-700/50 flex items-center gap-3 transition group shrink-0">
-        <img src="<?= $user['avatar'] ?: 'https://ui-avatars.com/api/?name=' . urlencode($user['name']) ?>" class="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/40 group-hover:ring-indigo-400" alt="Avatar">
+        <img src="<?= !empty($user['avatar']) ? htmlspecialchars($user['avatar']) : ('https://ui-avatars.com/api/?name=' . urlencode($user['name'] ?? 'User') . '&background=6366f1&color=fff') ?>" class="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/40 group-hover:ring-indigo-400" alt="Avatar">
         <div class="overflow-hidden flex-1">
             <div class="flex items-center justify-between">
-                <h2 class="text-xs font-semibold text-white truncate"><?= htmlspecialchars($user['name']) ?></h2>
+                <h2 class="text-xs font-semibold text-white truncate"><?= htmlspecialchars($user['name'] ?? 'User') ?></h2>
                 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400"></i>
             </div>
-            <p class="text-[11px] text-slate-400 truncate"><?= htmlspecialchars($user['designation']) ?></p>
+            <p class="text-[11px] text-slate-400 truncate"><?= htmlspecialchars($user['designation'] ?? 'Staff') ?></p>
         </div>
     </a>
 

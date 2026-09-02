@@ -217,11 +217,24 @@ $user = $user ?? ['email' => $targetEmail];
             transition: all 0.4s ease;
         }
         .is-verified #centerVerificationOrb {
-            display: none;
+            display: none !important;
         }
         .is-verified #verificationResultBadge {
-            display: block;
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             animation: successPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .is-verified .submit-action-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.5) !important;
+        }
+        .is-verified #codeMetaRow,
+        .is-verified #footerSection {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
 
         /* State: WRONG OTP (FAILED) */
@@ -525,6 +538,7 @@ $user = $user ?? ['email' => $targetEmail];
                         // ✅ CASE 1: VERIFIED (SUCCESS)
                         authCard.classList.add("is-verified");
                         successContent.classList.remove("hidden");
+                        submitBtnText.innerText = "Redirecting to Dashboard...";
                         if (data.user_name) {
                             welcomeUserText.innerText = `Welcome back, ${data.user_name}!`;
                         }
